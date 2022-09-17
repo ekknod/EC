@@ -222,7 +222,7 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 
 	QWORD total_size = length;
 	QWORD offset = 0;
-	QWORD bytes_read=0;
+	QWORD bytes_write=0;
 
 	QWORD physical_address;
 	QWORD current_size;
@@ -232,11 +232,11 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 		if (!physical_address) {
 			if (total_size >= 0x1000)
 			{
-				bytes_read = 0x1000;
+				bytes_write = 0x1000;
 			}
 			else
 			{
-				bytes_read = total_size;
+				bytes_write = total_size;
 			}
 			goto E0;
 		}
@@ -245,10 +245,10 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 		{
 			break;
 		}
-		bytes_read = current_size;
+		bytes_write = current_size;
 	E0:
-		total_size -= bytes_read;
-		offset += bytes_read;
+		total_size -= bytes_write;
+		offset += bytes_write;
 	}
 	return 1;
 }
@@ -574,7 +574,7 @@ static BOOL pm::write(QWORD address, PVOID buffer, QWORD length)
 	{
 		for (QWORD i = length; i--;)
 		{
-			((BYTE*)buffer)[i] = ((BYTE*)va)[i];
+			((BYTE*)va)[i] = ((BYTE*)buffer)[i];
 		}
 		MmUnmapIoSpace(va, length);
 		return 1;
