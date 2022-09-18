@@ -445,11 +445,11 @@ PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
 	return (PVOID)ret;
 }
 
-void vm::free_module(PVOID dump_module)
+void vm::free_module(PVOID dumped_module)
 {
-	if (dump_module)
+	if (dumped_module)
 	{
-		QWORD a0 = (QWORD)dump_module;
+		QWORD a0 = (QWORD)dumped_module;
 		a0 -= 16;
 
 		ExFreePoolWithTag((void*)a0, 'ofnI');

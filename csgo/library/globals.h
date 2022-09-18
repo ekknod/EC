@@ -444,7 +444,7 @@ namespace vm
 	QWORD     get_module_export(vm_handle process, QWORD base, PCSTR export_name);
 
 	PVOID     dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
-	void      free_module(PVOID dump_module);
+	void      free_module(PVOID dumped_module);
 	QWORD     scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length);
 }
 
