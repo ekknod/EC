@@ -1,5 +1,5 @@
-#include "../library/globals.h"
-
+#include "../shared/shared.h"
+int _fltused;
 
 //
 // used by vm.cpp

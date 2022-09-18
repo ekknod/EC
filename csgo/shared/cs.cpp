@@ -1,9 +1,8 @@
-#include "globals.h"
+#include "cs.h"
 
-#ifdef _KERNEL_MODE
-int _fltused;
-#endif
-
+//
+// private data. only available for cs.cpp
+//
 namespace cs
 {
 	vm_handle csgo_handle              = 0;

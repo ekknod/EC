@@ -1,4 +1,8 @@
-#include "globals.h"
+#include "shared.h"
+
+//
+// private data. only available for features.cpp
+//
 
 namespace features
 {

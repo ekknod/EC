@@ -1,4 +1,4 @@
-#include "../library/globals.h"
+#include "../shared/shared.h"
 
 namespace input
 {

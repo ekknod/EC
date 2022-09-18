@@ -1,16 +1,7 @@
-/*
- * originally written in C (2019), ported to C++ (17/09/2022)
- * i think code is easier to understand when it's written with C++.
- * 
- * what EC-CSGO open-source version lacks of(?)
- * - security features
- *
- */
+#ifndef MATH_H
+#define MATH_H
 
-
-#ifndef GLOBALS_H
-#define GLOBALS_H
-
+typedef float matrix3x4_t[3][4];
 
 typedef struct {
 	float x, y;
@@ -19,64 +10,6 @@ typedef struct {
 typedef struct {
 	float x, y, z;
 } vec3 ;
-
-//
-// debugging 
-//
-// #define DEBUG
-
-
-#ifndef _KERNEL_MODE
-#define DEBUG
-#endif
-
-
-#ifdef _KERNEL_MODE
-extern "C" extern int _fltused;
-#include <ntifs.h>
-#else
-#include <windows.h>
-#endif
-
-#ifdef DEBUG
-#include <stdio.h>
-#endif
-
-#ifdef _KERNEL_MODE
-	#define LOG DbgPrint
-#else
-	#define LOG printf
-#endif
-
-#ifdef _KERNEL_MODE
-typedef unsigned __int8  BYTE;
-typedef unsigned __int16 WORD;
-typedef unsigned __int32 DWORD;
-typedef unsigned __int64 QWORD;
-typedef int BOOL;
-
-extern PPHYSICAL_MEMORY_RANGE g_memory_range;
-extern int g_memory_range_count;
-
-inline int _strcmpi(const char* s1, const char* s2)
-{	
-	while(*s1 && (tolower(*s1) == tolower(*s2)))
-	{
-		s1++;
-		s2++;
-	}
-	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
-}
-
-
-#else
-typedef unsigned __int64 QWORD;
-#endif
-
-#ifndef MATRIX_3X4
-#define MATRIX_3X4
-typedef float matrix3x4_t[3][4];
-#endif
 
 #define X_PI 3.14159f 
 #define X_DIV 57.29577f
@@ -373,7 +306,7 @@ namespace math
 		return vangle;
 	}
 
-	inline BOOL vec_min_max(vec3 eye, vec3 dir, vec3 min, vec3 max, float radius)
+	inline bool vec_min_max(vec3 eye, vec3 dir, vec3 min, vec3 max, float radius)
 	{
 	    vec3     delta;
 	    int      i;
@@ -405,152 +338,5 @@ namespace math
 	}
 }
 
-typedef void  *vm_handle;
-
-enum class VM_MODULE_TYPE {
-	Full = 1,
-	CodeSectionsOnly = 2,
-	Raw = 3 // used for dump to file
-} ;
-
-namespace vm
-{
-	BOOL      process_exists(PCSTR process_name);
-	vm_handle open_process(PCSTR process_name);
-	vm_handle open_process_ex(PCSTR process_name, PCSTR dll_name);
-	vm_handle open_process_by_module_name(PCSTR dll_name);
-	void      close(vm_handle process);
-	BOOL      running(vm_handle process);
-
-	BOOL      read(vm_handle process, QWORD address, PVOID buffer, QWORD length);
-	BYTE      read_i8(vm_handle process, QWORD address);
-	WORD      read_i16(vm_handle process, QWORD address);
-	DWORD     read_i32(vm_handle process, QWORD address);
-	QWORD     read_i64(vm_handle process, QWORD address);
-	float     read_float(vm_handle process, QWORD address);
-
-	BOOL      write(vm_handle process, QWORD address, PVOID buffer, QWORD length);
-	BOOL      write_i8(vm_handle process, QWORD address, BYTE value);
-	BOOL      write_i16(vm_handle process, QWORD address, WORD value);
-	BOOL      write_i32(vm_handle process, QWORD address, DWORD value);
-	BOOL      write_i64(vm_handle process, QWORD address, QWORD value);
-	BOOL      write_float(vm_handle process, QWORD address, float value);
-
-	QWORD     get_relative_address(vm_handle process, QWORD instruction, DWORD offset, DWORD instruction_size);
-	QWORD     get_peb(vm_handle process);
-	QWORD     get_wow64_process(vm_handle process);
-
-	QWORD     get_module(vm_handle process, PCSTR dll_name);
-	QWORD     get_module_export(vm_handle process, QWORD base, PCSTR export_name);
-
-	PVOID     dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
-	void      free_module(PVOID dumped_module);
-	QWORD     scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length);
-}
-
-
-typedef DWORD C_Player;
-typedef DWORD C_TeamList;
-typedef DWORD C_Team;
-typedef DWORD C_PlayerList;
-
-namespace cs
-{
-	enum class WEAPON_CLASS {
-		Invalid = 0,
-		Knife = 1,
-		Grenade = 2,
-		Pistol = 3,
-		Sniper = 4,
-		Rifle = 5,
-	} ;
-
-	BOOL  running(void);
-
-	namespace teams
-	{
-		C_Player     get_local_player(void);
-		C_TeamList   get_team_list(void);
-		int          get_team_count(void);
-		C_Team       get_team(C_TeamList team_list, int index);
-		int          get_team_num(C_Team team);
-		int          get_player_count(C_Team team);
-		C_PlayerList get_player_list(C_Team team);
-		C_Player     get_player(C_PlayerList player_list, int index);
-		BOOL         contains_player(C_PlayerList player_list, int player_count, int index);
-	}
-
-	namespace engine
-	{
-		vec2  get_viewangles(void);
-		float get_sensitivity(void);
-		BOOL  is_gamemode_ffa(void);
-		DWORD get_current_tick(void);
-	}
-
-	namespace input
-	{
-		BOOL  get_button_state(DWORD button);
-		void  mouse_move(int x, int y);
-	}
-
-	//
-	// use it with teams
-	//
-	namespace player
-	{
-
-		BOOL         is_valid(C_Player player_address);
-		BOOL         is_visible(C_Player local_player, C_Player player);
-		BOOL         is_defusing(C_Player player_address);
-		BOOL         has_defuser(C_Player player_address);
-		int          get_player_id(C_Player player_address);
-		int          get_crosshair_id(C_Player player_address);
-		BOOL         get_dormant(C_Player player_address);
-		int          get_life_state(C_Player player_address);
-		int          get_health(C_Player player_address);
-		int          get_shots_fired(C_Player player_address);
-		vec2         get_vec_punch(C_Player player_address);
-		int          get_fov(C_Player player_address);
-		DWORD        get_weapon_handle(C_Player player_address);
-		WEAPON_CLASS get_weapon_class(C_Player player_address);
-		vec3         get_eye_position(C_Player player_address);
-		BOOL         get_bone_position(C_Player player_address, int bone_index, matrix3x4_t *matrix);
-	}
-}
-
-namespace input
-{
-	void mouse_move(int x, int y);
-	void mouse1_down(void);
-	void mouse1_up(void);
-}
-
-namespace features
-{
-	void run(void);
-}
-
-namespace csgo
-{
-	inline void run(void)
-	{
-		if (cs::running())
-		{
-			features::run();
-		}
-	}
-}
-
-namespace config
-{
-	extern BOOL  rcs;
-	extern DWORD aimbot_button;
-	extern float aimbot_fov;
-	extern float aimbot_smooth;
-	extern BOOL  aimbot_visibility_check;
-	extern DWORD triggerbot_button;
-}
-
-#endif // GLOBALS_H
+#endif /* math.h */
 

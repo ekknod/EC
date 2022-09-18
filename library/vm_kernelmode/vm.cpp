@@ -1,164 +1,165 @@
-#include "../globals.h"
-#include <TlHelp32.h>
+#include "../vm.h"
 
-#pragma comment(lib, "ntdll.lib")
+namespace pm
+{
+	static BOOL  read(QWORD address, PVOID buffer, QWORD length, QWORD* ret);
+	static BOOL  write(QWORD address, PVOID buffer, QWORD length);
+	static QWORD read_i64(QWORD address);
+	static QWORD translate(QWORD dir, QWORD va);
+}
 
-extern "C" __kernel_entry NTSTATUS NtQueryInformationProcess(
-	HANDLE           ProcessHandle,
-	ULONG            ProcessInformationClass,
-	PVOID            ProcessInformation,
-	ULONG            ProcessInformationLength,
-	PULONG           ReturnLength
-);
+extern "C" __declspec(dllimport) PCSTR PsGetProcessImageFileName(PEPROCESS);
+extern "C" __declspec(dllimport) BOOLEAN PsGetProcessExitProcessCalled(PEPROCESS);
+extern "C" __declspec(dllimport) PVOID PsGetProcessPeb(PEPROCESS);
+extern "C" __declspec(dllimport) PVOID PsGetProcessWow64Process(PEPROCESS);
+
+static vm_handle get_process_by_name(PCSTR process_name)
+{
+	QWORD process;
+	QWORD entry;
+
+	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)PsGetProcessId + 3) + 8;
+	process = (QWORD)PsInitialSystemProcess;
+
+	entry = process;
+	do {
+		if (PsGetProcessExitProcessCalled((PEPROCESS)entry))
+			goto L0;
+
+		if (PsGetProcessImageFileName((PEPROCESS)entry) &&
+			_strcmpi(PsGetProcessImageFileName((PEPROCESS)entry), process_name) == 0) {
+			return (vm_handle)entry;
+		}
+	L0:
+		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
+	} while (entry != process);
+
+	return 0;
+}
 
 BOOL vm::process_exists(PCSTR process_name)
 {
-	BOOL found = 0;
-
-	PROCESSENTRY32 entry;
-	entry.dwSize = sizeof(PROCESSENTRY32);
-
-	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-	while (Process32Next(snapshot, &entry))
-	{
-		if (!_strcmpi(entry.szExeFile, process_name))
-		{
-			found = 1;
-			break;
-		}
-	}
-
-	CloseHandle(snapshot);
-
-	return found;
+	return get_process_by_name(process_name) != 0;
 }
 
 vm_handle vm::open_process(PCSTR process_name)
 {
-	vm_handle process_handle = 0;
-
-	PROCESSENTRY32 entry;
-	entry.dwSize = sizeof(PROCESSENTRY32);
-
-	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-	while (Process32Next(snapshot, &entry))
-	{
-		if (!_strcmpi(entry.szExeFile, process_name))
-		{
-			process_handle = OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
-			break;
-		}
-	}
-
-	CloseHandle(snapshot);
-
-	return process_handle;
+	return get_process_by_name(process_name);
 }
 
 vm_handle vm::open_process_ex(PCSTR process_name, PCSTR dll_name)
 {
-	vm_handle process_handle = 0;
+	QWORD process;
+	QWORD entry;
 
-	PROCESSENTRY32 entry;
-	entry.dwSize = sizeof(PROCESSENTRY32);
+	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)PsGetProcessId + 3) + 8;
+	process = (QWORD)PsInitialSystemProcess;
 
-	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	entry = process;
+	do {
+		if (PsGetProcessExitProcessCalled((PEPROCESS)entry))
+			goto L0;
 
-	while (Process32Next(snapshot, &entry))
-	{
-		if (!_strcmpi(entry.szExeFile, process_name))
-		{
-			process_handle = OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
+		if (PsGetProcessImageFileName((PEPROCESS)entry) &&
+			_strcmpi(PsGetProcessImageFileName((PEPROCESS)entry), process_name) == 0) {
 
-			if (!process_handle)
-			{
-				continue;
-			}
-
-			if (get_module(process_handle, dll_name))
-			{
-				break;
-			}
-
-			CloseHandle(process_handle);
-			process_handle = 0;
+			if (get_module((vm_handle)entry, dll_name))
+				return (vm_handle)entry;
 		}
-	}
+	L0:
+		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
+	} while (entry != process);
 
-	CloseHandle(snapshot);
-
-	return process_handle;
+	return 0;
 }
 
 vm_handle vm::open_process_by_module_name(PCSTR dll_name)
 {
-	vm_handle process_handle = 0;
+	QWORD process;
+	QWORD entry;
 
-	PROCESSENTRY32 entry;
-	entry.dwSize = sizeof(PROCESSENTRY32);
+	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)PsGetProcessId + 3) + 8;
+	process = (QWORD)PsInitialSystemProcess;
 
-	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	entry = process;
+	do {
+		if (PsGetProcessExitProcessCalled((PEPROCESS)entry))
+			goto L0;
 
-	while (Process32Next(snapshot, &entry))
-	{
-		process_handle = OpenProcess(PROCESS_ALL_ACCESS, 0, entry.th32ProcessID);
+		if (get_module((vm_handle)entry, dll_name))
+			return (vm_handle)entry;
+	L0:
+		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
+	} while (entry != process);
 
-		if (!process_handle)
-		{
-			continue;
-		}
-
-		if (get_module(process_handle, dll_name))
-		{
-			break;
-		}
-
-		CloseHandle(process_handle);
-		process_handle = 0;
-	}
-
-	CloseHandle(snapshot);
-
-	return process_handle;
+	return 0;
 }
 
 void vm::close(vm_handle process)
 {
-	if (process)
-	{
-		CloseHandle(process);
-	}
+	//
+	// do nothing
+	//
+	UNREFERENCED_PARAMETER(process);
 }
 
 BOOL vm::running(vm_handle process)
 {
-	if (!process)
+	if (process == 0)
 		return 0;
-
-	DWORD ret = 0;
-	GetExitCodeProcess(process, &ret);
-
-	return ret == STATUS_PENDING;
+	return PsGetProcessExitProcessCalled((PEPROCESS)process) == 0;
 }
 
 BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 {
 	if (process == 0)
-		return 0;
-
-	SIZE_T ret = 0;
-	if (!ReadProcessMemory(process, (LPCVOID)address, buffer, length, &ret))
 	{
 		return 0;
 	}
-	return ret == length;
+
+	QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
+	if (cr3 == 0)
+	{
+		return 0;
+	}
+
+	QWORD total_size = length;
+	QWORD offset = 0;
+	QWORD bytes_read=0;
+	QWORD physical_address;
+	QWORD current_size;
+
+	while (total_size)
+	{
+		physical_address = pm::translate(cr3, address + offset);
+		if (!physical_address)
+		{
+			if (total_size >= 0x1000)
+			{
+				bytes_read = 0x1000;
+			}
+			else
+			{
+				bytes_read = total_size;
+			}
+			goto E0;
+		}
+
+		current_size = min(0x1000 - (physical_address & 0xFFF), total_size);
+		if (!pm::read(physical_address, (PVOID)((QWORD)buffer + offset), current_size, &bytes_read))
+		{
+			break;
+		}
+	E0:
+		total_size -= bytes_read;
+		offset += bytes_read;
+	}
+	return 1;
 }
 
 BYTE vm::read_i8(vm_handle process, QWORD address)
 {
-	BYTE result = 0;
+	BYTE result;
 	if (!read(process, address, &result, sizeof(result)))
 	{
 		return 0;
@@ -168,7 +169,7 @@ BYTE vm::read_i8(vm_handle process, QWORD address)
 
 WORD vm::read_i16(vm_handle process, QWORD address)
 {
-	WORD result = 0;
+	WORD result;
 	if (!read(process, address, &result, sizeof(result)))
 	{
 		return 0;
@@ -178,7 +179,7 @@ WORD vm::read_i16(vm_handle process, QWORD address)
 
 DWORD vm::read_i32(vm_handle process, QWORD address)
 {
-	DWORD result = 0;
+	DWORD result;
 	if (!read(process, address, &result, sizeof(result)))
 	{
 		return 0;
@@ -188,7 +189,7 @@ DWORD vm::read_i32(vm_handle process, QWORD address)
 
 QWORD vm::read_i64(vm_handle process, QWORD address)
 {
-	QWORD result = 0;
+	QWORD result;
 	if (!read(process, address, &result, sizeof(result)))
 	{
 		return 0;
@@ -198,7 +199,7 @@ QWORD vm::read_i64(vm_handle process, QWORD address)
 
 float vm::read_float(vm_handle process, QWORD address)
 {
-	float result = 0;
+	float result;
 	if (!read(process, address, &result, sizeof(result)))
 	{
 		return 0;
@@ -209,14 +210,47 @@ float vm::read_float(vm_handle process, QWORD address)
 BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 {
 	if (process == 0)
-		return 0;
-
-	SIZE_T ret = 0;
-	if (!WriteProcessMemory(process, (LPVOID)address, buffer, length, &ret))
 	{
 		return 0;
 	}
-	return ret == length;
+
+	QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
+	if (cr3 == 0)
+	{
+		return 0;
+	}
+
+	QWORD total_size = length;
+	QWORD offset = 0;
+	QWORD bytes_write=0;
+
+	QWORD physical_address;
+	QWORD current_size;
+
+	while (total_size) {
+		physical_address = pm::translate(cr3, address + offset);
+		if (!physical_address) {
+			if (total_size >= 0x1000)
+			{
+				bytes_write = 0x1000;
+			}
+			else
+			{
+				bytes_write = total_size;
+			}
+			goto E0;
+		}
+		current_size = min(0x1000 - (physical_address & 0xFFF), total_size);
+		if (!pm::write(physical_address, (PVOID)((QWORD)buffer + offset), current_size))
+		{
+			break;
+		}
+		bytes_write = current_size;
+	E0:
+		total_size -= bytes_write;
+		offset += bytes_write;
+	}
+	return 1;
 }
 
 BOOL vm::write_i8(vm_handle process, QWORD address, BYTE value)
@@ -252,29 +286,16 @@ QWORD vm::get_relative_address(vm_handle process, QWORD instruction, DWORD offse
 
 QWORD vm::get_peb(vm_handle process)
 {
-	QWORD peb[6];
-
-	if (NtQueryInformationProcess(process, 0, &peb, 48, 0) != 0)
-	{
+	if (process == 0)
 		return 0;
-	}
-
-	return peb[1];
+	return (QWORD)PsGetProcessPeb((PEPROCESS)process);
 }
 
 QWORD vm::get_wow64_process(vm_handle process)
 {
-	QWORD wow64_process;
-
 	if (process == 0)
 		return 0;
-
-	if (NtQueryInformationProcess(process, 26, &wow64_process, 8, 0) != 0)
-	{
-		return 0;
-	}
-
-	return wow64_process;
+	return (QWORD)PsGetProcessWow64Process((PEPROCESS)process);
 }
 
 QWORD vm::get_module(vm_handle process, PCSTR dll_name)
@@ -387,7 +408,7 @@ PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
 		return 0;
 	}
 
-	ret = (BYTE*)malloc(image_size + 16);
+	ret = (BYTE*)ExAllocatePoolWithTag(NonPagedPool, image_size + 16, 'ofnI');
 	if (ret == 0)
 		return 0;
 
@@ -414,7 +435,6 @@ PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
 				continue;
 		}
 
-
 		QWORD target_address = (QWORD)ret + read_i32(process, section + ((module_type == VM_MODULE_TYPE::Raw) ? 0x14 : 0x0C));
 		QWORD virtual_address = base + read_i32(process, section + 0x0C);
 		DWORD virtual_size = read_i32(process, section + 0x08);
@@ -427,10 +447,13 @@ PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
 
 void vm::free_module(PVOID dumped_module)
 {
-	QWORD a0 = (QWORD)dumped_module;
+	if (dumped_module)
+	{
+		QWORD a0 = (QWORD)dumped_module;
+		a0 -= 16;
 
-	a0 -= 16;
-	free((void*)a0);
+		ExFreePoolWithTag((void*)a0, 'ofnI');
+	}
 }
 
 static BOOL bDataCompare(const BYTE* pData, const BYTE* bMask, const char* szMask)
@@ -490,5 +513,117 @@ QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD len
 
 	}
 	return ret;
+}
+
+static BYTE MM_COPY_BUFFER[0x1000];
+static BOOL pm::read(QWORD address, PVOID buffer, QWORD length, QWORD* ret)
+{
+	PHYSICAL_MEMORY_RANGE low_address  = g_memory_range[0];
+	PHYSICAL_MEMORY_RANGE high_address = g_memory_range[g_memory_range_count - 1];
+
+	if (address < (QWORD)low_address.BaseAddress.QuadPart)
+	{
+		return 0;
+	}
+
+	if (address + length > (QWORD)(high_address.BaseAddress.QuadPart + high_address.NumberOfBytes.QuadPart))
+	{
+		return 0;
+	}
+
+	if (length > 0x1000)
+	{
+		length = 0x1000;
+	}
+
+	MM_COPY_ADDRESS physical_address;
+	physical_address.PhysicalAddress.QuadPart = (LONGLONG)address;
+
+	BOOL v = MmCopyMemory(MM_COPY_BUFFER, physical_address, length, MM_COPY_MEMORY_PHYSICAL, &length) == 0;
+	if (v)
+	{
+		for (QWORD i = length; i--;)
+		{
+			((unsigned char*)buffer)[i] = ((unsigned char*)MM_COPY_BUFFER)[i];
+		}
+	}
+
+	if (ret)
+		*ret = length;
+
+	return v;
+}
+
+static BOOL pm::write(QWORD address, PVOID buffer, QWORD length)
+{
+	PHYSICAL_MEMORY_RANGE low_address = g_memory_range[0];
+	PHYSICAL_MEMORY_RANGE high_address = g_memory_range[g_memory_range_count - 1];
+
+	if (address < (QWORD)low_address.BaseAddress.QuadPart)
+	{
+		return 0;
+	}
+
+	if (address + length > (QWORD)(high_address.BaseAddress.QuadPart + high_address.NumberOfBytes.QuadPart))
+	{
+		return 0;
+	}
+
+	PVOID va = MmMapIoSpace(*(PHYSICAL_ADDRESS*)&address, length, MEMORY_CACHING_TYPE::MmNonCached);
+	if (va)
+	{
+		for (QWORD i = length; i--;)
+		{
+			((BYTE*)va)[i] = ((BYTE*)buffer)[i];
+		}
+		MmUnmapIoSpace(va, length);
+		return 1;
+	}
+	return 0;
+}
+
+static QWORD pm::read_i64(QWORD address)
+{
+	QWORD result;
+	if (!read(address, &result, sizeof(result), 0))
+	{
+		return 0;
+	}
+	return result;
+}
+
+static QWORD pm::translate(QWORD dir, QWORD va)
+{
+	__int64 v2; // rax
+	__int64 v3; // rax
+	__int64 v5; // rax
+	__int64 v6; // rax
+
+	v2 = pm::read_i64(8 * ((va >> 39) & 0x1FF) + dir);
+	if ( !v2 )
+		return 0i64;
+
+	if ( (v2 & 1) == 0 )
+		return 0i64;
+
+	v3 = pm::read_i64((v2 & 0xFFFFFFFFF000i64) + 8 * ((va >> 30) & 0x1FF));
+	if ( !v3 || (v3 & 1) == 0 )
+		return 0i64;
+
+	if ( (v3 & 0x80u) != 0i64 )
+		return (va & 0x3FFFFFFF) + (v3 & 0xFFFFFFFFF000i64);
+
+	v5 = pm::read_i64((v3 & 0xFFFFFFFFF000i64) + 8 * ((va >> 21) & 0x1FF));
+	if ( !v5 || (v5 & 1) == 0 )
+		return 0i64;
+
+	if ( (v5 & 0x80u) != 0i64 )
+		return (va & 0x1FFFFF) + (v5 & 0xFFFFFFFFF000i64);
+
+	v6 = pm::read_i64((v5 & 0xFFFFFFFFF000i64) + 8 * ((va >> 12) & 0x1FF));
+	if ( v6 && (v6 & 1) != 0 )
+		return (va & 0xFFF) + (v6 & 0xFFFFFFFFF000i64);
+
+	return 0i64;
 }
 

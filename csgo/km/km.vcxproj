@@ -164,16 +164,20 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\library\cs.cpp" />
-    <ClCompile Include="..\library\features.cpp" />
-    <ClCompile Include="..\library\vm_kernelmode\vm.cpp" />
+    <ClCompile Include="..\..\library\vm_kernelmode\vm.cpp" />
+    <ClCompile Include="..\shared\cs.cpp" />
+    <ClCompile Include="..\shared\features.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\library\globals.h" />
+    <MASM Include="mouse.asm" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="mouse.asm" />
+    <ClInclude Include="..\..\library\math.h" />
+    <ClInclude Include="..\..\library\vm.h" />
+    <ClInclude Include="..\shared\cs.h" />
+    <ClInclude Include="..\shared\features.h" />
+    <ClInclude Include="..\shared\globals.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
