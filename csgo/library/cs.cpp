@@ -197,12 +197,18 @@ BOOL cs::player::is_valid(C_Player player_address)
 
 	DWORD player_health = get_health(player_address);
 
-	if (player_health == 0)
+	if (player_health < 1)
 	{
 		return 0;
 	}
 
 	if (player_health > 150)
+	{
+		return 0;
+	}
+
+	int player_lifestate = get_life_state(player_address);
+	if (player_lifestate != 0)
 	{
 		return 0;
 	}
@@ -248,7 +254,11 @@ BOOL cs::player::get_dormant(C_Player player_address)
 
 int cs::player::get_life_state(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_lifeState);
+	if (use_dormant_check)
+	{
+		return vm::read_i32(csgo_handle, player_address + m_lifeState);
+	}
+	return 0;
 }
 
 int cs::player::get_health(C_Player player_address)

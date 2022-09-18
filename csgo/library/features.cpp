@@ -236,8 +236,8 @@ void features::standalone_rcs(C_Player local_player)
 			(int)(((x - viewangles.x) / sensitivity) / 0.022f);
 
 
-		input::mouse_move(final_angle_x, final_angle_y);
-		// cs::input::mouse_move(final_angle_x, final_angle_y);
+		// input::mouse_move(final_angle_x, final_angle_y);
+		cs::input::mouse_move(final_angle_x, final_angle_y);
 	}
 	m_rcs_old_punch = current_punch;
 }
@@ -482,8 +482,8 @@ void features::aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_
 	if (current_tick - m_previous_tick > aim_ticks)
 	{
 		m_previous_tick = current_tick;
-		input::mouse_move((int)sx, (int)sy);
-		// cs::input::mouse_move((int)sx, (int)sy);
+		// input::mouse_move((int)sx, (int)sy);
+		cs::input::mouse_move((int)sx, (int)sy);
 	}
 }
 
