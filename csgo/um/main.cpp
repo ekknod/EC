@@ -30,7 +30,7 @@ namespace config
 
 int main(void)
 {
-	config::rcs = TRUE;
+	config::rcs = 0;
 	config::aimbot_button = 110;
 	config::aimbot_fov = 2.0f;
 	config::aimbot_smooth = 100.0f;

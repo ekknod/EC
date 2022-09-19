@@ -10,7 +10,6 @@ namespace features
 	static float m_rcs_old_temp_punch_x = 0;
 	static DWORD m_rcs_old_shots_fired = 0;
 
-	static vec2  m_aimbot_old_punch{ 0, 0 };
 	static float m_aimbot_old_temp_punch_x = 0;
 	static DWORD m_aimbot_old_shots_fired = 0;
 
@@ -215,7 +214,11 @@ static void features::standalone_rcs(C_Player local_player)
 		new_punch.x = current_punch.x - m_rcs_old_punch.x;
 		new_punch.y = current_punch.y - m_rcs_old_punch.y;
 
-		if (shots_fired > m_rcs_old_shots_fired && m_rcs_old_shots_fired < new_punch.x)
+
+		//
+		// https://www.bilibili.com/video/BV1Ma4y147TS
+		//
+		if (shots_fired > m_rcs_old_shots_fired && m_rcs_old_temp_punch_x < new_punch.x)
 		{
 			new_punch.x = m_rcs_old_temp_punch_x;
 		}
@@ -525,23 +528,26 @@ static vec3 features::get_target_angle(C_Player local_player, vec3 matrix, DWORD
 	math::vec_normalize(&c);
 	math::vec_angles(c, &c);
 
-	vec2 current_punch = cs::player::get_vec_punch(local_player);
-	DWORD bct = cs::player::get_shots_fired(local_player);
-	if (bct > bullet_count)
+	vec2 new_punch = cs::player::get_vec_punch(local_player);
+	DWORD shots_fired = cs::player::get_shots_fired(local_player);
+	if (shots_fired > bullet_count)
 	{
-		vec2 p = current_punch;
+		vec2 p = new_punch;
 
-		if (m_aimbot_old_temp_punch_x < p.x && bct > m_aimbot_old_shots_fired) {
-			p.x = m_aimbot_old_temp_punch_x;
+		//
+		// https://www.bilibili.com/video/BV1Ma4y147TS
+		//
+		if (shots_fired > m_aimbot_old_shots_fired && m_aimbot_old_temp_punch_x < p.x)
+		{
+			new_punch.x = m_aimbot_old_temp_punch_x;
 		}
+
+		m_aimbot_old_shots_fired = shots_fired;
+		m_aimbot_old_temp_punch_x = new_punch.x;
 
 		c.x -= p.x * 2.0f;
 		c.y -= p.y * 2.0f;
-
-		m_aimbot_old_temp_punch_x = p.x;
-		m_aimbot_old_shots_fired = bct;
 	}
-	m_aimbot_old_punch = current_punch;
 	math::vec_clamp(&c);
 	return c;
 }
