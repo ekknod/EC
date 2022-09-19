@@ -33,7 +33,7 @@ namespace features
 	static void     standalone_rcs(C_Player local_player);
 	static BOOL     triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class);
 	static void     aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
-	static vec3     get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count);
+	static vec3     get_target_angle(C_Player local_player, vec3 position, DWORD bullet_count);
 	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
 }
 
@@ -511,45 +511,39 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	}
 }
 
-static vec3 features::get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count)
+static vec3 features::get_target_angle(C_Player local_player, vec3 position, DWORD bullet_count)
 {
-	vec3 m;
-	vec3 c;
+	vec3 eye_position = cs::player::get_eye_position(local_player);
+	vec3 angle = position;
 
-	m = matrix;
-	c = cs::player::get_eye_position(local_player);
-	m.x -= c.x;
-	m.y -= c.y;
-	m.z -= c.z;
-	c.x = m.x;
-	c.y = m.y;
-	c.z = m.z;
+	angle.x = position.x - eye_position.x;
+	angle.y = position.y - eye_position.y;
+	angle.z = position.z - eye_position.z;
 
-	math::vec_normalize(&c);
-	math::vec_angles(c, &c);
+	math::vec_normalize(&angle);
+	math::vec_angles(angle, &angle);
 
-	vec2 new_punch = cs::player::get_vec_punch(local_player);
-	DWORD shots_fired = cs::player::get_shots_fired(local_player);
-	if (shots_fired > bullet_count)
+	vec2 current_punch = cs::player::get_vec_punch(local_player);
+	DWORD current_shots_fired = cs::player::get_shots_fired(local_player);
+	if (current_shots_fired > bullet_count)
 	{
-		vec2 p = new_punch;
 
 		//
 		// https://www.bilibili.com/video/BV1Ma4y147TS
 		//
-		if (shots_fired > m_aimbot_old_shots_fired && m_aimbot_old_temp_punch_x < p.x)
+		if (current_shots_fired > m_aimbot_old_shots_fired && m_aimbot_old_temp_punch_x < current_punch.x)
 		{
-			new_punch.x = m_aimbot_old_temp_punch_x;
+			current_punch.x = m_aimbot_old_temp_punch_x;
 		}
 
-		m_aimbot_old_shots_fired = shots_fired;
-		m_aimbot_old_temp_punch_x = new_punch.x;
+		m_aimbot_old_shots_fired = current_shots_fired;
+		m_aimbot_old_temp_punch_x = current_punch.x;
 
-		c.x -= p.x * 2.0f;
-		c.y -= p.y * 2.0f;
+		angle.x -= current_punch.x * 2.0f;
+		angle.y -= current_punch.y * 2.0f;
 	}
-	math::vec_clamp(&c);
-	return c;
+	math::vec_clamp(&angle);
+	return angle;
 }
 
 static C_Player features::get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team)
