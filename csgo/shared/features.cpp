@@ -6,21 +6,21 @@
 
 namespace features
 {
-	vec2  m_rcs_old_punch{ 0, 0 };
-	float m_rcs_old_temp_punch_x = 0;
-	DWORD m_rcs_old_shots_fired = 0;
+	static vec2  m_rcs_old_punch{ 0, 0 };
+	static float m_rcs_old_temp_punch_x = 0;
+	static DWORD m_rcs_old_shots_fired = 0;
 
-	vec2  m_aimbot_old_punch{ 0, 0 };
-	float m_aimbot_old_temp_punch_x = 0;
-	DWORD m_aimbot_old_shots_fired = 0;
+	static vec2  m_aimbot_old_punch{ 0, 0 };
+	static float m_aimbot_old_temp_punch_x = 0;
+	static DWORD m_aimbot_old_shots_fired = 0;
 
-	BOOL  m_previous_button = 0;
-	cs::WEAPON_CLASS m_weapon_class = cs::WEAPON_CLASS::Invalid;
-	C_Player m_previous_target = 0;
-	C_Team   m_previous_team = 0;
-	DWORD    m_previous_tick = 0;
-	QWORD    m_mouse_down_ms = 0;
-	QWORD    m_mouse_click_interval = 0;
+	static BOOL  m_previous_button = 0;
+	static cs::WEAPON_CLASS m_weapon_class = cs::WEAPON_CLASS::Invalid;
+	static C_Player m_previous_target = 0;
+	static C_Team   m_previous_team = 0;
+	static DWORD    m_previous_tick = 0;
+	static QWORD    m_mouse_down_ms = 0;
+	static QWORD    m_mouse_click_interval = 0;
 
 	void reset(void)
 	{
@@ -31,15 +31,15 @@ namespace features
 		m_weapon_class = cs::WEAPON_CLASS::Invalid;
 	}
 
-	void  standalone_rcs(C_Player local_player);
-	BOOL  triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class);
-	void  aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
-	vec3  get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count);
-	C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
+	static void     standalone_rcs(C_Player local_player);
+	static BOOL     triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class);
+	static void     aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
+	static vec3     get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count);
+	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
 }
 
 static INT64 get_random_number();
-static QWORD get_ms();
+static QWORD get_milli_seconds();
 static INT64 random_number(int min, int max)
 {
 	return min + get_random_number() % (max + 1 - min);
@@ -52,7 +52,7 @@ void features::run(void)
 	//
 	if (m_mouse_down_ms)
 	{
-		QWORD ms = get_ms();
+		QWORD ms = get_milli_seconds();
 		if (ms > m_mouse_click_interval)
 		{
 			input::mouse1_up();
@@ -203,7 +203,7 @@ void features::run(void)
 	}
 }
 
-void features::standalone_rcs(C_Player local_player)
+static void features::standalone_rcs(C_Player local_player)
 {
 
 	vec2 current_punch = cs::player::get_vec_punch(local_player);
@@ -247,7 +247,7 @@ void features::standalone_rcs(C_Player local_player)
 	m_rcs_old_punch = current_punch;
 }
 
-BOOL features::triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class)
+static BOOL features::triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class)
 {
 	//
 	// force head only for pistols and scout (class Pistol contains ssg08)
@@ -363,7 +363,7 @@ BOOL features::triggerbot(C_Player local_player, C_Player target_player, C_Team 
 
 	if (found)
 	{
-		QWORD ms = get_ms();
+		QWORD ms = get_milli_seconds();
 		if (m_mouse_click_interval < ms)
 		{
 			m_mouse_down_ms = ms;
@@ -375,7 +375,7 @@ BOOL features::triggerbot(C_Player local_player, C_Player target_player, C_Team 
 	return head_only;
 }
 
-void features::aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only)
+static void features::aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only)
 {
 	if (config::aimbot_visibility_check && !cs::player::is_visible(local_player, target_player))
 	{
@@ -508,7 +508,7 @@ void features::aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_
 	}
 }
 
-vec3 features::get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count)
+static vec3 features::get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet_count)
 {
 	vec3 m;
 	vec3 c;
@@ -546,7 +546,7 @@ vec3 features::get_target_angle(C_Player local_player, vec3 matrix, DWORD bullet
 	return c;
 }
 
-C_Player features::get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team)
+static C_Player features::get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team)
 {
 	C_Player target_address = 0;
 	float best_fov = 360.0f;
@@ -737,7 +737,7 @@ static INT64 get_random_number()
 #endif
 }
 
-static QWORD get_ms()
+static QWORD get_milli_seconds()
 {
 #ifdef _KERNEL_MODE
 	LARGE_INTEGER start_time;

@@ -5,15 +5,15 @@
 //
 namespace cs
 {
-	vm_handle csgo_handle              = 0;
-	BOOL      use_dormant_check        = 0;
-	DWORD     IInputSystem             = 0;
+	static vm_handle csgo_handle              = 0;
+	static BOOL      use_dormant_check        = 0;
+	static DWORD     IInputSystem             = 0;
 
 	namespace input
 	{
-		DWORD m_dwButton       = 0;
-		DWORD m_nLastPollTick  = 0;
-		DWORD m_mouseRawAccum  = 0;
+		static DWORD m_ButtonState    = 0;
+		static DWORD m_nLastPollTick  = 0;
+		static DWORD m_mouseRawAccum  = 0;
 	}
 
 	namespace entity
@@ -21,62 +21,62 @@ namespace cs
 		DWORD get_client_entity(int index);
 	}
 
-	DWORD     VEngineCvar              = 0;
-	DWORD     sensitivity              = 0;
-	DWORD     mp_teammates_are_enemies = 0;
+	static DWORD     VEngineCvar              = 0;
+	static DWORD     sensitivity              = 0;
+	static DWORD     mp_teammates_are_enemies = 0;
 
-	DWORD     C_BasePlayer             = 0;
-	DWORD     g_TeamCount              = 0;
-	DWORD     g_Teams                  = 0;
-	DWORD     dwViewAngles             = 0;
-	DWORD     VClientEntityList        = 0;
-	DWORD     dwGetAllClasses          = 0;
-	DWORD     dwClientState            = 0;
+	static DWORD     C_BasePlayer             = 0;
+	static DWORD     g_TeamCount              = 0;
+	static DWORD     g_Teams                  = 0;
+	static DWORD     dwViewAngles             = 0;
+	static DWORD     VClientEntityList        = 0;
+	static DWORD     dwGetAllClasses          = 0;
+	static DWORD     dwClientState            = 0;
 
-	BOOL      netvar_status            = 0;
-	DWORD     m_iHealth                = 0;
-	DWORD     m_vecViewOffset          = 0;
-	DWORD     m_lifeState              = 0;
-	DWORD     m_vecPunch               = 0;
-	DWORD     m_iFOV                   = 0;
-	DWORD     m_iTeamNum               = 0;
-	DWORD     m_bSpottedByMask         = 0;
-	DWORD     m_vecOrigin              = 0;
-	DWORD     m_hActiveWeapon          = 0;
-	DWORD     m_iShotsFired            = 0;
-	DWORD     m_iCrossHairID           = 0;
-	DWORD     m_bHasDefuser            = 0;
-	DWORD     m_bIsDefusing            = 0;
-	DWORD     m_dwBoneMatrix           = 0;
+	static BOOL      netvar_status            = 0;
+	static DWORD     m_iHealth                = 0;
+	static DWORD     m_vecViewOffset          = 0;
+	static DWORD     m_lifeState              = 0;
+	static DWORD     m_vecPunch               = 0;
+	static DWORD     m_iFOV                   = 0;
+	static DWORD     m_iTeamNum               = 0;
+	static DWORD     m_bSpottedByMask         = 0;
+	static DWORD     m_vecOrigin              = 0;
+	static DWORD     m_hActiveWeapon          = 0;
+	static DWORD     m_iShotsFired            = 0;
+	static DWORD     m_iCrossHairID           = 0;
+	static DWORD     m_bHasDefuser            = 0;
+	static DWORD     m_bIsDefusing            = 0;
+	static DWORD     m_dwBoneMatrix           = 0;
 
 
 	//
 	// csgo engine init functions
 	//
-	DWORD get_interface_factory(DWORD module_address);
-	DWORD get_interface_factory2(PVOID dumped_dll);
-	DWORD get_interface(DWORD factory, PCSTR interface_name);
-	DWORD get_interface_function(DWORD ptr, DWORD index);
-	DWORD get_convar(PCSTR convar_name);
-	int   get_convar_int(DWORD cvar);
-	float get_convar_float(DWORD cvar);
-	BOOL  dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer);
-	DWORD dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters);
+	static DWORD get_interface_factory(DWORD module_address);
+	static DWORD get_interface_factory2(PVOID dumped_dll);
+	static DWORD get_interface(DWORD factory, PCSTR interface_name);
+	static DWORD get_interface_function(DWORD ptr, DWORD index);
+	static DWORD get_convar(PCSTR convar_name);
+	static int   get_convar_int(DWORD cvar);
+	static float get_convar_float(DWORD cvar);
+	static BOOL  dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer);
+	static DWORD dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters);
 
-	BOOL  dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params);
-	BOOL  dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params);
-	BOOL  dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params);
-	BOOL  dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params);
-	BOOL  dump_baseanimating_callback(PCSTR netvar_name, DWORD offset, PVOID params);
+	static BOOL  dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params);
+	static BOOL  dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params);
+	static BOOL  dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params);
+	static BOOL  dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params);
+	static BOOL  dump_baseanimating_callback(PCSTR netvar_name, DWORD offset, PVOID params);
 
 	namespace player
 	{
-		cs::WEAPON_CLASS get_weapon_class_0(C_Player local_player);
-		cs::WEAPON_CLASS get_weapon_class_1(C_Player local_player);
+		static cs::WEAPON_CLASS get_weapon_class_0(C_Player local_player);
+		static cs::WEAPON_CLASS get_weapon_class_1(C_Player local_player);
 	}
 	
 
-	BOOL  initialize(void);
+	static BOOL initialize(void);
 }
 
 BOOL cs::running(void)
@@ -173,7 +173,7 @@ DWORD cs::entity::get_client_entity(int index)
 
 BOOL cs::input::get_button_state(DWORD button)
 {
-	DWORD v = vm::read_i32(csgo_handle, IInputSystem + (((button >> 5 ) * 4) + input::m_dwButton));
+	DWORD v = vm::read_i32(csgo_handle, IInputSystem + (((button >> 5 ) * 4) + input::m_ButtonState));
 	return (v >> (button & 31)) & 1;
 }
 
@@ -296,7 +296,7 @@ DWORD cs::player::get_weapon_handle(C_Player player_address)
 	return entity::get_client_entity(((a0 & 0xFFF) - 1));
 }
 
-cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
+static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 {
 	DWORD weapon_class = get_weapon_handle(local_player);
 
@@ -420,7 +420,7 @@ cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 //
 // backup just in case
 //
-cs::WEAPON_CLASS cs::player::get_weapon_class_1(C_Player local_player)
+static cs::WEAPON_CLASS cs::player::get_weapon_class_1(C_Player local_player)
 {
 	DWORD weapon_class = cs::player::get_weapon_handle(local_player);
 	if (weapon_class == 0)
@@ -498,18 +498,18 @@ BOOL cs::player::get_bone_position(C_Player player_address, int bone_index, matr
 	return vm::read(csgo_handle, bonematrix + (0x30 * bone_index), matrix, sizeof(matrix3x4_t));
 }
 
-int cs::get_convar_int(DWORD cvar)
+static int cs::get_convar_int(DWORD cvar)
 {
 	return vm::read_i32(csgo_handle, cvar + 0x30) ^ cvar;
 }
 
-float cs::get_convar_float(DWORD cvar)
+static float cs::get_convar_float(DWORD cvar)
 {
 	DWORD a0 = vm::read_i32(csgo_handle, cvar + 0x2C) ^ cvar;
 	return *(float*)&a0;
 }
 
-BOOL cs::initialize(void)
+static BOOL cs::initialize(void)
 {
 	DWORD client_dll, engine_dll;
 	PVOID client_dump = 0;
@@ -580,7 +580,7 @@ BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	input::m_dwButton= vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 28) + 0xC1 + 2);
+	input::m_ButtonState = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 28) + 0xC1 + 2);
 	input::m_nLastPollTick = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 13) + 0x44);
 	input::m_mouseRawAccum = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 61) + 8);
 
@@ -761,7 +761,7 @@ cleanup:
 	return 0;
 }
 
-DWORD cs::get_interface_factory(DWORD module_address)
+static DWORD cs::get_interface_factory(DWORD module_address)
 {
 	DWORD factory = (DWORD)vm::get_module_export(csgo_handle, (QWORD)module_address, "CreateInterface");
 	if (factory == 0)
@@ -771,7 +771,7 @@ DWORD cs::get_interface_factory(DWORD module_address)
 	return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, factory - 0x6A));
 }
 
-DWORD cs::get_interface_factory2(PVOID dumped_dll)
+static DWORD cs::get_interface_factory2(PVOID dumped_dll)
 {
 	DWORD CreateInterface = (DWORD)vm::scan_pattern(dumped_dll,
 		"\x8B\x35\x00\x00\x00\x00\x57\x85\xF6\x74\x38",
@@ -784,7 +784,7 @@ DWORD cs::get_interface_factory2(PVOID dumped_dll)
 	return CreateInterface;
 }
 
-DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
+static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 {
 	CHAR  buffer[120];
 	QWORD name_length = strlen(interface_name);
@@ -804,12 +804,12 @@ DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 	return 0;
 }
 
-DWORD cs::get_interface_function(DWORD ptr, DWORD index)
+static DWORD cs::get_interface_function(DWORD ptr, DWORD index)
 {
 	return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, ptr) + index * 4);
 }
 
-DWORD cs::get_convar(PCSTR convar_name)
+static DWORD cs::get_convar(PCSTR convar_name)
 {
 	DWORD a0 = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle,
 			vm::read_i32(csgo_handle, VEngineCvar + 0x34)) + 0x4);
@@ -834,7 +834,7 @@ DWORD cs::get_convar(PCSTR convar_name)
 	return a0;
 }
 
-BOOL cs::dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer)
+static BOOL cs::dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer)
 {
 	DWORD a0 = dwGetAllClasses;
 	while (a0 != 0)
@@ -850,7 +850,7 @@ BOOL cs::dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer)
 	return 0;
 }
 
-DWORD cs::dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters)
+static DWORD cs::dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters)
 {
 	DWORD a0 = 0, a1, a2, a3, a4, a5, a6[30];
 	for (a1 = vm::read_i32(csgo_handle, table + 0x4); a1--;)
@@ -871,7 +871,7 @@ DWORD cs::dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID
 	return a0;
 }
 
-BOOL cs::dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params)
+static BOOL cs::dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params)
 {
 	if (!strcmp(value, "DT_BasePlayer"))
 	{
@@ -896,7 +896,7 @@ BOOL cs::dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params)
 	return *(int *)params == 4;
 }
 
-BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
+static BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
 	if (!strcmp(netvar_name, "m_iHealth"))
 	{
@@ -927,7 +927,7 @@ BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 	return *(int *)params == 5;
 }
 
-BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params)
+static BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
 	if (!strcmp(netvar_name, "m_iTeamNum"))
 	{
@@ -947,7 +947,7 @@ BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 	return *(int *)params == 3;
 }
 
-BOOL cs::dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
+static BOOL cs::dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
 	if (!strcmp(netvar_name, "m_hActiveWeapon"))
 	{
@@ -973,7 +973,7 @@ BOOL cs::dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 	return *(int *)params == 4;
 }
 
-BOOL cs::dump_baseanimating_callback(PCSTR netvar_name, DWORD offset, PVOID params)
+static BOOL cs::dump_baseanimating_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
 	if (!strcmp(netvar_name, "m_nSequence"))
 	{
