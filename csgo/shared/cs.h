@@ -4,6 +4,12 @@
 #include "../../library/vm.h"
 #include "../../library/math.h"
 
+#ifndef _KERNEL_MODE
+#include <stdio.h>
+#define DEBUG
+#define LOG printf
+#endif
+
 typedef DWORD C_Player;
 typedef DWORD C_TeamList;
 typedef DWORD C_Team;
