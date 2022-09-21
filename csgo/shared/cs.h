@@ -5,6 +5,7 @@
 #include "../../library/math.h"
 
 #ifndef _KERNEL_MODE
+#define DEBUG
 #include <stdio.h>
 #define DEBUG
 #define LOG printf

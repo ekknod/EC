@@ -1,8 +1,25 @@
 #include "cs.h"
 
 //
+// #define DIRECT_PATTERNS uses scan_pattern_direct
+// pros: no need system memory allocation
+// cons: performance is worse + function might fail in some cases.
+//
+#define DIRECT_PATTERNS
+
+
+//
+// added easy macro, in case you want encrypt your strings.
+// just modify the definition, like you want to.
+// another good option is to use crc32 for example. strings are better for code readibility.
+//
+#define S(str) str
+
+
+//
 // private data. only available for cs.cpp
 //
+
 namespace cs
 {
 	static vm_handle csgo_handle              = 0;
@@ -54,7 +71,11 @@ namespace cs
 	// csgo engine init functions
 	//
 	static DWORD get_interface_factory(DWORD module_address);
+#ifndef DIRECT_PATTERNS
 	static DWORD get_interface_factory2(PVOID dumped_dll);
+#else
+	static DWORD get_interface_factory2(QWORD dll_base);
+#endif
 	static DWORD get_interface(DWORD factory, PCSTR interface_name);
 	static DWORD get_interface_function(DWORD ptr, DWORD index);
 	static DWORD get_convar(PCSTR convar_name);
@@ -74,7 +95,6 @@ namespace cs
 		static cs::WEAPON_CLASS get_weapon_class_0(C_Player local_player);
 		static cs::WEAPON_CLASS get_weapon_class_1(C_Player local_player);
 	}
-	
 
 	static BOOL initialize(void);
 }
@@ -89,7 +109,7 @@ C_Player cs::teams::get_local_player(void)
 	return vm::read_i32(csgo_handle, C_BasePlayer);
 }
 
-C_Team cs::teams::get_team_list(void)
+C_TeamList cs::teams::get_team_list(void)
 {
 	return vm::read_i32(csgo_handle, g_Teams);
 }
@@ -344,13 +364,13 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 	/* knife */
 	{
 		COMPARISON data[] = {
-			{"knife"},
-			{"knife_t"},
-			{"knifegg"},
+			{S("knife")},
+			{S("knife_t")},
+			{S("knifegg")},
 		};
 		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
 		{
-			if (!strcmp(index, data[i].weapon_name))
+			if (!strcmpi_imp(index, data[i].weapon_name))
 			{
 				return cs::WEAPON_CLASS::Knife;
 			}
@@ -360,17 +380,17 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 	/* grenade */
 	{
 		COMPARISON data[] = {
-			{"hegrenade"},
-			{"flashbang"},
-			{"smokegrenade"},
-			{"decoy"},
-			{"molotov"},
-			{"incgrenade"},
-			{"c4"},
+			{S("hegrenade")},
+			{S("flashbang")},
+			{S("smokegrenade")},
+			{S("decoy")},
+			{S("molotov")},
+			{S("incgrenade")},
+			{S("c4")},
 		};
 		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
 		{
-			if (!strcmp(index, data[i].weapon_name))
+			if (!strcmpi_imp(index, data[i].weapon_name))
 			{
 				return cs::WEAPON_CLASS::Grenade;
 			}
@@ -380,18 +400,18 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 	/* pistol */
 	{
 		COMPARISON data[] = {
-			{"ssg08"}, // scout and deagle, in my opinion definitely belongs to same category
-			{"hkp2000"},
-			{"deagle"},
-			{"p250"},
-			{"elite"},
-			{"fiveseven"},
-			{"glock"},
-			{"tec9"},
+			{S("ssg08")}, // scout and deagle, in my opinion definitely belongs to same category
+			{S("hkp2000")},
+			{S("deagle")},
+			{S("p250")},
+			{S("elite")},
+			{S("fiveseven")},
+			{S("glock")},
+			{S("tec9")},
 		};
 		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
 		{
-			if (!strcmp(index, data[i].weapon_name))
+			if (!strcmpi_imp(index, data[i].weapon_name))
 			{
 				return cs::WEAPON_CLASS::Pistol;
 			}
@@ -401,13 +421,13 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 	/* sniper */
 	{
 		COMPARISON data[] = {
-			{"awp"},
-			{"scar20"},
-			{"g3sg1"},
+			{S("awp")},
+			{S("scar20")},
+			{S("g3sg1")},
 		};
 		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
 		{
-			if (!strcmp(index, data[i].weapon_name))
+			if (!strcmpi_imp(index, data[i].weapon_name))
 			{
 				return cs::WEAPON_CLASS::Sniper;
 			}
@@ -509,6 +529,7 @@ static float cs::get_convar_float(DWORD cvar)
 	return *(float*)&a0;
 }
 
+#ifndef DIRECT_PATTERNS
 static BOOL cs::initialize(void)
 {
 	DWORD client_dll, engine_dll;
@@ -530,7 +551,7 @@ static BOOL cs::initialize(void)
 		csgo_handle = 0;
 	}
 
-	csgo_handle = vm::open_process_ex("csgo.exe", "client.dll");
+	csgo_handle = vm::open_process_ex(S("csgo.exe"), S("client.dll"));
 	if (!csgo_handle)
 	{
 #ifdef DEBUG
@@ -540,17 +561,17 @@ static BOOL cs::initialize(void)
 	}
 
 	use_dormant_check = 1;
-	if (vm::process_exists("5EClient.exe"))
+	if (vm::process_exists(S("5EClient.exe")))
 	{
 		use_dormant_check = 0;
 	}
 
-	if (vm::process_exists("5EArena.exe"))
+	if (vm::process_exists(S("5EArena.exe")))
 	{
 		use_dormant_check = 0;
 	}
 
-	client_dll = (DWORD)vm::get_module(csgo_handle, "client.dll");
+	client_dll = (DWORD)vm::get_module(csgo_handle, S("client.dll"));
 	if (client_dll == 0)
 	{
 #ifdef DEBUG
@@ -559,7 +580,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	engine_dll = (DWORD)vm::get_module(csgo_handle, "engine.dll");
+	engine_dll = (DWORD)vm::get_module(csgo_handle, S("engine.dll"));
 	if (engine_dll == 0)
 	{
 #ifdef DEBUG
@@ -569,8 +590,8 @@ static BOOL cs::initialize(void)
 	}
 
 	IInputSystem = get_interface(
-		get_interface_factory((DWORD)vm::get_module(csgo_handle, "inputsystem.dll")),
-		"InputSystemVersion0");
+		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("inputsystem.dll"))),
+		S("InputSystemVersion0"));
 
 	if (IInputSystem == 0)
 	{
@@ -585,8 +606,8 @@ static BOOL cs::initialize(void)
 	input::m_mouseRawAccum = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 61) + 8);
 
 	VEngineCvar = get_interface(
-		get_interface_factory((DWORD)vm::get_module(csgo_handle, "vstdlib.dll")),
-		"VEngineCvar0");
+		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("vstdlib.dll"))),
+		S("VEngineCvar0"));
 
 	if (VEngineCvar == 0)
 	{
@@ -596,7 +617,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	sensitivity = get_convar("sensitivity");
+	sensitivity = get_convar(S("sensitivity"));
 	if (!sensitivity)
 	{
 #ifdef DEBUG
@@ -605,7 +626,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	mp_teammates_are_enemies = get_convar("mp_teammates_are_enemies");
+	mp_teammates_are_enemies = get_convar(S("mp_teammates_are_enemies"));
 	if (!mp_teammates_are_enemies)
 	{
 #ifdef DEBUG
@@ -624,7 +645,7 @@ static BOOL cs::initialize(void)
 	}
 
 	GetLocalTeam = (DWORD)vm::scan_pattern(client_dump,
-		"\xE8\x00\x00\x00\x00\x85\xC0\x74\x11\x5F", "x????xxxxx", 10);
+		"\xE8\x00\x00\x00\x00\x85\xC0\x74\x11\x5F", S("x????xxxxx"), 10);
 
 	if (GetLocalTeam == 0)
 	{
@@ -645,7 +666,7 @@ static BOOL cs::initialize(void)
 		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x10 + 1);
 
 
-	dwViewAngles = (DWORD)vm::scan_pattern(client_dump, "\x74\x51\x8B\x75\x0C", "xxxxx", 5);
+	dwViewAngles = (DWORD)vm::scan_pattern(client_dump, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
 	if (dwViewAngles == 0)
 	{
 #ifdef DEBUG
@@ -675,7 +696,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	VClientEntityList = (DWORD)vm::scan_pattern(engine_dump, "\x8A\x47\x12\x8B\x0D", "xxxxx", 5);
+	VClientEntityList = (DWORD)vm::scan_pattern(engine_dump, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
 	{
 #ifdef DEBUG
@@ -696,7 +717,7 @@ static BOOL cs::initialize(void)
 	}
 
 	dwGetAllClasses = (DWORD)vm::scan_pattern(engine_dump,
-		"\x8B\x0D\x00\x00\x00\x00\x0F\x57\xC0\xC7\x45", "xx????xxxxx", 11);
+		"\x8B\x0D\x00\x00\x00\x00\x0F\x57\xC0\xC7\x45", S("xx????xxxxx"), 11);
 
 	if (dwGetAllClasses == 0)
 	{
@@ -709,7 +730,7 @@ static BOOL cs::initialize(void)
 	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, dwGetAllClasses + 2));
 	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(dwGetAllClasses, 8) + 1));
 
-	VEngineClient = get_interface(get_interface_factory2(engine_dump), "VEngineClient0");
+	VEngineClient = get_interface(get_interface_factory2(engine_dump), S("VEngineClient0"));
 	if (VEngineClient == 0)
 	{
 #ifdef DEBUG
@@ -761,9 +782,232 @@ cleanup:
 	return 0;
 }
 
+#else
+
+static BOOL cs::initialize(void)
+{
+	DWORD client_dll, engine_dll;
+	DWORD GetLocalTeam;
+	DWORD VEngineClient;
+
+	int   counter;
+
+
+	if (csgo_handle)
+	{
+		if (vm::running(csgo_handle))
+		{
+			return 1;
+		}
+		csgo_handle = 0;
+	}
+
+	csgo_handle = vm::open_process_ex(S("csgo.exe"), S("client.dll"));
+	if (!csgo_handle)
+	{
+#ifdef DEBUG
+		LOG("[-] csgo process not found\n");
+#endif
+		return 0;
+	}
+
+	use_dormant_check = 1;
+	if (vm::process_exists(S("5EClient.exe")))
+	{
+		use_dormant_check = 0;
+	}
+
+	if (vm::process_exists(S("5EArena.exe")))
+	{
+		use_dormant_check = 0;
+	}
+
+	client_dll = (DWORD)vm::get_module(csgo_handle, S("client.dll"));
+	if (client_dll == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find client.dll\n");
+#endif
+		goto cleanup;
+	}
+
+	engine_dll = (DWORD)vm::get_module(csgo_handle, S("engine.dll"));
+	if (engine_dll == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find engine.dll\n");
+#endif
+		goto cleanup;
+	}
+
+	IInputSystem = get_interface(
+		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("inputsystem.dll"))),
+		S("InputSystemVersion0"));
+
+	if (IInputSystem == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] vt_input not found\n");
+#endif
+		goto cleanup;
+	}
+
+	input::m_ButtonState = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 28) + 0xC1 + 2);
+	input::m_nLastPollTick = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 13) + 0x44);
+	input::m_mouseRawAccum = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 61) + 8);
+
+	VEngineCvar = get_interface(
+		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("vstdlib.dll"))),
+		S("VEngineCvar0"));
+
+	if (VEngineCvar == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] VEngineCvar not found\n");
+#endif
+		goto cleanup;
+	}
+
+	sensitivity = get_convar(S("sensitivity"));
+	if (!sensitivity)
+	{
+#ifdef DEBUG
+		LOG("[-] sensitivity not found\n");
+#endif
+		goto cleanup;
+	}
+
+	mp_teammates_are_enemies = get_convar(S("mp_teammates_are_enemies"));
+	if (!mp_teammates_are_enemies)
+	{
+#ifdef DEBUG
+		LOG("[-] mp_teammates_are_enemies not found\n");
+#endif
+		goto cleanup;
+	}
+	
+	GetLocalTeam = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll,
+		"\xE8\x00\x00\x00\x00\x85\xC0\x74\x11\x5F", S("x????xxxxx"), 10);
+
+	if (GetLocalTeam == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find GetLocalTeam\n");
+#endif
+		goto cleanup;
+	}
+
+	GetLocalTeam = (DWORD)vm::get_relative_address(csgo_handle, GetLocalTeam, 1, 5);
+
+	C_BasePlayer = vm::read_i32(csgo_handle, GetLocalTeam + 0xB + 0x2);
+
+	g_TeamCount = vm::read_i32(csgo_handle,
+		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x6 + 2);
+
+	g_Teams = vm::read_i32(csgo_handle,
+		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x10 + 1);
+
+
+	dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
+	if (dwViewAngles == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewAngles\n");
+#endif
+		goto cleanup;
+	}
+
+	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles + 0x2A + 3 + 1);
+	if (dwViewAngles == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewAngles\n");
+#endif
+		goto cleanup;
+	}
+
+	VClientEntityList = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
+	if (VClientEntityList == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find VClientEntityList\n");
+#endif
+		goto cleanup;
+	}
+
+	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList + 5);
+	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList);
+
+	if (VClientEntityList == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find VClientEntityList\n");
+#endif
+		goto cleanup;
+	}
+
+	dwGetAllClasses = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll,
+		"\x8B\x0D\x00\x00\x00\x00\x0F\x57\xC0\xC7\x45", S("xx????xxxxx"), 11);
+
+	if (dwGetAllClasses == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwGetAllClasses\n");
+#endif
+		goto cleanup;
+	}
+
+	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, dwGetAllClasses + 2));
+	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(dwGetAllClasses, 8) + 1));
+
+	VEngineClient = get_interface(get_interface_factory2(engine_dll), S("VEngineClient0"));
+	if (VEngineClient == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find VEngineClient\n");
+#endif
+		goto cleanup;
+	}
+
+	dwClientState = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(VEngineClient, 7) + 3 + 1));
+	if (dwClientState == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwClientState\n");
+#endif
+		goto cleanup;
+	}
+
+	//
+	// once should be enough :P
+	//
+	if (netvar_status == 0)
+	{
+		counter = 0;
+		if (!dump_netvar_tables(dump_netvar_table_callback, &counter))
+		{
+			return 0;
+		}
+		netvar_status = 1;
+	}
+
+#ifdef DEBUG
+	LOG("[+] csgo.exe is running\n");
+#endif
+
+	return 1;
+cleanup:
+	if (csgo_handle)
+		vm::close(csgo_handle);
+	csgo_handle = 0;
+	return 0;
+}
+
+#endif
+
 static DWORD cs::get_interface_factory(DWORD module_address)
 {
-	DWORD factory = (DWORD)vm::get_module_export(csgo_handle, (QWORD)module_address, "CreateInterface");
+	DWORD factory = (DWORD)vm::get_module_export(csgo_handle, (QWORD)module_address, S("CreateInterface"));
 	if (factory == 0)
 	{
 		return 0;
@@ -771,11 +1015,13 @@ static DWORD cs::get_interface_factory(DWORD module_address)
 	return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, factory - 0x6A));
 }
 
+#ifndef DIRECT_PATTERNS
+
 static DWORD cs::get_interface_factory2(PVOID dumped_dll)
 {
 	DWORD CreateInterface = (DWORD)vm::scan_pattern(dumped_dll,
 		"\x8B\x35\x00\x00\x00\x00\x57\x85\xF6\x74\x38",
-		"xx????xxxxx", 11);
+		S("xx????xxxxx"), 11);
 
 	if (CreateInterface) {
 		CreateInterface = vm::read_i32(csgo_handle, CreateInterface + 2);
@@ -783,6 +1029,23 @@ static DWORD cs::get_interface_factory2(PVOID dumped_dll)
 	}
 	return CreateInterface;
 }
+
+#else
+
+static DWORD cs::get_interface_factory2(QWORD dll_base)
+{
+	DWORD CreateInterface = (DWORD)vm::scan_pattern_direct(csgo_handle, dll_base,
+		"\x8B\x35\x00\x00\x00\x00\x57\x85\xF6\x74\x38",
+		S("xx????xxxxx"), 11);
+
+	if (CreateInterface) {
+		CreateInterface = vm::read_i32(csgo_handle, CreateInterface + 2);
+		CreateInterface = vm::read_i32(csgo_handle, CreateInterface);
+	}
+	return CreateInterface;
+}
+
+#endif
 
 static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 {
@@ -794,7 +1057,7 @@ static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 		vm::read(csgo_handle, vm::read_i32(csgo_handle, factory + 0x04), &buffer, name_length);
 		buffer[name_length] = 0;
 
-		if (!strcmp(buffer, interface_name))
+		if (!strcmpi_imp(buffer, interface_name))
 		{
 			return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, factory) + 1);
 		}
@@ -823,7 +1086,7 @@ static DWORD cs::get_convar(PCSTR convar_name)
 		vm::read(csgo_handle, vm::read_i32(csgo_handle, a0 + 0x0C), name, cvar_length);
 		name[cvar_length] = 0;
 
-		if (!strcmp(name, convar_name))
+		if (!strcmpi_imp(name, convar_name))
 		{
 			break;
 		}
@@ -873,22 +1136,22 @@ static DWORD cs::dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID)
 
 static BOOL cs::dump_netvar_table_callback(PCSTR value, DWORD address, PVOID params)
 {
-	if (!strcmp(value, "DT_BasePlayer"))
+	if (!strcmpi_imp(value, S("DT_BasePlayer")))
 	{
 		int counter = 0;
 		*(int *)params = *(int *)params + dump_netvars(address, dump_baseplayer_callback, &counter);
 	}
-	if (!strcmp(value, "DT_BaseEntity"))
+	if (!strcmpi_imp(value, S("DT_BaseEntity")))
 	{
 		int counter = 0;
 		*(int *)params = *(int *)params + dump_netvars(address, dump_baseentity_callback, &counter);
 	}
-	if (!strcmp(value, "DT_CSPlayer"))
+	if (!strcmpi_imp(value, S("DT_CSPlayer")))
 	{
 		int counter = 0;
 		*(int *)params = *(int *)params + dump_netvars(address, dump_csplayer_callback, &counter);
 	}
-	if (!strcmp(value, "DT_BaseAnimating"))
+	if (!strcmpi_imp(value, S("DT_BaseAnimating")))
 	{
 		int counter = 0;
 		*(int *)params = *(int *)params + dump_netvars(address, dump_baseanimating_callback, &counter);
@@ -898,28 +1161,28 @@ static BOOL cs::dump_netvar_table_callback(PCSTR value, DWORD address, PVOID par
 
 static BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
-	if (!strcmp(netvar_name, "m_iHealth"))
+	if (!strcmpi_imp(netvar_name, S("m_iHealth")))
 	{
 		m_iHealth = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_vecViewOffset[0]"))
+	if (!strcmpi_imp(netvar_name, S("m_vecViewOffset[0]")))
 	{
 		m_vecViewOffset = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_lifeState"))
+	if (!strcmpi_imp(netvar_name, S("m_lifeState")))
 	{
 		m_lifeState = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_Local"))
+	if (!strcmpi_imp(netvar_name, S("m_Local")))
 	{
 		offset += 0x70;
 		m_vecPunch = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_iFOV"))
+	if (!strcmpi_imp(netvar_name, S("m_iFOV")))
 	{
 		m_iFOV = offset;
 		*(int *)params = *(int *)params + 1;
@@ -929,17 +1192,17 @@ static BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID 
 
 static BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
-	if (!strcmp(netvar_name, "m_iTeamNum"))
+	if (!strcmpi_imp(netvar_name, S("m_iTeamNum")))
 	{
 		m_iTeamNum = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_bSpottedByMask"))
+	if (!strcmpi_imp(netvar_name, S("m_bSpottedByMask")))
 	{
 		m_bSpottedByMask = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_vecOrigin"))
+	if (!strcmpi_imp(netvar_name, S("m_vecOrigin")))
 	{
 		m_vecOrigin = offset;
 		*(int *)params = *(int *)params + 1;
@@ -949,23 +1212,23 @@ static BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID 
 
 static BOOL cs::dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
-	if (!strcmp(netvar_name, "m_hActiveWeapon"))
+	if (!strcmpi_imp(netvar_name, S("m_hActiveWeapon")))
 	{
 		m_hActiveWeapon = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_iShotsFired"))
+	if (!strcmpi_imp(netvar_name, S("m_iShotsFired")))
 	{
 		m_iShotsFired = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_bHasDefuser"))
+	if (!strcmpi_imp(netvar_name, S("m_bHasDefuser")))
 	{
 		m_iCrossHairID = offset + 0x5C;
 		m_bHasDefuser = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	if (!strcmp(netvar_name, "m_bIsDefusing"))
+	if (!strcmpi_imp(netvar_name, S("m_bIsDefusing")))
 	{
 		m_bIsDefusing = offset;
 		*(int *)params = *(int *)params + 1;
@@ -975,7 +1238,7 @@ static BOOL cs::dump_csplayer_callback(PCSTR netvar_name, DWORD offset, PVOID pa
 
 static BOOL cs::dump_baseanimating_callback(PCSTR netvar_name, DWORD offset, PVOID params)
 {
-	if (!strcmp(netvar_name, "m_nSequence"))
+	if (!strcmpi_imp(netvar_name, S("m_nSequence")))
 	{
 		m_dwBoneMatrix = offset + 0x54;
 		*(int *)params = *(int *)params + 1;

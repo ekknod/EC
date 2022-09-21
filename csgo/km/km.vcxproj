@@ -176,7 +176,6 @@
     <ClInclude Include="..\..\library\math.h" />
     <ClInclude Include="..\..\library\vm.h" />
     <ClInclude Include="..\shared\cs.h" />
-    <ClInclude Include="..\shared\features.h" />
     <ClInclude Include="..\shared\globals.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

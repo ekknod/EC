@@ -1,9 +1,26 @@
 #ifndef VM_H
 #define VM_H
 
+inline int to_lower_imp(int c)
+{
+    if (c >= 'A' && c <= 'Z')
+        return c +'a'-'A';
+    else
+        return c;
+}
+
+inline int strcmpi_imp(const char* s1, const char* s2)
+{	
+	while(*s1 && (to_lower_imp(*s1) == to_lower_imp(*s2)))
+	{
+		s1++;
+		s2++;
+	}
+	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+}
+
 
 #ifdef _KERNEL_MODE
-
 #include <ntifs.h>
 typedef unsigned __int8  BYTE;
 typedef unsigned __int16 WORD;
@@ -13,26 +30,13 @@ typedef int BOOL;
 
 extern PPHYSICAL_MEMORY_RANGE g_memory_range;
 extern int g_memory_range_count;
-inline int _strcmpi(const char* s1, const char* s2)
-{	
-	while(*s1 && (tolower(*s1) == tolower(*s2)))
-	{
-		s1++;
-		s2++;
-	}
-	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
-}
-
 #else
-
 #include <windows.h>
 typedef unsigned __int64 QWORD;
-
 #endif
 
 
 typedef void  *vm_handle;
-
 enum class VM_MODULE_TYPE {
 	Full = 1,
 	CodeSectionsOnly = 2,
@@ -68,6 +72,7 @@ namespace vm
 
 	QWORD     get_module(vm_handle process, PCSTR dll_name);
 	QWORD     get_module_export(vm_handle process, QWORD base, PCSTR export_name);
+	QWORD     scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length);
 
 	PVOID     dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
 	void      free_module(PVOID dumped_module);

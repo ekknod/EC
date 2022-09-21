@@ -15,7 +15,10 @@
 extern "C" int _fltused;
 #endif
 
+
 #include "cs.h"
+
+
 
 //
 // features.cpp
@@ -24,7 +27,6 @@ namespace features
 {
 	void run(void);
 }
-
 
 //
 // implemented by application/driver
@@ -35,6 +37,7 @@ namespace input
 	extern void mouse1_down(void);
 	extern void mouse1_up(void);
 }
+
 
 //
 // implemented by application/driver
