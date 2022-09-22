@@ -5,7 +5,7 @@
 // pros: no need system memory allocation
 // cons: performance is worse + function might fail in some cases.
 //
-#define DIRECT_PATTERNS
+// #define DIRECT_PATTERNS
 
 
 //
@@ -13,6 +13,7 @@
 // just modify the definition, like you want to.
 // another good option is to use crc32 for example. strings are better for code readibility.
 //
+
 #define S(str) str
 
 
@@ -22,21 +23,21 @@
 
 namespace cs
 {
-	static vm_handle csgo_handle              = 0;
-	static BOOL      use_dormant_check        = 0;
-	static DWORD     IInputSystem             = 0;
-
 	namespace input
 	{
-		static DWORD m_ButtonState    = 0;
-		static DWORD m_nLastPollTick  = 0;
-		static DWORD m_mouseRawAccum  = 0;
+		static DWORD m_ButtonState   = 0;
+		static DWORD m_nLastPollTick = 0;
+		static DWORD m_mouseRawAccum = 0;
 	}
 
 	namespace entity
 	{
 		DWORD get_client_entity(int index);
 	}
+
+	static vm_handle csgo_handle              = 0;
+	static BOOL      use_dormant_check        = 0;
+	static DWORD     IInputSystem             = 0;
 
 	static DWORD     VEngineCvar              = 0;
 	static DWORD     sensitivity              = 0;
@@ -121,27 +122,27 @@ int cs::teams::get_team_count(void)
 
 C_Team cs::teams::get_team(C_TeamList team_list, int index)
 {
-	return vm::read_i32(csgo_handle, team_list + (index * 4));
+	return vm::read_i32(csgo_handle, (QWORD)(team_list + (index * 4)));
 }
 
 int cs::teams::get_team_num(C_Team team)
 {
-	return vm::read_i32(csgo_handle, team + 0xB68);
+	return vm::read_i32(csgo_handle, (QWORD)(team + 0xB68));
 }
 
 int cs::teams::get_player_count(C_Team team)
 {
-	return vm::read_i32(csgo_handle, team + 0x9E4);
+	return vm::read_i32(csgo_handle, (QWORD)(team + 0x9E4));
 }
 
 C_PlayerList cs::teams::get_player_list(C_Team team)
 {
-	return vm::read_i32(csgo_handle, team + 0x9E8);
+	return vm::read_i32(csgo_handle, (QWORD)(team + 0x9E8));
 }
 
 C_Player cs::teams::get_player(C_PlayerList player_list, int index)
 {
-	DWORD player_index = vm::read_i32(csgo_handle, player_list + (index * 4) ) - 1;
+	DWORD player_index = vm::read_i32(csgo_handle, (QWORD)(player_list + (index * 4))) - 1;
 	return cs::entity::get_client_entity(player_index);
 }
 
@@ -149,7 +150,7 @@ BOOL cs::teams::contains_player(C_PlayerList player_list, int player_count, int 
 {
 	for (int i = 0; i < player_count; i++ )
 	{
-		if (vm::read_i32(csgo_handle, player_list + (i * 4)) == (DWORD)index)
+		if (vm::read_i32(csgo_handle, (QWORD)(player_list + (i * 4))) == (DWORD)index)
 		{
 			return 1;
 		}
@@ -159,7 +160,7 @@ BOOL cs::teams::contains_player(C_PlayerList player_list, int player_count, int 
 
 vec2 cs::engine::get_viewangles(void)
 {
-	vec2 viewangles;
+	vec2 viewangles{};
 	if (!vm::read(csgo_handle, dwViewAngles, &viewangles, sizeof(viewangles)))
 	{
 		viewangles.x = 0;
@@ -180,7 +181,7 @@ BOOL cs::engine::is_gamemode_ffa(void)
 
 DWORD cs::engine::get_current_tick(void)
 {
-	return vm::read_i32(csgo_handle, IInputSystem + input::m_nLastPollTick);
+	return vm::read_i32(csgo_handle, (QWORD)(IInputSystem + input::m_nLastPollTick));
 }
 
 DWORD cs::entity::get_client_entity(int index)
@@ -188,23 +189,23 @@ DWORD cs::entity::get_client_entity(int index)
 	index = index + 1;
 	index = index + 0xFFFFDFFF;
 	index = index + index;
-	return vm::read_i32(csgo_handle, VClientEntityList + index * 8);
+	return vm::read_i32(csgo_handle, (QWORD)(VClientEntityList + index * 8));
 }
 
 BOOL cs::input::get_button_state(DWORD button)
 {
-	DWORD v = vm::read_i32(csgo_handle, IInputSystem + (((button >> 5 ) * 4) + input::m_ButtonState));
+	DWORD v = vm::read_i32(csgo_handle, (QWORD)(IInputSystem + (((button >> 5 ) * 4) + input::m_ButtonState)));
 	return (v >> (button & 31)) & 1;
 }
 
 void cs::input::mouse_move(int x, int y)
 {
 	typedef struct { int x, y; } mouse_data;
-	mouse_data data;
+	mouse_data data{};
 
 	data.x = x;
 	data.y = y;
-	vm::write(csgo_handle, IInputSystem + input::m_mouseRawAccum, &data, sizeof(mouse_data));
+	vm::write(csgo_handle, (QWORD)(IInputSystem + input::m_mouseRawAccum), &data, sizeof(mouse_data));
 }
 
 BOOL cs::player::is_valid(C_Player player_address)
@@ -237,36 +238,36 @@ BOOL cs::player::is_valid(C_Player player_address)
 
 BOOL cs::player::is_visible(C_Player local_player, C_Player player)
 {
-	int mask = vm::read_i32(csgo_handle, player + m_bSpottedByMask);
+	int mask = vm::read_i32(csgo_handle, (QWORD)(player + m_bSpottedByMask));
 	int base = get_player_id(local_player) - 1;
 	return (mask & (1 << base)) != 0;
 }
 
 BOOL cs::player::is_defusing(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_bIsDefusing);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_bIsDefusing));
 }
 
 BOOL cs::player::has_defuser(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_bHasDefuser);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_bHasDefuser));
 }
 
 int cs::player::get_player_id(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + 0x64);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + 0x64));
 }
 
 int cs::player::get_crosshair_id(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_iCrossHairID);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iCrossHairID));
 }
 
 BOOL cs::player::get_dormant(C_Player player_address)
 {
 	if (use_dormant_check)
 	{
-		return vm::read_i32(csgo_handle, player_address + 0xED);
+		return vm::read_i32(csgo_handle, (QWORD)(player_address + 0xED));
 	}
 	return 0;
 }
@@ -275,25 +276,25 @@ int cs::player::get_life_state(C_Player player_address)
 {
 	if (use_dormant_check)
 	{
-		return vm::read_i32(csgo_handle, player_address + m_lifeState);
+		return vm::read_i32(csgo_handle, (QWORD)(player_address + m_lifeState));
 	}
 	return 0;
 }
 
 int cs::player::get_health(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_iHealth);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iHealth));
 }
 
 int cs::player::get_shots_fired(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_iShotsFired);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iShotsFired));
 }
 
 vec2 cs::player::get_vec_punch(C_Player player_address)
 {
-	vec2 vec_punch;
-	if (!vm::read(csgo_handle, player_address + m_vecPunch, &vec_punch, sizeof(vec_punch)))
+	vec2 vec_punch{};
+	if (!vm::read(csgo_handle, (QWORD)(player_address + m_vecPunch), &vec_punch, sizeof(vec_punch)))
 	{
 		vec_punch.x = 0;
 		vec_punch.y = 0;
@@ -303,12 +304,12 @@ vec2 cs::player::get_vec_punch(C_Player player_address)
 
 int cs::player::get_fov(C_Player player_address)
 {
-	return vm::read_i32(csgo_handle, player_address + m_iFOV);
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iFOV));
 }
 
 DWORD cs::player::get_weapon_handle(C_Player player_address)
 {
-	DWORD a0 = vm::read_i32(csgo_handle, player_address + m_hActiveWeapon);
+	DWORD a0 = vm::read_i32(csgo_handle, (QWORD)(player_address + m_hActiveWeapon));
 	if (a0 == 0)
 	{
 		return 0;
@@ -325,31 +326,31 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	DWORD GetClientClass = vm::read_i32(csgo_handle, weapon_class+0x8);
+	DWORD GetClientClass = vm::read_i32(csgo_handle, (QWORD)(weapon_class + 0x08));
 	if (GetClientClass == 0)
 	{
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	GetClientClass = vm::read_i32(csgo_handle, GetClientClass + 0x8);
+	GetClientClass = vm::read_i32(csgo_handle, (QWORD)(GetClientClass + 0x8));
 	if (GetClientClass == 0)
 	{
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	GetClientClass = vm::read_i32(csgo_handle, GetClientClass + 0x1);
+	GetClientClass = vm::read_i32(csgo_handle, (QWORD)(GetClientClass + 0x1));
 	if (GetClientClass == 0)
 	{
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	DWORD m_pMapClassname = vm::read_i32(csgo_handle, GetClientClass + 0x18);
+	DWORD m_pMapClassname = vm::read_i32(csgo_handle, (QWORD)(GetClientClass + 0x18));
 	if (m_pMapClassname == 0)
 	{
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	char weapon_buffer[260];
+	char weapon_buffer[260]{};
 	vm::read(csgo_handle, m_pMapClassname, weapon_buffer, 260);
 
 
@@ -448,7 +449,7 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_1(C_Player local_player)
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	DWORD weapon = vm::read_i32(csgo_handle, weapon_class + 0x2FAA);
+	DWORD weapon = vm::read_i32(csgo_handle, (QWORD)(weapon_class + 0x2FAA));
 
 	/* knife */
 	{
@@ -497,35 +498,35 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(C_Player player_address)
 
 vec3 cs::player::get_eye_position(C_Player player_address)
 {
-	vec3 origin;
-	if (!vm::read(csgo_handle, player_address + m_vecOrigin, &origin, sizeof(origin)))
+	vec3 origin{};
+	if (!vm::read(csgo_handle, (QWORD)(player_address + m_vecOrigin), &origin, sizeof(origin)))
 	{
 		return vec3{0, 0, 0};
 	}
-	origin.z += vm::read_float(csgo_handle, player_address + m_vecViewOffset + 8);
+	origin.z += vm::read_float(csgo_handle, (QWORD)(player_address + m_vecViewOffset + 8));
 	return origin;
 }
 
 BOOL cs::player::get_bone_position(C_Player player_address, int bone_index, matrix3x4_t *matrix)
 {
-	DWORD bonematrix = vm::read_i32(csgo_handle, player_address + m_dwBoneMatrix);
+	DWORD bonematrix = vm::read_i32(csgo_handle, (QWORD)(player_address + m_dwBoneMatrix));
 
 	if (bonematrix == 0)
 	{
 		return 0;
 	}
 
-	return vm::read(csgo_handle, bonematrix + (0x30 * bone_index), matrix, sizeof(matrix3x4_t));
+	return vm::read(csgo_handle, (QWORD)(bonematrix + (0x30 * bone_index)), matrix, sizeof(matrix3x4_t));
 }
 
 static int cs::get_convar_int(DWORD cvar)
 {
-	return vm::read_i32(csgo_handle, cvar + 0x30) ^ cvar;
+	return vm::read_i32(csgo_handle, (QWORD)(cvar + 0x30)) ^ cvar;
 }
 
 static float cs::get_convar_float(DWORD cvar)
 {
-	DWORD a0 = vm::read_i32(csgo_handle, cvar + 0x2C) ^ cvar;
+	DWORD a0 = vm::read_i32(csgo_handle, (QWORD)(cvar + 0x2C)) ^ cvar;
 	return *(float*)&a0;
 }
 
@@ -601,9 +602,9 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	input::m_ButtonState = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 28) + 0xC1 + 2);
-	input::m_nLastPollTick = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 13) + 0x44);
-	input::m_mouseRawAccum = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 61) + 8);
+	input::m_ButtonState = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 28) + 0xC1 + 2));
+	input::m_nLastPollTick = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 13) + 0x44));
+	input::m_mouseRawAccum = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 61) + 8));
 
 	VEngineCvar = get_interface(
 		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("vstdlib.dll"))),
@@ -657,13 +658,13 @@ static BOOL cs::initialize(void)
 
 	GetLocalTeam = (DWORD)vm::get_relative_address(csgo_handle, GetLocalTeam, 1, 5);
 
-	C_BasePlayer = vm::read_i32(csgo_handle, GetLocalTeam + 0xB + 0x2);
+	C_BasePlayer = vm::read_i32(csgo_handle, (QWORD)(GetLocalTeam + 0xB + 0x2));
 
 	g_TeamCount = vm::read_i32(csgo_handle,
-		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x6 + 2);
+		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x6 + 2);
 
 	g_Teams = vm::read_i32(csgo_handle,
-		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x10 + 1);
+		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
 
 	dwViewAngles = (DWORD)vm::scan_pattern(client_dump, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
@@ -675,7 +676,7 @@ static BOOL cs::initialize(void)
 		goto cleanup2;
 	}
 
-	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles + 0x2A + 3 + 1);
+	dwViewAngles = vm::read_i32(csgo_handle, (QWORD)(dwViewAngles + 0x2A + 3 + 1));
 	if (dwViewAngles == 0)
 	{
 #ifdef DEBUG
@@ -705,7 +706,7 @@ static BOOL cs::initialize(void)
 		goto cleanup3;
 	}
 
-	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList + 5);
+	VClientEntityList = vm::read_i32(csgo_handle, (QWORD)(VClientEntityList + 5));
 	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList);
 
 	if (VClientEntityList == 0)
@@ -727,8 +728,9 @@ static BOOL cs::initialize(void)
 		goto cleanup3;
 	}
 
-	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, dwGetAllClasses + 2));
-	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(dwGetAllClasses, 8) + 1));
+	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(dwGetAllClasses + 2)));
+	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(dwGetAllClasses, 8) + 1)));
 
 	VEngineClient = get_interface(get_interface_factory2(engine_dump), S("VEngineClient0"));
 	if (VEngineClient == 0)
@@ -739,7 +741,8 @@ static BOOL cs::initialize(void)
 		goto cleanup3;
 	}
 
-	dwClientState = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(VEngineClient, 7) + 3 + 1));
+	dwClientState = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(VEngineClient, 7) + 3 + 1)));
 	if (dwClientState == 0)
 	{
 #ifdef DEBUG
@@ -852,9 +855,14 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	input::m_ButtonState = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 28) + 0xC1 + 2);
-	input::m_nLastPollTick = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 13) + 0x44);
-	input::m_mouseRawAccum = vm::read_i32(csgo_handle, get_interface_function(IInputSystem, 61) + 8);
+	input::m_ButtonState = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 28) + 0xC1 + 2));
+
+	input::m_nLastPollTick = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 13) + 0x44));
+
+	input::m_mouseRawAccum = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 61) + 8));
 
 	VEngineCvar = get_interface(
 		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("vstdlib.dll"))),
@@ -899,13 +907,13 @@ static BOOL cs::initialize(void)
 
 	GetLocalTeam = (DWORD)vm::get_relative_address(csgo_handle, GetLocalTeam, 1, 5);
 
-	C_BasePlayer = vm::read_i32(csgo_handle, GetLocalTeam + 0xB + 0x2);
+	C_BasePlayer = vm::read_i32(csgo_handle, (QWORD)(GetLocalTeam + 0xB + 0x2));
 
 	g_TeamCount = vm::read_i32(csgo_handle,
-		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x6 + 2);
+		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x6 + 2);
 
 	g_Teams = vm::read_i32(csgo_handle,
-		vm::get_relative_address(csgo_handle, GetLocalTeam + 0x1D, 1, 5) + 0x10 + 1);
+		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
 
 	dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
@@ -917,7 +925,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles + 0x2A + 3 + 1);
+	dwViewAngles = vm::read_i32(csgo_handle, (QWORD)(dwViewAngles + 0x2A + 3 + 1));
 	if (dwViewAngles == 0)
 	{
 #ifdef DEBUG
@@ -935,7 +943,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList + 5);
+	VClientEntityList = vm::read_i32(csgo_handle, (QWORD)(VClientEntityList + 5));
 	VClientEntityList = vm::read_i32(csgo_handle, VClientEntityList);
 
 	if (VClientEntityList == 0)
@@ -957,8 +965,9 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, dwGetAllClasses + 2));
-	dwGetAllClasses = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(dwGetAllClasses, 8) + 1));
+	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(dwGetAllClasses + 2)));
+	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(dwGetAllClasses, 8) + 1)));
 
 	VEngineClient = get_interface(get_interface_factory2(engine_dll), S("VEngineClient0"));
 	if (VEngineClient == 0)
@@ -969,7 +978,7 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	dwClientState = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, get_interface_function(VEngineClient, 7) + 3 + 1));
+	dwClientState = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(get_interface_function(VEngineClient, 7) + 3 + 1)));
 	if (dwClientState == 0)
 	{
 #ifdef DEBUG
@@ -1012,7 +1021,7 @@ static DWORD cs::get_interface_factory(DWORD module_address)
 	{
 		return 0;
 	}
-	return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, factory - 0x6A));
+	return vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(factory - 0x6A)));
 }
 
 #ifndef DIRECT_PATTERNS
@@ -1039,7 +1048,7 @@ static DWORD cs::get_interface_factory2(QWORD dll_base)
 		S("xx????xxxxx"), 11);
 
 	if (CreateInterface) {
-		CreateInterface = vm::read_i32(csgo_handle, CreateInterface + 2);
+		CreateInterface = vm::read_i32(csgo_handle, (QWORD)(CreateInterface + 2));
 		CreateInterface = vm::read_i32(csgo_handle, CreateInterface);
 	}
 	return CreateInterface;
@@ -1049,41 +1058,41 @@ static DWORD cs::get_interface_factory2(QWORD dll_base)
 
 static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 {
-	CHAR  buffer[120];
+	CHAR  buffer[120]{};
 	QWORD name_length = strlen(interface_name);
 
 	while (factory != 0)
 	{
-		vm::read(csgo_handle, vm::read_i32(csgo_handle, factory + 0x04), &buffer, name_length);
+		vm::read(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(factory + 0x04)), &buffer, name_length);
 		buffer[name_length] = 0;
 
 		if (!strcmpi_imp(buffer, interface_name))
 		{
-			return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, factory) + 1);
+			return vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, factory) + 1);
 		}
 
-		factory = vm::read_i32(csgo_handle, factory + 0x8);
+		factory = vm::read_i32(csgo_handle, (QWORD)(factory + 0x8));
 	}
 	return 0;
 }
 
 static DWORD cs::get_interface_function(DWORD ptr, DWORD index)
 {
-	return vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, ptr) + index * 4);
+	return vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, ptr) + (QWORD)(index * 4));
 }
 
 static DWORD cs::get_convar(PCSTR convar_name)
 {
-	DWORD a0 = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle,
-			vm::read_i32(csgo_handle, VEngineCvar + 0x34)) + 0x4);
+	DWORD a0 = vm::read_i32(csgo_handle,
+		(QWORD)vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(VEngineCvar + 0x34))) + 0x4);
 
 	QWORD cvar_length = strlen(convar_name);
 
 	while (a0 != 0)
 	{
-		char name[120];
+		char name[120]{};
 
-		vm::read(csgo_handle, vm::read_i32(csgo_handle, a0 + 0x0C), name, cvar_length);
+		vm::read(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(a0 + 0x0C)), name, cvar_length);
 		name[cvar_length] = 0;
 
 		if (!strcmpi_imp(name, convar_name))
@@ -1091,7 +1100,7 @@ static DWORD cs::get_convar(PCSTR convar_name)
 			break;
 		}
 
-		a0 = vm::read_i32(csgo_handle, a0 + 0x4);
+		a0 = vm::read_i32(csgo_handle, (QWORD)(a0 + 0x4));
 	}
 
 	return a0;
@@ -1102,26 +1111,26 @@ static BOOL cs::dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID 
 	DWORD a0 = dwGetAllClasses;
 	while (a0 != 0)
 	{
-		DWORD a1 = vm::read_i32(csgo_handle, a0 + 0x0C), a2[30];
-		vm::read(csgo_handle, vm::read_i32(csgo_handle, a1 + 0x0C), a2, sizeof(a2));
+		DWORD a1 = vm::read_i32(csgo_handle, (QWORD)(a0 + 0x0C)), a2[30]{};
+		vm::read(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(a1 + 0x0C)), a2, sizeof(a2));
 		
 		if (callback((PCSTR)a2, a1, buffer) != 0)
 			return 1;
 
-		a0 = vm::read_i32(csgo_handle, a0 + 0x10);
+		a0 = vm::read_i32(csgo_handle, (QWORD)(a0 + 0x10));
 	}
 	return 0;
 }
 
 static DWORD cs::dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters)
 {
-	DWORD a0 = 0, a1, a2, a3, a4, a5, a6[30];
-	for (a1 = vm::read_i32(csgo_handle, table + 0x4); a1--;)
+	DWORD a0 = 0, a1, a2, a3, a4, a5, a6[30]{};
+	for (a1 = vm::read_i32(csgo_handle, (QWORD)(table + 0x4)); a1--;)
 	{
 		a2 = a1 * 60 + vm::read_i32(csgo_handle, table);
-		a3 = vm::read_i32(csgo_handle, a2 + 0x2C);
-		a4 = vm::read_i32(csgo_handle, a2 + 0x28);
-		if (a4 && vm::read_i32(csgo_handle, a4 + 0x4))
+		a3 = vm::read_i32(csgo_handle, (QWORD)(a2 + 0x2C));
+		a4 = vm::read_i32(csgo_handle, (QWORD)(a2 + 0x28));
+		if (a4 && vm::read_i32(csgo_handle, (QWORD)(a4 + 0x4)))
 		{
 			a5 = dump_netvars(a4, callback, parameters);
 			if (a5)

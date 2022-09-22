@@ -137,7 +137,7 @@ void features::run(void)
 			matrix3x4_t matrix;
 			if (cs::player::get_bone_position(m_previous_target, 8, &matrix))
 			{
-				vec3 bonepos;
+				vec3 bonepos={};
 				bonepos.x = matrix[0][3];
 				bonepos.y = matrix[1][3];
 				bonepos.z = matrix[2][3];
@@ -208,7 +208,7 @@ static void features::standalone_rcs(C_Player local_player)
 
 	if (shots_fired > 1)
 	{
-		vec2 new_punch;
+		vec2 new_punch{};
 		new_punch.x = current_punch.x - m_rcs_old_punch.x;
 		new_punch.y = current_punch.y - m_rcs_old_punch.y;
 
@@ -383,6 +383,17 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 		return;
 	}
 
+	//
+	// anti-shake for triggerbot (disables RCS from first 2 bullets)
+	//
+	if (head_only)
+	{
+		if (bullet_count < 2)
+		{
+			bullet_count = 2;
+		}
+	}
+
 	vec3 aimbot_angle = vec3{ 0, 0, 0 };
 	if (weapon_class == cs::WEAPON_CLASS::Pistol || head_only)
 	{
@@ -392,7 +403,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 			return;
 		}
 
-		vec3 temp_pos;
+		vec3 temp_pos{};
 		temp_pos.x = matrix[0][3];
 		temp_pos.y = matrix[1][3];
 		temp_pos.z = matrix[2][3];
@@ -403,18 +414,100 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	{
 		BOOL best_target_found = 0;
 		float best_fov = 360.0f;
-		int bones[] = { 5, 4, 3, 0, 8 };
+		int bones[] = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+
+		//
+		// this code is probably written drunk, but hey. it works
+		//
 		for (int j = 0; j < sizeof(bones) / sizeof(*bones); j++) {
 			matrix3x4_t matrix;
-			if (!cs::player::get_bone_position(target_player, bones[j], &matrix))
+
+			int bone_index = bones[j];
+
+			if (bones[j] == 9)
+				bone_index = 5;
+
+			else if (bones[j] == 10)
+				bone_index = 5;
+
+			else if (bones[j] == 11)
+				bone_index = 4;
+
+			else if (bones[j] == 12)
+				bone_index = 4;
+
+			else if (bones[j] == 13)
+				bone_index = 3;
+
+			else if (bones[j] == 14)
+				bone_index = 3;
+
+			else if (bones[j] == 15)
+				bone_index = 0;
+
+			else if (bones[j] == 16)
+				bone_index = 0;
+
+			else if (bones[j] == 17)
+				bone_index = 7;
+
+			else if (bones[j] == 18)
+				bone_index = 7;
+
+			if (!cs::player::get_bone_position(target_player, bone_index, &matrix))
 			{
 				return;
 			}
 
-			vec3 temp_pos;
+
+			vec3 temp_pos{};
 			temp_pos.x = matrix[0][3];
 			temp_pos.y = matrix[1][3];
 			temp_pos.z = matrix[2][3];
+
+
+			if (bones[j] == 9) {
+				temp_pos.y -= -7.0f;
+			}
+
+			else if (bones[j] == 10) {
+				temp_pos.y += -7.0f;
+			}
+
+			else if (bones[j] == 11) {
+				temp_pos.y -= -7.0f;
+			}
+
+			else if (bones[j] == 12) {
+				temp_pos.y += -5.0f;
+			}
+
+			else if (bones[j] == 13) {
+				temp_pos.y -= -5.0f;
+			}
+
+			else if (bones[j] == 14) {
+				temp_pos.y += -5.0f;
+			}
+
+			else if (bones[j] == 15) {
+				temp_pos.y -= -5.0f;
+			}
+
+			else if (bones[j] == 16) {
+				temp_pos.y += -5.0f;
+			}
+
+			else if (bones[j] == 17) {
+				temp_pos.y -= -5.0f;
+				temp_pos.z += -2.0f;
+			}
+
+			else if (bones[j] == 18) {
+				temp_pos.y += -5.0f;
+				temp_pos.z += -2.0f;
+			}
+
 
 			vec3 best_angle = get_target_angle(local_player, temp_pos, bullet_count);
 			float fov = math::get_fov(cs::engine::get_viewangles(), *(vec3*)&best_angle);
@@ -448,7 +541,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 
 	vec2 viewangles = cs::engine::get_viewangles();
 
-	vec3 angles;
+	vec3 angles{};
 	angles.x = viewangles.x - aimbot_angle.x;
 	angles.y = viewangles.y - aimbot_angle.y;
 	angles.z = 0;
@@ -606,7 +699,7 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 				continue;
 			}
 
-			vec3 bonepos;
+			vec3 bonepos{};
 			bonepos.x = matrix[0][3];
 			bonepos.y = matrix[1][3];
 			bonepos.z = matrix[2][3];

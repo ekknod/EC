@@ -38,9 +38,6 @@
     </MASM>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\shared\globals.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\library\math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
