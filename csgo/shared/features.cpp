@@ -37,6 +37,12 @@ namespace features
 	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
 }
 
+static INT64 get_random_number();
+static INT64 random_number(QWORD min, QWORD max)
+{
+	return min + get_random_number() % (max + 1 - min);
+}
+
 void features::run(void)
 {
 	//
@@ -49,7 +55,7 @@ void features::run(void)
 		{
 			input::mouse1_up();
 			m_mouse_down_tick = 0;
-			m_mouse_click_ticks = current_tick + 25;
+			m_mouse_click_ticks = current_tick + random_number(25, 50);
 		}
 	}
 
@@ -200,6 +206,15 @@ void features::run(void)
 	}
 }
 
+void features::reset_mouse(void)
+{
+	if (m_mouse_down_tick)
+	{
+		input::mouse1_up();
+		m_mouse_down_tick = 0;
+	}
+}
+
 static void features::standalone_rcs(C_Player local_player)
 {
 
@@ -258,14 +273,14 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	switch (weapon_class)
 	{
 	case cs::WEAPON_CLASS::Pistol:
-		tick_count_skip = 45;
+		tick_count_skip = random_number(15, 50);
 		head_only = TRUE;
 		break;
 	case cs::WEAPON_CLASS::Sniper:
-		tick_count_skip = 45;
+		tick_count_skip = random_number(30, 80);
 		break;
 	case cs::WEAPON_CLASS::Rifle:
-		tick_count_skip = 150;
+		tick_count_skip = random_number(125, 170);
 		head_only = TRUE;
 		break;
 	default: return 0;
@@ -716,4 +731,12 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 		}
 	}
 	return target_address;
+}
+
+//
+// not random really
+//
+static INT64 get_random_number()
+{
+	return cs::engine::get_current_tick();
 }

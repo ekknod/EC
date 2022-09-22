@@ -220,15 +220,12 @@ QWORD vm::get_wow64_process(vm_handle process)
 static BYTE MM_COPY_BUFFER[0x1000];
 static BOOL pm::read(QWORD address, PVOID buffer, QWORD length, QWORD* ret)
 {
-	PHYSICAL_MEMORY_RANGE low_address  = g_memory_range[0];
-	PHYSICAL_MEMORY_RANGE high_address = g_memory_range[g_memory_range_count - 1];
-
-	if (address < (QWORD)low_address.BaseAddress.QuadPart)
+	if (address < (QWORD)g_memory_range_low)
 	{
 		return 0;
 	}
 
-	if (address + length > (QWORD)(high_address.BaseAddress.QuadPart + high_address.NumberOfBytes.QuadPart))
+	if (address + length > g_memory_range_high)
 	{
 		return 0;
 	}
@@ -258,15 +255,12 @@ static BOOL pm::read(QWORD address, PVOID buffer, QWORD length, QWORD* ret)
 
 static BOOL pm::write(QWORD address, PVOID buffer, QWORD length)
 {
-	PHYSICAL_MEMORY_RANGE low_address = g_memory_range[0];
-	PHYSICAL_MEMORY_RANGE high_address = g_memory_range[g_memory_range_count - 1];
-
-	if (address < (QWORD)low_address.BaseAddress.QuadPart)
+	if (address < (QWORD)g_memory_range_low)
 	{
 		return 0;
 	}
 
-	if (address + length > (QWORD)(high_address.BaseAddress.QuadPart + high_address.NumberOfBytes.QuadPart))
+	if (address + length > g_memory_range_high)
 	{
 		return 0;
 	}

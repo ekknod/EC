@@ -4,8 +4,8 @@ int _fltused;
 //
 // used by vm.cpp
 //
-PPHYSICAL_MEMORY_RANGE g_memory_range = 0;
-int                    g_memory_range_count = 0;
+QWORD g_memory_range_low  = 0;
+QWORD g_memory_range_high = 0;
 
 
 //
@@ -14,9 +14,6 @@ int                    g_memory_range_count = 0;
 BOOL   gExitCalled   = 0;
 PVOID  gThreadObject = 0;
 HANDLE gThreadHandle = 0;
-
-
-
 
 #pragma warning(disable : 4201)
 typedef struct _MOUSE_INPUT_DATA {
@@ -92,12 +89,12 @@ namespace input
 
 namespace config
 {
-	BOOL  rcs;
-	DWORD aimbot_button;
-	float aimbot_fov;
-	float aimbot_smooth;
-	BOOL  aimbot_visibility_check;
-	DWORD triggerbot_button;
+	BOOL  rcs = 0;
+	DWORD aimbot_button = 110;
+	float aimbot_fov = 2.0f;
+	float aimbot_smooth = 100.0f;
+	BOOL  aimbot_visibility_check = 0;
+	DWORD triggerbot_button = 111;
 }
 
 static void NtSleep(DWORD milliseconds);
@@ -134,12 +131,6 @@ DriverUnload(
 		ZwClose(gThreadHandle);
 	}
 
-	if (g_memory_range)
-	{
-		ExFreePool(g_memory_range);
-	}
-
-
 	NtSleep(1000);
 
 
@@ -158,27 +149,23 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING Reg
 	_IofCompleteRequest = (QWORD)IofCompleteRequest;
 	_IoReleaseRemoveLockEx = (QWORD)IoReleaseRemoveLockEx;
 
-	config::rcs = TRUE;
-	config::aimbot_button = 110;
-	config::aimbot_fov = 2.0f;
-	config::aimbot_smooth = 20.0f;
-	config::aimbot_visibility_check = 0;
-	config::triggerbot_button = 111;
-
-	g_memory_range = MmGetPhysicalMemoryRanges();
-	if (g_memory_range == 0)
+	PPHYSICAL_MEMORY_RANGE memory_range = MmGetPhysicalMemoryRanges();
+	if (memory_range == 0)
 		return STATUS_DRIVER_ENTRYPOINT_NOT_FOUND;
 
 	int counter=0;
 	while (1)
 	{
-		if (g_memory_range[counter].BaseAddress.QuadPart == 0)
+		if (memory_range[counter].BaseAddress.QuadPart == 0)
 		{
 			break;
 		}
 		counter++;
 	}
-	g_memory_range_count=counter;
+	
+	g_memory_range_low = memory_range[0].BaseAddress.QuadPart;
+	g_memory_range_high = memory_range[counter - 1].BaseAddress.QuadPart + memory_range[counter - 1].NumberOfBytes.QuadPart;
+	ExFreePool(memory_range);
 
 	CLIENT_ID thread_id;
 	PsCreateSystemThread(&gThreadHandle, STANDARD_RIGHTS_ALL, NULL, NULL, &thread_id, (PKSTART_ROUTINE)system_thread, (PVOID)0);

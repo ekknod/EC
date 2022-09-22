@@ -28,8 +28,8 @@ typedef unsigned __int32 DWORD;
 typedef unsigned __int64 QWORD;
 typedef int BOOL;
 
-extern PPHYSICAL_MEMORY_RANGE g_memory_range;
-extern int g_memory_range_count;
+extern QWORD g_memory_range_low;
+extern QWORD g_memory_range_high;
 #else
 #include <windows.h>
 typedef unsigned __int64 QWORD;

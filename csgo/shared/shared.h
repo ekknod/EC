@@ -26,6 +26,11 @@ extern "C" int _fltused;
 namespace features
 {
 	void run(void);
+
+	//
+	// just in case
+	//
+	void reset_mouse(void);
 }
 
 //
@@ -59,6 +64,8 @@ namespace csgo
 		if (cs::running())
 		{
 			features::run();
+		} else {
+			features::reset_mouse();
 		}
 	}
 }
