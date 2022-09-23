@@ -240,9 +240,9 @@ static void features::standalone_rcs(C_Player local_player)
 		m_rcs_old_temp_punch_x = new_punch.x;
 
 
-		vec2 viewangles = cs::engine::get_viewangles();
-		float x = viewangles.x - new_punch.x * 2.0f;
-		float y = viewangles.y - new_punch.y * 2.0f;
+		//vec2 viewangles = cs::engine::get_viewangles();
+		//float x = viewangles.x - new_punch.x * 2.0f;
+		//float y = viewangles.y - new_punch.y * 2.0f;
 
 		int zoom_fov = cs::player::get_fov(local_player);
 		float sensitivity = cs::engine::get_sensitivity();
@@ -250,11 +250,11 @@ static void features::standalone_rcs(C_Player local_player)
 			sensitivity = (zoom_fov / 90.0f) * sensitivity;
 		}
 
-		int final_angle_x =
-			(int)(((y - viewangles.y) / sensitivity) / -0.022f);
+		int final_angle_x = (int)((( -new_punch.y * 2.0f) / sensitivity) / -0.022f);
+			//(int)(((y - viewangles.y) / sensitivity) / -0.022f);
 
-		int final_angle_y =
-			(int)(((x - viewangles.x) / sensitivity) / 0.022f);
+		int final_angle_y = (int)((( -new_punch.x * 2.0f) / sensitivity) / 0.022f);
+			//(int)(((x - viewangles.x) / sensitivity) / 0.022f);
 
 
 		input::mouse_move(final_angle_x, final_angle_y);
