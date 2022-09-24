@@ -456,10 +456,13 @@ inline QWORD vm::utils::FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask,
 	return 0;
 }
 
+//
+// disables stack check, maybe there is better workaround for this as well
+//
+static BYTE GLOBAL_SECTION_DATA[0x1000];
 inline QWORD vm::utils::scan_section(vm_handle process, QWORD section_address,
 	DWORD section_size, PCSTR pattern, PCSTR mask, DWORD len)
 {
-	BYTE GLOBAL_SECTION_DATA[0x1000]{ 0 };
 	DWORD offset = 0;
 	while (section_size)
 	{
