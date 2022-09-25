@@ -97,31 +97,40 @@ void features::run(void)
 
 	BOOL  b_can_aimbot = FALSE;
 	DWORD rcs_bullet_count = 0;
-	switch (m_weapon_class)
+
+	if (m_weapon_class == cs::WEAPON_CLASS::Knife)
 	{
-	case cs::WEAPON_CLASS::Knife:
 		b_can_aimbot = FALSE;
-		break;
+	}
 
-	case cs::WEAPON_CLASS::Grenade:
+	else if (m_weapon_class == cs::WEAPON_CLASS::Grenade)
+	{
 		b_can_aimbot = FALSE;
-		break;
+	}
 
-	case cs::WEAPON_CLASS::Pistol:
+	else if (m_weapon_class == cs::WEAPON_CLASS::Pistol)
+	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 1;
-		break;
+	}
 
-	case cs::WEAPON_CLASS::Sniper:
+	else if (m_weapon_class == cs::WEAPON_CLASS::Sniper)
+	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 2;
-		break;
+	}
 
-	case cs::WEAPON_CLASS::Rifle:
+	else if (m_weapon_class == cs::WEAPON_CLASS::Rifle)
+	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 0;
-		break;
-	default:
+	}
+
+	else
+	{
+		//
+		// invalid weapon class
+		//
 		return;
 	}
 
@@ -261,20 +270,30 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	//
 	BOOL  head_only = FALSE;
 	QWORD tick_count_skip = 0;
-	switch (weapon_class)
+
+	if (weapon_class == cs::WEAPON_CLASS::Pistol)
 	{
-	case cs::WEAPON_CLASS::Pistol:
 		tick_count_skip = random_number(15, 50);
 		head_only = TRUE;
-		break;
-	case cs::WEAPON_CLASS::Sniper:
+	}
+
+	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
+	{
 		tick_count_skip = random_number(30, 80);
-		break;
-	case cs::WEAPON_CLASS::Rifle:
+	}
+
+	else if (weapon_class == cs::WEAPON_CLASS::Rifle)
+	{
 		tick_count_skip = random_number(125, 170);
 		head_only = TRUE;
-		break;
-	default: return 0;
+	}
+
+	else
+	{
+		//
+		// invalid class
+		//
+		return 0;
 	}
 
 
