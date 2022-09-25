@@ -23,6 +23,7 @@ namespace features
 
 	void reset(void)
 	{
+		m_mouse_click_ticks = 0;
 		m_previous_tick = 0;
 		m_previous_button = 0;
 		m_previous_target = 0;
