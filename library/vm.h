@@ -19,6 +19,19 @@ inline int strcmpi_imp(const char* s1, const char* s2)
 	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
+//
+// sometimes compiler uses precompiled strlen, this is added to prevent that happen in any case.
+//
+inline unsigned long long strlen_imp(const char *str)
+{
+	const char *s;
+
+	for (s = str; *s; ++s)
+		;
+
+	return (s - str);
+}
+
 #ifdef _KERNEL_MODE
 #pragma warning (disable: 4996)
 #include <ntifs.h>
@@ -256,7 +269,7 @@ QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 		return 0;
 	}
 
-	int name_length = (int)strlen(export_name);
+	int name_length = (int)strlen_imp(export_name);
 	if (name_length > 259)
 		name_length = 259;
 

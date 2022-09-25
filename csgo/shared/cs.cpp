@@ -1059,7 +1059,7 @@ static DWORD cs::get_interface_factory2(QWORD dll_base)
 static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 {
 	CHAR  buffer[120]{};
-	QWORD name_length = strlen(interface_name);
+	QWORD name_length = strlen_imp(interface_name);
 
 	while (factory != 0)
 	{
@@ -1086,7 +1086,7 @@ static DWORD cs::get_convar(PCSTR convar_name)
 	DWORD a0 = vm::read_i32(csgo_handle,
 		(QWORD)vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(VEngineCvar + 0x34))) + 0x4);
 
-	QWORD cvar_length = strlen(convar_name);
+	QWORD cvar_length = strlen_imp(convar_name);
 
 	while (a0 != 0)
 	{
