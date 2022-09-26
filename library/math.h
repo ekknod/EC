@@ -336,6 +336,25 @@ namespace math
 	    }
 	    return 0;
 	}
+
+	inline vec3 CalcAngle(vec3 src, vec3 dst)
+	{
+		vec3 angle;
+
+		vec3 delta = vec_sub(src, dst);
+
+		float hyp = qsqrt(delta.x * delta.x + delta.y * delta.y);
+
+		angle.x = qatan(delta.z / hyp) * (float)(180.0 / X_PI);
+		angle.y = qatan(delta.y / delta.x) * (float)(180.0 / X_PI);
+		angle.z = 0;
+
+		if (delta.x >= 0.0)
+			angle.y += 180.0f;
+
+		return angle;
+	}
+
 }
 
 #endif /* math.h */

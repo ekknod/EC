@@ -44,8 +44,29 @@ typedef int BOOL;
 extern QWORD g_memory_range_low;
 extern QWORD g_memory_range_high;
 #else
+
+
+#ifdef __linux__
+
+#include <inttypes.h>
+#include <malloc.h>
+typedef unsigned char  BYTE;
+typedef unsigned short WORD;
+typedef unsigned int DWORD;
+typedef unsigned long QWORD;
+typedef void *PVOID;
+typedef int BOOL;
+typedef int INT32;
+typedef const char *PCSTR;
+
+#else
+
 #include <windows.h>
 typedef unsigned __int64 QWORD;
+
+#endif
+
+
 #endif
 
 
@@ -192,6 +213,10 @@ inline QWORD vm::get_relative_address(vm_handle process, QWORD instruction, DWOR
 //
 QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 {
+	#ifdef __linux__
+	return (QWORD)0x140000000;
+	#else
+
 	QWORD peb = get_wow64_process(process);
 
 	DWORD a0[6]{};
@@ -241,6 +266,7 @@ QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 			break;
 	}
 	return 0;
+	#endif
 }
 
 //
