@@ -69,6 +69,7 @@ void features::run(void)
 	//
 	if (target_player == 0)
 	{
+		reset();
 		return;
 	}
 

@@ -18,6 +18,8 @@ namespace apex
 {
 	BOOL running(void);
 
+	void reset_globals(void);
+
 	namespace entity
 	{
 		C_Entity get_entity(int index);

@@ -39,6 +39,32 @@ BOOL apex::running(void)
 	return apex::initialize();
 }
 
+void apex::reset_globals(void)
+{
+	apex_handle       = 0;
+	netvar_status     = 0;
+	IClientEntityList = 0;
+	C_BasePlayer      = 0;
+	IInputSystem      = 0;
+	m_GetAllClasses   = 0;
+	sensitivity       = 0;
+	m_dwBulletSpeed   = 0;
+	m_dwBulletGravity = 0;
+	m_dwMuzzle        = 0;
+	m_dwVisibleTime   = 0;
+	m_iHealth         = 0;
+	m_iViewAngles     = 0;
+	m_bZooming        = 0;
+	m_lifeState       = 0;
+	m_iCameraAngles   = 0;
+	m_iTeamNum        = 0;
+	m_iName           = 0;
+	m_vecAbsOrigin    = 0;
+	m_iWeapon         = 0;
+	m_iBoneMatrix     = 0;
+	m_playerData      = 0;
+}
+
 C_Entity apex::entity::get_entity(int index)
 {
 	index = index + 1;

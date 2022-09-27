@@ -31,6 +31,7 @@ namespace input
 
 int main(void)
 {
+	apex::reset_globals();
 	while (1)
 	{
 		Sleep(1);
