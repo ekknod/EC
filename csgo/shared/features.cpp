@@ -615,12 +615,12 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	}
 
 	//
-	// we can only aim 2 pixels / tick (higher smooth = higher fov)
+	// we can only aim max 100 pixels / tick (higher smooth = higher fov)
 	//
-	if (qabs((int)sx) > 2)
+	if (qabs((int)sx) > 100)
 		return;
 
-	if (qabs((int)sy) > 2)
+	if (qabs((int)sy) > 100)
 		return;
 
 	DWORD current_tick = cs::engine::get_current_tick();
