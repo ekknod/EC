@@ -265,9 +265,9 @@ static void features::standalone_rcs(C_Player local_player)
 		int final_angle_x = (int)((( -new_punch.y * 2.0f) / sensitivity) / -0.022f);
 		int final_angle_y = (int)((( -new_punch.x * 2.0f) / sensitivity) / 0.022f);
 
-		if (!m_aimbot_active)
-			input::mouse_move(final_angle_x, final_angle_y);
-		// cs::input::mouse_move(final_angle_x, final_angle_y);
+		/*if (!m_aimbot_active)
+			input::mouse_move(final_angle_x, final_angle_y);*/
+		cs::input::mouse_move(final_angle_x, final_angle_y);
 	}
 	m_rcs_old_punch = current_punch;
 }
