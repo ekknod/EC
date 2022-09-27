@@ -180,10 +180,10 @@ static void features::aimbot(C_Player local_player, C_Player target_player, floa
 			if (visible_time > target_visible_time)
 			{
 				m_previous_target_visible_time = visible_time;
-				apex::input::mouse_move((int)sx, (int)sy);
+				input::mouse_move((int)sx, (int)sy);
 			}
 		} else {
-			apex::input::mouse_move((int)sx, (int)sy);
+			input::mouse_move((int)sx, (int)sy);
 		}
 	}
 }

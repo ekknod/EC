@@ -123,11 +123,11 @@ vec3 apex::player::get_muzzle(C_Player player_address)
 
 typedef struct
 {
-	uint8_t pad1[0xCC];
+	unsigned char pad1[0xCC];
 	float x;
-	uint8_t pad2[0xC];
+	unsigned char pad2[0xC];
 	float y;
-	uint8_t pad3[0xC];
+	unsigned char pad3[0xC];
 	float z;
 } matrix3x4;
 

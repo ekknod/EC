@@ -25,6 +25,16 @@ namespace features
 	void run(void);
 }
 
+
+//
+// implemented by application/driver
+//
+
+namespace input
+{
+	extern void mouse_move(int x, int y);
+}
+
 //
 // implemented by application/driver
 //
