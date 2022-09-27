@@ -30,6 +30,7 @@ namespace config
 
 int main(void)
 {
+	cs::reset_globals();
 	while (1)
 	{
 		Sleep(1);

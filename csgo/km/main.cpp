@@ -101,6 +101,7 @@ static void NtSleep(DWORD milliseconds);
 
 NTSTATUS system_thread(void)
 {
+	cs::reset_globals();
 	while (gExitCalled == 0)
 	{
 		NtSleep(1);

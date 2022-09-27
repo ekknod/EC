@@ -105,6 +105,38 @@ BOOL cs::running(void)
 	return cs::initialize();
 }
 
+void cs::reset_globals(void)
+{
+	csgo_handle              = 0;
+	use_dormant_check        = 0;
+	IInputSystem             = 0;
+	VEngineCvar              = 0;
+	sensitivity              = 0;
+	mp_teammates_are_enemies = 0;
+	C_BasePlayer             = 0;
+	g_TeamCount              = 0;
+	g_Teams                  = 0;
+	dwViewAngles             = 0;
+	VClientEntityList        = 0;
+	dwGetAllClasses          = 0;
+	dwClientState            = 0;
+	netvar_status            = 0;
+	m_iHealth                = 0;
+	m_vecViewOffset          = 0;
+	m_lifeState              = 0;
+	m_vecPunch               = 0;
+	m_iFOV                   = 0;
+	m_iTeamNum               = 0;
+	m_bSpottedByMask         = 0;
+	m_vecOrigin              = 0;
+	m_hActiveWeapon          = 0;
+	m_iShotsFired            = 0;
+	m_iCrossHairID           = 0;
+	m_bHasDefuser            = 0;
+	m_bIsDefusing            = 0;
+	m_dwBoneMatrix           = 0;
+}
+
 C_Player cs::teams::get_local_player(void)
 {
 	return vm::read_i32(csgo_handle, C_BasePlayer);
