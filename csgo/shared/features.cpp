@@ -6,12 +6,13 @@
 
 namespace features
 {
-	static vec2  m_rcs_old_punch{ 0, 0 };
-	static float m_rcs_old_temp_punch_x = 0;
-	static DWORD m_rcs_old_shots_fired = 0;
+	static vec2    m_rcs_old_punch{ 0, 0 };
+	static float   m_rcs_old_temp_punch_x = 0;
+	static DWORD   m_rcs_old_shots_fired = 0;
 
-	static float m_aimbot_old_temp_punch_x = 0;
-	static DWORD m_aimbot_old_shots_fired = 0;
+	static float   m_aimbot_old_temp_punch_x = 0;
+	static DWORD   m_aimbot_old_shots_fired = 0;
+	static BOOL    m_aimbot_active = 0;
 
 	static BOOL  m_previous_button = 0;
 	static cs::WEAPON_CLASS m_weapon_class = cs::WEAPON_CLASS::Invalid;
@@ -80,6 +81,7 @@ void features::run(void)
 
 	if (!m_previous_button && current_button)
 	{
+		m_rcs_old_shots_fired = 0;
 		m_weapon_class = cs::player::get_weapon_class(local_player);
 	}
 
@@ -102,36 +104,40 @@ void features::run(void)
 	{
 		b_can_aimbot = FALSE;
 	}
-
 	else if (m_weapon_class == cs::WEAPON_CLASS::Grenade)
 	{
 		b_can_aimbot = FALSE;
 	}
-
 	else if (m_weapon_class == cs::WEAPON_CLASS::Pistol)
 	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 1;
 	}
-
 	else if (m_weapon_class == cs::WEAPON_CLASS::Sniper)
 	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 2;
 	}
-
 	else if (m_weapon_class == cs::WEAPON_CLASS::Rifle)
 	{
 		b_can_aimbot = TRUE;
 		rcs_bullet_count = 0;
 	}
-
 	else
 	{
 		//
 		// invalid weapon class
 		//
 		return;
+	}
+
+	if (aimbot_button || triggerbot_button)
+	{
+		m_aimbot_active = 1;
+	}
+	else
+	{
+		m_aimbot_active = 0;
 	}
 
 	if (config::rcs)
@@ -182,6 +188,7 @@ void features::run(void)
 	C_Player target_player = m_previous_target;
 	if (target_player == 0)
 	{
+		m_aimbot_old_shots_fired = 0;
 		target_player = get_best_target(local_player, rcs_bullet_count, &target_team);
 	}
 	else
@@ -257,7 +264,9 @@ static void features::standalone_rcs(C_Player local_player)
 
 		int final_angle_x = (int)((( -new_punch.y * 2.0f) / sensitivity) / -0.022f);
 		int final_angle_y = (int)((( -new_punch.x * 2.0f) / sensitivity) / 0.022f);
-		input::mouse_move(final_angle_x, final_angle_y);
+
+		if (!m_aimbot_active)
+			input::mouse_move(final_angle_x, final_angle_y);
 		// cs::input::mouse_move(final_angle_x, final_angle_y);
 	}
 	m_rcs_old_punch = current_punch;
@@ -276,18 +285,15 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 		tick_count_skip = random_number(15, 50);
 		head_only = TRUE;
 	}
-
 	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
 	{
 		tick_count_skip = random_number(30, 80);
 	}
-
 	else if (weapon_class == cs::WEAPON_CLASS::Rifle)
 	{
 		tick_count_skip = random_number(125, 170);
 		head_only = TRUE;
 	}
-
 	else
 	{
 		//
@@ -413,10 +419,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	//
 	if (head_only)
 	{
-		if (bullet_count < 2)
-		{
-			bullet_count = 2;
-		}
+		bullet_count = 609;
 	}
 
 	vec3 aimbot_angle = vec3{ 0, 0, 0 };
@@ -642,17 +645,20 @@ static vec3 features::get_target_angle(C_Player local_player, vec3 position, DWO
 	DWORD current_shots_fired = cs::player::get_shots_fired(local_player);
 	if (current_shots_fired > bullet_count)
 	{
-
 		//
 		// https://www.bilibili.com/video/BV1Ma4y147TS
 		//
-		if (current_shots_fired > m_aimbot_old_shots_fired && m_aimbot_old_temp_punch_x < current_punch.x)
+		if (m_aimbot_old_shots_fired > 0 && current_shots_fired > m_aimbot_old_shots_fired)
 		{
-			current_punch.x = m_aimbot_old_temp_punch_x;
+			if (m_aimbot_old_temp_punch_x < current_punch.x)
+			{
+				current_punch.x = m_aimbot_old_temp_punch_x;
+			}
 		}
 
 		m_aimbot_old_shots_fired = current_shots_fired;
 		m_aimbot_old_temp_punch_x = current_punch.x;
+
 
 		angle.x -= current_punch.x * 2.0f;
 		angle.y -= current_punch.y * 2.0f;
