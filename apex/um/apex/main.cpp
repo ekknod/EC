@@ -21,6 +21,14 @@ namespace config
 	BOOL  visuals_enabled = 1;
 }
 
+namespace input
+{
+	void mouse_move(int x, int y)
+	{
+		apex::input::mouse_move(x, y);
+	}
+}
+
 int main(void)
 {
 	while (1)
