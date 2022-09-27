@@ -20,12 +20,12 @@ namespace input
 
 namespace config
 {
-	BOOL  rcs = 1;
-	DWORD aimbot_button = 111;
-	float aimbot_fov = 4.0f;
+	BOOL  rcs = 0;
+	DWORD aimbot_button = 110;
+	float aimbot_fov = 2.0f;
 	float aimbot_smooth = 20.0f;
 	BOOL  aimbot_visibility_check = 0;
-	DWORD triggerbot_button = 110;
+	DWORD triggerbot_button = 111;
 }
 
 int main(void)
