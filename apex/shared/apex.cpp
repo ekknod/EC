@@ -184,10 +184,12 @@ vec2 apex::player::get_viewangles(C_Player player_address)
 
 void apex::player::enable_glow(C_Player player_address)
 {
-	vm::write_i32(apex_handle, player_address + 0x262, 16256);
-	vm::write_i32(apex_handle, player_address + 0x2dc, 1193322764);
-	vm::write_i32(apex_handle, player_address + 0x3c8, 7);
+	vm::write_i32(apex_handle, player_address + 0x2C4, 1512990053);
+	vm::write_i32(apex_handle, player_address + 0x3c8, 1);
 	vm::write_i32(apex_handle, player_address + 0x3d0, 2);
+	vm::write_float(apex_handle, player_address + 0x1D0, 70.000f);
+	vm::write_float(apex_handle, player_address + 0x1D4, 0.000f);
+	vm::write_float(apex_handle, player_address + 0x1D8, 0.000f);
 }
 
 C_Weapon apex::player::get_weapon(C_Player player_address)
