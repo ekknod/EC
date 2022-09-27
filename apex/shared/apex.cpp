@@ -11,8 +11,8 @@ namespace apex
 	static QWORD     m_GetAllClasses   = 0;
 	static QWORD     sensitivity       = 0;
 
-	static QWORD     m_dwBulletSpeed   = 0;
-	static QWORD     m_dwBulletGravity = 0;
+	static DWORD     m_dwBulletSpeed   = 0;
+	static DWORD     m_dwBulletGravity = 0;
 
 	static DWORD     m_dwMuzzle        = 0;
 	static DWORD     m_dwVisibleTime   = 0;
@@ -273,7 +273,7 @@ static BOOL apex::initialize(void)
 		goto cleanup2;
 	}
 
-	C_BasePlayer = vm::scan_pattern(apex_base_dump, "\x89\x41\x28\x48\x8B\x05", "xxxxxx", 6);
+	C_BasePlayer = vm::scan_pattern(apex_base_dump, "\x89\x41\x28\x48\x8B\x05\x00\x00\x00\x00\x48\x85\xC0", "xxxxxx????xxx", 13);
 	if (C_BasePlayer == 0)
 	{
 #ifdef DEBUG
@@ -368,14 +368,8 @@ static BOOL apex::initialize(void)
 			goto cleanup2;
 		}
 
-		m_dwBulletGravity = temp_address + 0x02;
-		m_dwBulletGravity = m_dwBulletGravity + 0x05;
-
-		m_dwBulletSpeed = temp_address - 0x6D;
-		m_dwBulletSpeed = m_dwBulletSpeed + 0x04;
-
-		m_dwBulletGravity = vm::read_i32(apex_handle, m_dwBulletGravity);
-		m_dwBulletSpeed = vm::read_i32(apex_handle, m_dwBulletSpeed);
+		m_dwBulletGravity = vm::read_i32(apex_handle, temp_address + 0x02 + 0x05);
+		m_dwBulletSpeed = vm::read_i32(apex_handle, temp_address - 0x6D + 0x04);
 
 		if (m_dwBulletGravity == 0 || m_dwBulletSpeed == 0)
 		{
@@ -452,21 +446,22 @@ static BOOL apex::initialize(void)
 	LOG("[+] IClientEntityList: %lx\n", IClientEntityList - apex_base);
 	LOG("[+] dwLocalPlayer: %lx\n", C_BasePlayer - apex_base);
 	LOG("[+] IInputSystem: %lx\n", IInputSystem - apex_base);
+	LOG("[+] m_GetAllClasses: %lx\n", m_GetAllClasses - apex_base);
 	LOG("[+] sensitivity: %lx\n", sensitivity - apex_base);
 	LOG("[+] dwBulletSpeed: %x\n", (DWORD)m_dwBulletSpeed);
 	LOG("[+] dwBulletGravity: %x\n", (DWORD)m_dwBulletGravity);
 	LOG("[+] dwMuzzle: %x\n", m_dwMuzzle);
-	LOG("[+] dwVisibleTime: %x\n", m_dwMuzzle);
+	LOG("[+] dwVisibleTime: %x\n", m_dwVisibleTime);
 	LOG("[+] m_iHealth: %x\n", m_iHealth);
 	LOG("[+] m_iViewAngles: %x\n", m_iViewAngles);
 	LOG("[+] m_bZooming: %x\n", m_bZooming);
-	LOG("[+] m_iCameraAngles: %x\n", m_iCameraAngles);
 	LOG("[+] m_lifeState: %x\n", m_lifeState);
+	LOG("[+] m_iCameraAngles: %x\n", m_iCameraAngles);
 	LOG("[+] m_iTeamNum: %x\n", m_iTeamNum);
+	LOG("[+] m_iName: %x\n", m_iName);
 	LOG("[+] m_vecAbsOrigin: %x\n", m_vecAbsOrigin);
 	LOG("[+] m_iWeapon: %x\n", m_iWeapon);
 	LOG("[+] m_iBoneMatrix: %x\n", m_iBoneMatrix);
-	LOG("[+] m_playerData: %x\n", m_playerData);
 	LOG("[+] r5apex.exe is running\n");
 #endif
 

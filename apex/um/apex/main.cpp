@@ -7,7 +7,6 @@
 int Sleep(long ms)
 {
 	struct timespec ts;
-	int res;
 	ts.tv_sec = ms / 1000;
 	ts.tv_nsec = (ms % 1000) * 1000000;
 	return nanosleep(&ts, &ts);
@@ -16,7 +15,7 @@ int Sleep(long ms)
 namespace config
 {
 	DWORD aimbot_button = 111;
-	float aimbot_fov = 2.0f;
+	float aimbot_fov = 5.0f;
 	float aimbot_smooth = 5.0f;
 	BOOL  aimbot_visibility_check = 1;
 	BOOL  visuals_enabled = 1;
