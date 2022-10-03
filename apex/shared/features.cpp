@@ -10,7 +10,7 @@ namespace features
 	static DWORD    m_previous_tick = 0;
 	static float    m_previous_target_visible_time  = 0;
 
-	static void reset(void)
+	void reset(void)
 	{
 		m_previous_target_visible_time = 0;
 		m_previous_target = 0;

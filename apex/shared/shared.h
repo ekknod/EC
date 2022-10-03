@@ -23,6 +23,7 @@ extern "C" int _fltused;
 namespace features
 {
 	void run(void);
+	void reset(void);
 }
 
 
@@ -54,6 +55,8 @@ namespace apex_legends
 		if (apex::running())
 		{
 			features::run();
+		} else {
+			features::reset();
 		}
 	}
 }
