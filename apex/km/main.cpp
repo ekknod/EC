@@ -73,9 +73,10 @@ namespace input
 {
 	void mouse_move(int x, int y)
 	{
-		mouse::move(x, y, 0);
+		apex::input::mouse_move(x, y);
+		// mouse::move(x, y, 0);
 	}
-
+	/*
 	void mouse1_down(void)
 	{
 		mouse::move(0, 0, 0x01);
@@ -85,6 +86,7 @@ namespace input
 	{
 		mouse::move(0, 0, 0x02);
 	}
+	*/
 }
 
 namespace config
