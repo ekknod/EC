@@ -39,8 +39,8 @@ namespace features
 	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
 }
 
-static INT64 get_random_number();
-static INT64 random_number(QWORD min, QWORD max)
+static QWORD get_random_number();
+static QWORD random_number(QWORD min, QWORD max)
 {
 	return min + get_random_number() % (max + 1 - min);
 }
@@ -91,36 +91,36 @@ void features::run(void)
 	//
 	// remove this in case some feature added what requires 24/7 action
 	//
-	if (current_button == FALSE)
+	if (current_button == 0)
 	{
 		return;
 	}
 
 
-	BOOL  b_can_aimbot = FALSE;
+	BOOL  b_can_aimbot = 0;
 	DWORD rcs_bullet_count = 0;
 
 	if (m_weapon_class == cs::WEAPON_CLASS::Knife)
 	{
-		b_can_aimbot = FALSE;
+		b_can_aimbot = 0;
 	}
 	else if (m_weapon_class == cs::WEAPON_CLASS::Grenade)
 	{
-		b_can_aimbot = FALSE;
+		b_can_aimbot = 0;
 	}
 	else if (m_weapon_class == cs::WEAPON_CLASS::Pistol)
 	{
-		b_can_aimbot = TRUE;
+		b_can_aimbot = 1;
 		rcs_bullet_count = 1;
 	}
 	else if (m_weapon_class == cs::WEAPON_CLASS::Sniper)
 	{
-		b_can_aimbot = TRUE;
+		b_can_aimbot = 1;
 		rcs_bullet_count = 2;
 	}
 	else if (m_weapon_class == cs::WEAPON_CLASS::Rifle)
 	{
-		b_can_aimbot = TRUE;
+		b_can_aimbot = 1;
 		rcs_bullet_count = 0;
 	}
 	else
@@ -277,13 +277,13 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	//
 	// force head only for pistols and scout (class Pistol contains ssg08)
 	//
-	BOOL  head_only = FALSE;
+	BOOL  head_only = 0;
 	QWORD tick_count_skip = 0;
 
 	if (weapon_class == cs::WEAPON_CLASS::Pistol)
 	{
 		tick_count_skip = random_number(15, 50);
-		head_only = TRUE;
+		head_only = 1;
 	}
 	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
 	{
@@ -292,7 +292,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	else if (weapon_class == cs::WEAPON_CLASS::Rifle)
 	{
 		tick_count_skip = random_number(125, 170);
-		head_only = TRUE;
+		head_only = 1;
 	}
 	else
 	{
@@ -325,7 +325,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	//
 	// for snipers we can try use incross
 	//
-	if (head_only == FALSE)
+	if (head_only == 0)
 	{
 		if (cs::player::get_crosshair_id(local_player) == cs::player::get_player_id(target_player))
 		{
@@ -755,7 +755,7 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 //
 // not random really
 //
-static INT64 get_random_number()
+static QWORD get_random_number()
 {
 	return cs::engine::get_current_tick();
 }
