@@ -1090,7 +1090,7 @@ static DWORD cs::get_interface_factory2(QWORD dll_base)
 
 static DWORD cs::get_interface(DWORD factory, PCSTR interface_name)
 {
-	CHAR  buffer[120]{};
+	char  buffer[120]{};
 	QWORD name_length = strlen_imp(interface_name);
 
 	while (factory != 0)
