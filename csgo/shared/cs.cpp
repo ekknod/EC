@@ -20,7 +20,6 @@
 //
 // private data. only available for cs.cpp
 //
-
 namespace cs
 {
 	namespace input
@@ -698,7 +697,7 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-
+	/*
 	dwViewAngles = (DWORD)vm::scan_pattern(client_dump, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
 	if (dwViewAngles == 0)
 	{
@@ -716,6 +715,7 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup2;
 	}
+	*/
 
 	vm::free_module(client_dump);
 	client_dump = 0;
@@ -728,6 +728,20 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup;
 	}
+
+	dwViewAngles = (DWORD)vm::scan_pattern(engine_dump, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
+	if (dwViewAngles == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewAngles\n");
+#endif
+		goto cleanup3;
+	}
+
+	dwViewAngles += 4;
+	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
+	dwViewAngles += 0xC;
+
 
 	VClientEntityList = (DWORD)vm::scan_pattern(engine_dump, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
@@ -947,7 +961,7 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-
+	/*
 	dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
 	if (dwViewAngles == 0)
 	{
@@ -965,6 +979,20 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup;
 	}
+	*/
+
+	dwViewAngles = vm::scan_pattern_direct(csgo_handle, engine_dll, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
+	if (dwViewAngles == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewAngles\n");
+#endif
+		goto cleanup;
+	}
+
+	dwViewAngles += 4;
+	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
+	dwViewAngles += 0xC;
 
 	VClientEntityList = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
