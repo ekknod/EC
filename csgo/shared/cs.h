@@ -74,6 +74,7 @@ namespace cs
 		int          get_health(C_Player player_address);
 		int          get_shots_fired(C_Player player_address);
 		vec2         get_vec_punch(C_Player player_address);
+		vec2         get_viewangles(C_Player player_address);
 		int          get_fov(C_Player player_address);
 		DWORD        get_weapon_handle(C_Player player_address);
 		WEAPON_CLASS get_weapon_class(C_Player player_address);

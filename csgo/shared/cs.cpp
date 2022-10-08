@@ -5,7 +5,7 @@
 // pros: no need system memory allocation
 // cons: performance is worse + function might fail in some cases.
 //
-// #define DIRECT_PATTERNS
+#define DIRECT_PATTERNS
 
 
 //
@@ -56,6 +56,7 @@ namespace cs
 	static DWORD     m_lifeState              = 0;
 	static DWORD     m_vecPunch               = 0;
 	static DWORD     m_iFOV                   = 0;
+	static DWORD     m_vecOldViewAngles       = 0;
 	static DWORD     m_iTeamNum               = 0;
 	static DWORD     m_bSpottedByMask         = 0;
 	static DWORD     m_vecOrigin              = 0;
@@ -331,6 +332,18 @@ vec2 cs::player::get_vec_punch(C_Player player_address)
 		vec_punch.y = 0;
 	}
 	return vec_punch;
+}
+
+vec2 cs::player::get_viewangles(C_Player player_address)
+{
+	vec2 old_viewangles{};
+
+	if (!vm::read(csgo_handle, (QWORD)(player_address + m_vecOldViewAngles), &old_viewangles, sizeof(old_viewangles)))
+	{
+		old_viewangles.x = 0;
+		old_viewangles.y = 0;
+	}
+	return old_viewangles;
 }
 
 int cs::player::get_fov(C_Player player_address)
@@ -697,7 +710,7 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-	
+	/*
 	dwViewAngles = (DWORD)vm::scan_pattern(client_dump, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
 	if (dwViewAngles == 0)
 	{
@@ -723,6 +736,7 @@ static BOOL cs::initialize(void)
 		//
 		dwViewAngles = client_dll+0xDDD28C;
 	}
+	*/
 	
 
 	vm::free_module(client_dump);
@@ -956,7 +970,7 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-	
+	/*
 	dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll, "\x74\x51\x8B\x75\x0C", S("xxxxx"), 5);
 	if (dwViewAngles == 0)
 	{
@@ -982,6 +996,7 @@ static BOOL cs::initialize(void)
 		//
 		dwViewAngles = client_dll+0xDDD28C;
 	}
+	*/
 
 	VClientEntityList = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
@@ -1245,7 +1260,13 @@ static BOOL cs::dump_baseplayer_callback(PCSTR netvar_name, DWORD offset, PVOID 
 		m_iFOV = offset;
 		*(int *)params = *(int *)params + 1;
 	}
-	return *(int *)params == 5;
+	if (!strcmpi_imp(netvar_name, "m_nTickBase"))
+	{
+		m_vecOldViewAngles = offset;
+		m_vecOldViewAngles = m_vecOldViewAngles - 0x10;
+		*(int *)params = *(int *)params + 1;
+	}
+	return *(int *)params == 6;
 }
 
 static BOOL cs::dump_baseentity_callback(PCSTR netvar_name, DWORD offset, PVOID params)
