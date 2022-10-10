@@ -955,7 +955,7 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-	dwViewAngles = vm::scan_pattern_direct(csgo_handle, engine_dll, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
+	dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
 	if (dwViewAngles == 0)
 	{
 #ifdef DEBUG
