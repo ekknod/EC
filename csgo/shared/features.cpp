@@ -165,7 +165,7 @@ void features::run(void)
 				bonepos.z = matrix[2][3];
 
 				vec3 best_angle = get_target_angle(local_player, bonepos, rcs_bullet_count);
-				float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
+				float fov = math::get_fov(cs::engine::get_viewangles(), *(vec3*)&best_angle);
 
 				if (fov > config::aimbot_fov)
 				{
@@ -369,7 +369,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 			return head_only;
 		}
 
-		vec2 viewangles_2 = cs::player::get_viewangles(local_player);
+		vec2 viewangles_2 = cs::engine::get_viewangles();
 		vec3 viewangles = vec3{ viewangles_2.x, viewangles_2.y, 0 };
 
 		vec3 dir = math::vec_atd(viewangles);
@@ -538,7 +538,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 
 
 			vec3 best_angle = get_target_angle(local_player, temp_pos, bullet_count);
-			float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
+			float fov = math::get_fov(cs::engine::get_viewangles(), *(vec3*)&best_angle);
 
 			if (fov < best_fov)
 			{
@@ -555,7 +555,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	}
 
 
-	float fov = math::get_fov(cs::player::get_viewangles(local_player), aimbot_angle);
+	float fov = math::get_fov(cs::engine::get_viewangles(), aimbot_angle);
 	if (fov > config::aimbot_fov)
 	{
 		return;
@@ -567,7 +567,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 		sensitivity = (zoom_fov / 90.0f) * sensitivity;
 	}
 
-	vec2 viewangles = cs::player::get_viewangles(local_player);
+	vec2 viewangles = cs::engine::get_viewangles();
 
 	vec3 angles{};
 	angles.x = viewangles.x - aimbot_angle.x;
@@ -739,7 +739,7 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 			bonepos.z = matrix[2][3];
 
 			vec3 best_angle = get_target_angle(local_player, bonepos, bullet_count);
-			float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
+			float fov = math::get_fov(cs::engine::get_viewangles(), *(vec3*)&best_angle);
 
 			if (fov < best_fov)
 			{
