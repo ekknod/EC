@@ -211,6 +211,7 @@ inline QWORD vm::get_relative_address(vm_handle process, QWORD instruction, DWOR
 // to remember how exactly this works :D
 // it's mimimal port of Windows GetModuleHandleA to external. structure offsets are just fixed for both x86/x64.
 //
+
 QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 {
 	#ifdef __linux__
@@ -241,26 +242,40 @@ QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 		return 0;
 	}
 
-	a1 = read_ptr(process, read_ptr(process, peb + a0[1]) + a0[2]);
+	a1 = read_ptr(process, peb + a0[1]);
+	if (a1 == 0)
+	{
+		return 0;
+	}
+
+	a1 = read_ptr(process, a1 + a0[2]);
+	if (a1 == 0)
+	{
+		return 0;
+	}
+
 	a2 = read_ptr(process, a1 + a0[0]);
 
 	while (a1 != a2) {
-		read(process, read_ptr(process, a1 + a0[3]), a3, sizeof(a3));
-		if (dll_name == 0)
-			return read_ptr(process, a1 + a0[4]);
-
-		char final_name[120]{};
-		for (int i = 0; i < 120; i++) {
-			final_name[i] = (char)a3[i];
-			if (a3[i] == 0)
-				break;
-		}
-
-		if (strcmpi_imp((PCSTR)final_name, dll_name) == 0)
+		QWORD a4 = read_ptr(process, a1 + a0[3]);
+		if (a4 != 0)
 		{
-			return read_ptr(process, a1 + a0[4]);
-		}
+			read(process, a4, a3, sizeof(a3));
+			if (dll_name == 0)
+				return read_ptr(process, a1 + a0[4]);
 
+			char final_name[120]{};
+			for (int i = 0; i < 120; i++) {
+				final_name[i] = (char)a3[i];
+				if (a3[i] == 0)
+					break;
+			}
+
+			if (strcmpi_imp((PCSTR)final_name, dll_name) == 0)
+			{
+				return read_ptr(process, a1 + a0[4]);
+			}
+		}
 		a1 = read_ptr(process, a1);
 		if (a1 == 0)
 			break;
@@ -303,14 +318,17 @@ QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 	while (a1[0]--)
 	{
 		a0 = (QWORD)read_i32(process, base + a1[2] + ((QWORD)a1[0] * 4));
-		read(process, base + a0, &a2, name_length);
-		a2[name_length] = 0;
-
-		if (!strcmpi_imp(a2, export_name))
+		if (a0)
 		{
-			DWORD tmp = read_i16(process, base + a1[3] + ((QWORD)a1[0] * 2)) * 4;
-			DWORD tmp2 = read_i32(process, base + a1[1] + tmp);
-			return (base + tmp2);
+			read(process, base + a0, &a2, name_length);
+			a2[name_length] = 0;
+
+			if (!strcmpi_imp(a2, export_name))
+			{
+				DWORD tmp = read_i16(process, base + a1[3] + ((QWORD)a1[0] * 2)) * 4;
+				DWORD tmp2 = read_i32(process, base + a1[1] + tmp);
+				return (base + tmp2);
+			}
 		}
 	}
 	return 0;
