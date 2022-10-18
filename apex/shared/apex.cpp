@@ -144,14 +144,9 @@ int apex::player::get_team_id(C_Player player_address)
 	return vm::read_i32(apex_handle, player_address + m_iTeamNum);
 }
 
-vec3 apex::player::get_muzzle(C_Player player_address)
+BOOL apex::player::get_muzzle(C_Player player_address, vec3 *vec_out)
 {
-	vec3 muzzle;
-	if (!vm::read(apex_handle, player_address + m_dwMuzzle, &muzzle, sizeof(muzzle)))
-	{
-		return vec3 {0, 0, 0};
-	}
-	return muzzle;
+	return vm::read(apex_handle, player_address + m_dwMuzzle, vec_out, sizeof(vec3));
 }
 
 typedef struct
@@ -164,55 +159,40 @@ typedef struct
 	float z;
 } matrix3x4;
 
-vec3 apex::player::get_bone_position(C_Player player_address, int index)
+BOOL apex::player::get_bone_position(C_Player player_address, int index, vec3 *vec_out)
 {
 	QWORD bonematrix = vm::read_i64(apex_handle, player_address + m_iBoneMatrix);
 	if (bonematrix == 0)
 	{
-		return vec3 {0, 0, 0};
+		return 0;
 	}
 
 	vec3 position;
 	if (!vm::read(apex_handle, player_address + m_vecAbsOrigin, &position, sizeof(position)))
 	{
-		return vec3 {0, 0, 0};
+		return 0;
 	}
 
 	matrix3x4 matrix;
 	if (!vm::read(apex_handle, bonematrix + (0x30 * index), &matrix, sizeof(matrix3x4)))
 	{
-		return vec3 {0, 0, 0};
+		return 0;
 	}
-	
-	vec3 bonepos;
-	bonepos.x = matrix.x + position.x;
-	bonepos.y = matrix.y + position.y;
-	bonepos.z = matrix.z + position.z;
-	return bonepos;
+
+	vec_out->x = matrix.x + position.x;
+	vec_out->y = matrix.y + position.y;
+	vec_out->z = matrix.z + position.z;
+	return 1;
 }
 
-vec3 apex::player::get_velocity(C_Player player_address)
+BOOL apex::player::get_velocity(C_Player player_address, vec3 *vec_out)
 {
-	vec3 value;
-
-	if (!vm::read(apex_handle, player_address + m_vecAbsOrigin - 0xC, &value, sizeof(value)))
-	{
-		return vec3 {0, 0, 0};
-	}
-
-	return value;
+	return vm::read(apex_handle, player_address + m_vecAbsOrigin - 0xC, vec_out, sizeof(vec3));
 }
 
-vec2 apex::player::get_viewangles(C_Player player_address)
+BOOL apex::player::get_viewangles(C_Player player_address, vec2 *vec_out)
 {
-	vec2 breath_angles;
-
-	if (!vm::read(apex_handle, player_address + m_iViewAngles - 0x10, &breath_angles, sizeof(breath_angles)))
-	{
-		return vec2 {0, 0};
-	}
-
-	return breath_angles;
+	return vm::read(apex_handle, player_address + m_iViewAngles - 0x10, vec_out, sizeof(vec2));
 }
 
 void apex::player::enable_glow(C_Player player_address)

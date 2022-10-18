@@ -1,9 +1,5 @@
 #include "shared.h"
 
-//
-// really garbage, at least it's something.
-//
-
 namespace features
 {
 	static C_Player m_previous_target = 0;
@@ -19,7 +15,7 @@ namespace features
 
 	static void     aimbot(C_Player local_player, C_Player target_player, float target_visible_time);
 	static C_Player get_best_target(C_Player local_player, float *visible_time);
-	static vec3     get_target_angle(C_Player local_player, C_Player target_player, int bone_index);
+	static BOOL     get_target_angle(C_Player local_player, C_Player target_player, int bone_index, vec3 *vec_out);
 }
 
 void features::run(void)
@@ -40,10 +36,19 @@ void features::run(void)
 		}
 		else
 		{
-			vec3 target_angle = get_target_angle(local_player, m_previous_target, 2);
-			float fov = math::get_fov(apex::player::get_viewangles(local_player), target_angle);
-			if (fov > config::aimbot_fov)
+			vec3 target_angle;
+			vec2 va;
+			
+			if (get_target_angle(local_player, m_previous_target, 2, &target_angle) &&
+				apex::player::get_viewangles(local_player, &va)
+				)
 			{
+				float fov = math::get_fov(va, target_angle);
+				if (fov > config::aimbot_fov)
+				{
+					m_previous_target = 0;
+				}
+			} else {
 				m_previous_target = 0;
 			}
 		}
@@ -86,18 +91,26 @@ static void features::aimbot(C_Player local_player, C_Player target_player, floa
 
 	float best_fov = 360.0f;
 	int bone_list[] = { 2, 3, 5, 8 };
-	vec3 aimbot_angle = vec3{ 0, 0, 0 };
+	vec3 aimbot_angle{};
 
-	vec2 viewangles = apex::player::get_viewangles(local_player);
+	vec2 viewangles;
+	if (!apex::player::get_viewangles(local_player, &viewangles))
+	{
+		return;
+	}
+
 	for (int i = 0; i < 4; i++)
 	{
-		vec3 angle = get_target_angle(local_player, target_player, bone_list[i]);
-		float fov  = math::get_fov( viewangles, angle );
-		if (fov < best_fov)
+		vec3 angle;
+		if (get_target_angle(local_player, target_player, bone_list[i], &angle))
 		{
-			best_fov = fov;
-			aimbot_angle = angle;
-			best_angle_found = 1;
+			float fov  = math::get_fov( viewangles, angle );
+			if (fov < best_fov)
+			{
+				best_fov = fov;
+				aimbot_angle = angle;
+				best_angle_found = 1;
+			}
 		}
 	}
 
@@ -113,7 +126,17 @@ static void features::aimbot(C_Player local_player, C_Player target_player, floa
 	}
 
 	float zoom_fov = apex::weapon::get_zoom_fov(apex::player::get_weapon(local_player));
+	if (zoom_fov == 0.00f)
+	{
+		return;
+	}
+
 	float sensitivity = apex::engine::get_sensitivity();
+	if (sensitivity == 0.00f)
+	{
+		return;
+	}
+
 	if (zoom_fov != 0 && zoom_fov != 90)
 	{
 		sensitivity = (zoom_fov / 90.0f) * sensitivity;
@@ -164,10 +187,10 @@ static void features::aimbot(C_Player local_player, C_Player target_player, floa
 		sy = y;
 	}
 
-	if (qabs((int)sx) > 100)
+	if (qabs((int)sx) > 127)
 		return;
 
-	if (qabs((int)sy) > 100)
+	if (qabs((int)sy) > 127)
 		return;
 
 	DWORD current_tick = apex::engine::get_current_tick();
@@ -193,8 +216,15 @@ static C_Player features::get_best_target(C_Player local_player, float *visible_
 {
 	C_Player best_target = 0;
 	float best_fov = 360.0f;
+	vec2 viewangles;
 
-	vec2 viewangles = apex::player::get_viewangles(local_player);
+
+	if (!apex::player::get_viewangles(local_player, &viewangles))
+	{
+		return 0;
+	}
+
+
 	int team_id = apex::player::get_team_id(local_player);
 	for (int i = 0; i < 70; i++)
 	{
@@ -230,28 +260,59 @@ static C_Player features::get_best_target(C_Player local_player, float *visible_
 			continue;
 		}
 
-		vec3 target_angle = get_target_angle(local_player, entity, 2);
-		float fov = math::get_fov(viewangles, target_angle);
-		if (fov < best_fov)
+		vec3 target_angle;
+		if (get_target_angle(local_player, entity, 2, &target_angle))
 		{
-			best_fov = fov;
-			best_target = entity;
-			*visible_time = target_visible_time;
+			float fov = math::get_fov(viewangles, target_angle);
+			if (fov < best_fov)
+			{
+				best_fov = fov;
+				best_target = entity;
+				*visible_time = target_visible_time;
+			}
 		}
 	}
 	return best_target;
 }
 
-static vec3 features::get_target_angle(C_Player local_player, C_Player target_player, int bone_index)
+static BOOL features::get_target_angle(C_Player local_player, C_Player target_player, int bone_index, vec3 *vec_out)
 {
-	vec3 local_position = apex::player::get_muzzle(local_player);
+	vec3 target_position;
+	if (!apex::player::get_bone_position(target_player, bone_index, &target_position))
+	{
+		return 0;
+	}
+
+	vec3 local_position;
+	if (!apex::player::get_muzzle(local_player, &local_position))
+	{
+		return 0;
+	}
+
 	C_Weapon local_weapon = apex::player::get_weapon(local_player);
+	if (local_weapon == 0)
+	{
+		return 0;
+	}
 
 	float bullet_speed = apex::weapon::get_bullet_speed(local_weapon);
-	vec3 target_position = apex::player::get_bone_position(target_player, bone_index);
-	vec3 target_velocity = apex::player::get_velocity(target_player);
+	if (bullet_speed == 0.00f)
+	{
+		return 0;
+	}
+
+	vec3 target_velocity;
+	if (!apex::player::get_velocity(target_player, &target_velocity))
+	{
+		return 0;
+	}
 
 	float distance = math::vec_distance(target_position, local_position);
+	if (distance == 0.0f)
+	{
+		return 0;
+	}
+
 	float horizontal_time = (distance / bullet_speed);
 	float vertical_time = (distance / bullet_speed);
 
@@ -259,6 +320,8 @@ static vec3 features::get_target_angle(C_Player local_player, C_Player target_pl
 	target_position.y += target_velocity.y * horizontal_time;
 	target_position.z += (750.0f * vertical_time * vertical_time);
 
-	return math::CalcAngle(local_position, target_position);
+	*vec_out = math::CalcAngle(local_position, target_position);
+	math::vec_clamp(vec_out);
+	return 1;
 }
 

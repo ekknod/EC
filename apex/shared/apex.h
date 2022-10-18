@@ -51,10 +51,10 @@ namespace apex
 		BOOL         is_valid(C_Player player_address);
 		float        get_visible_time(C_Player player_address);
 		int          get_team_id(C_Player player_address);
-		vec3         get_muzzle(C_Player player_address);
-		vec3         get_bone_position(C_Player player_address, int index);
-		vec3         get_velocity(C_Player player_address);
-		vec2         get_viewangles(C_Player player_address);
+		BOOL         get_muzzle(C_Player player_address, vec3 *vec_out);
+		BOOL         get_bone_position(C_Player player_address, int index, vec3 *vec_out);
+		BOOL         get_velocity(C_Player player_address, vec3 *vec_out);
+		BOOL         get_viewangles(C_Player player_address, vec2 *vec_out);
 		void         enable_glow(C_Player);
 		C_Weapon     get_weapon(C_Player player_address);
 	}
