@@ -1,5 +1,12 @@
 #include "apex.h"
 
+//
+// #define DIRECT_PATTERNS uses scan_pattern_direct
+// pros: no need system memory allocation
+// cons: performance is worse + function might fail in some cases.
+//
+#define DIRECT_PATTERNS
+
 namespace apex
 {
 	static vm_handle apex_handle       = 0;
@@ -239,6 +246,256 @@ float apex::weapon::get_zoom_fov(C_Weapon weapon_address)
 	return vm::read_float(apex_handle, weapon_address + m_playerData + 0xb8);
 }
 
+#ifdef DIRECT_PATTERNS
+static BOOL apex::initialize(void)
+{
+	QWORD apex_base = 0;
+	QWORD temp_address = 0;
+
+	if (apex_handle)
+	{
+		if (vm::running(apex_handle))
+		{
+			return 1;
+		}
+		apex_handle = 0;
+	}
+
+	apex_handle = vm::open_process("r5apex.exe");
+	if (!apex_handle)
+	{
+#ifdef DEBUG
+		LOG("[-] r5apex.exe process not found\n");
+#endif
+		return 0;
+	}
+
+	apex_base = vm::get_module(apex_handle, 0);
+	if (apex_base == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] r5apex.exe base address not found\n");
+#endif
+		goto cleanup;
+	}
+
+	IClientEntityList = vm::scan_pattern_direct(apex_handle, apex_base, "\x4C\x8B\x15\x00\x00\x00\x00\x33\xF6", "xxx????xx", 9);
+	if (IClientEntityList == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find IClientEntityList\n");
+#endif
+		goto cleanup;
+	}
+
+	IClientEntityList = vm::get_relative_address(apex_handle, IClientEntityList, 3, 7);
+	IClientEntityList = IClientEntityList + 0x08;
+	if (IClientEntityList == (QWORD)0x08)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find IClientEntityList\n");
+#endif
+		goto cleanup;
+	}
+
+	C_BasePlayer = vm::scan_pattern_direct(apex_handle, apex_base, "\x89\x41\x28\x48\x8B\x05\x00\x00\x00\x00\x48\x85\xC0", "xxxxxx????xxx", 13);
+	if (C_BasePlayer == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwLocalPlayer\n");
+#endif
+		goto cleanup;
+	}
+
+	C_BasePlayer = C_BasePlayer + 0x03;
+	C_BasePlayer = vm::get_relative_address(apex_handle, C_BasePlayer, 3, 7);
+	if (C_BasePlayer == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwLocalPlayer\n");
+#endif
+		goto cleanup;
+	}
+
+	IInputSystem = vm::scan_pattern_direct(apex_handle, apex_base,
+		"\x48\x8B\x05\x00\x00\x00\x00\x48\x8D\x4C\x24\x20\xBA\x01\x00\x00\x00\xC7", "xxx????xxxxxxxxxxx", 18);
+
+	if (IInputSystem == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find IInputSystem\n");
+#endif
+		goto cleanup;
+	}
+
+	IInputSystem = vm::get_relative_address(apex_handle, IInputSystem, 3, 7);
+	if (IInputSystem == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find IInputSystem\n");
+#endif
+		goto cleanup;
+	}
+
+	IInputSystem = IInputSystem - 0x10;
+
+	m_GetAllClasses = vm::scan_pattern_direct(apex_handle, apex_base,
+		"\x48\x8B\x05\x00\x00\x00\x00\xC3\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x48\x89\x74\x24\x20", "xxx????xxxxxxxxxxxxxx", 21);
+
+	if (m_GetAllClasses == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find m_GetAllClasses\n");
+#endif
+		goto cleanup;
+	}
+
+	m_GetAllClasses = vm::get_relative_address(apex_handle, m_GetAllClasses, 3, 7);
+	m_GetAllClasses = vm::read_i64(apex_handle, m_GetAllClasses);
+	if (m_GetAllClasses == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find m_GetAllClasses\n");
+#endif
+		goto cleanup;
+	}
+
+	sensitivity = vm::scan_pattern_direct(apex_handle, apex_base,
+		"\x48\x8B\x05\x00\x00\x00\x00\xF3\x0F\x10\x3D\x00\x00\x00\x00\xF3\x0F\x10\x70\x68", "xxx????xxxx????xxxxx", 20);
+	
+	if (sensitivity == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find sensitivity\n");
+#endif
+		goto cleanup;
+	}
+
+	sensitivity = vm::get_relative_address(apex_handle, sensitivity, 3, 7);
+	sensitivity = vm::read_i64(apex_handle, sensitivity);
+	if (sensitivity == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find sensitivity\n");
+#endif
+		goto cleanup;
+	}
+
+
+	if (netvar_status == 0)
+	{
+		temp_address = vm::scan_pattern_direct(apex_handle, apex_base, "\x75\x0F\xF3\x44\x0F\x10\xBF", "xxxxxxx", 7);
+		if (temp_address == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find bullet speed / gravity\n");
+	#endif
+			goto cleanup;
+		}
+
+		m_dwBulletGravity = vm::read_i32(apex_handle, temp_address + 0x02 + 0x05);
+		m_dwBulletSpeed = vm::read_i32(apex_handle, temp_address - 0x6D + 0x04);
+
+		if (m_dwBulletGravity == 0 || m_dwBulletSpeed == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find bullet m_dwBulletGravity/m_dwBulletSpeed\n");
+	#endif
+			goto cleanup;
+		}
+
+
+		temp_address = vm::scan_pattern_direct(apex_handle, apex_base,
+			"\xF3\x0F\x10\x91\x00\x00\x00\x00\x48\x8D\x04\x40", "xxxx????xxxx", 12);
+
+		if (temp_address == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find bullet dwMuzzle\n");
+	#endif
+			goto cleanup;
+		}
+
+		temp_address = temp_address + 0x04;
+		m_dwMuzzle = vm::read_i32(apex_handle, temp_address) - 0x4;
+
+		if (m_dwMuzzle == (DWORD)-0x4)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find bullet dwMuzzle\n");
+	#endif
+			goto cleanup;
+		}
+
+		temp_address = vm::scan_pattern_direct(apex_handle, apex_base,
+			"\x48\x8B\xCE\x00\x00\x00\x00\x00\x84\xC0\x0F\x84\xBA\x00\x00\x00", "xxx?????xxxxxxxx", 16);
+		
+		if (temp_address == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find dwVisibleTime\n");
+	#endif
+			goto cleanup;
+		}
+
+		temp_address = temp_address + 0x10;
+		m_dwVisibleTime = vm::read_i32(apex_handle, temp_address + 0x4);
+		if (m_dwVisibleTime == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to find m_dwVisibleTime\n");
+	#endif
+			goto cleanup;
+		}
+	}
+
+
+	if (netvar_status == 0)
+	{
+		netvar_status = dump_netvars(m_GetAllClasses);
+
+		if (netvar_status == 0)
+		{
+	#ifdef DEBUG
+			LOG("[-] failed to get netvars\n");
+	#endif
+			goto cleanup;
+		}
+	}
+
+#ifdef DEBUG
+	LOG("[+] IClientEntityList: %lx\n", IClientEntityList - apex_base);
+	LOG("[+] dwLocalPlayer: %lx\n", C_BasePlayer - apex_base);
+	LOG("[+] IInputSystem: %lx\n", IInputSystem - apex_base);
+	LOG("[+] m_GetAllClasses: %lx\n", m_GetAllClasses - apex_base);
+	LOG("[+] sensitivity: %lx\n", sensitivity - apex_base);
+	LOG("[+] dwBulletSpeed: %x\n", (DWORD)m_dwBulletSpeed);
+	LOG("[+] dwBulletGravity: %x\n", (DWORD)m_dwBulletGravity);
+	LOG("[+] dwMuzzle: %x\n", m_dwMuzzle);
+	LOG("[+] dwVisibleTime: %x\n", m_dwVisibleTime);
+	LOG("[+] m_iHealth: %x\n", m_iHealth);
+	LOG("[+] m_iViewAngles: %x\n", m_iViewAngles);
+	LOG("[+] m_bZooming: %x\n", m_bZooming);
+	LOG("[+] m_lifeState: %x\n", m_lifeState);
+	LOG("[+] m_iCameraAngles: %x\n", m_iCameraAngles);
+	LOG("[+] m_iTeamNum: %x\n", m_iTeamNum);
+	LOG("[+] m_iName: %x\n", m_iName);
+	LOG("[+] m_vecAbsOrigin: %x\n", m_vecAbsOrigin);
+	LOG("[+] m_iWeapon: %x\n", m_iWeapon);
+	LOG("[+] m_iBoneMatrix: %x\n", m_iBoneMatrix);
+	LOG("[+] r5apex.exe is running\n");
+#endif
+
+	return 1;
+cleanup:
+	if (apex_handle)
+	{
+		vm::close(apex_handle);
+		apex_handle = 0;
+	}
+	return 0;
+}
+#else
 static BOOL apex::initialize(void)
 {
 	QWORD apex_base = 0;
@@ -509,6 +766,7 @@ cleanup:
 	}
 	return 0;
 }
+#endif
 
 static int apex::dump_table(QWORD table, const char *name)
 {
