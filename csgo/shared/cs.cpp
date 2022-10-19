@@ -29,11 +29,6 @@ namespace cs
 		static DWORD m_mouseRawAccum = 0;
 	}
 
-	namespace entity
-	{
-		DWORD get_client_entity(int index);
-	}
-
 	static vm_handle csgo_handle              = 0;
 	static BOOL      use_dormant_check        = 0;
 	static DWORD     IInputSystem             = 0;

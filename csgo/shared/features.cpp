@@ -328,9 +328,17 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	//
 	if (head_only == 0)
 	{
-		if (cs::player::get_crosshair_id(local_player) == cs::player::get_player_id(target_player))
+		//
+		// no team check, careful:D
+		//
+		int crosshair_id = cs::player::get_crosshair_id(local_player);
+		if (crosshair_id != 0)
 		{
-			found = 1;
+			DWORD crosshair_target = cs::entity::get_client_entity(crosshair_id - 1);
+			if (cs::player::get_health(crosshair_target) > 0)
+			{
+				found = 1;
+			}
 		}
 	}
 

@@ -43,6 +43,11 @@ namespace cs
 		BOOL         contains_player(C_PlayerList player_list, int player_count, int index);
 	}
 
+	namespace entity
+	{
+		DWORD get_client_entity(int index);
+	}
+
 	namespace engine
 	{
 		vec2  get_viewangles(void);
