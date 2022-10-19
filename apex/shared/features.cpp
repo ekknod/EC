@@ -5,9 +5,11 @@ namespace features
 	static C_Player m_previous_target = 0;
 	static DWORD    m_previous_tick = 0;
 	static float    m_previous_target_visible_time  = 0;
+	static BOOL     m_previous_button = 0;
 
 	void reset(void)
 	{
+		m_previous_button = 0;
 		m_previous_target_visible_time = 0;
 		m_previous_target = 0;
 		m_previous_tick = 0;
@@ -28,6 +30,17 @@ void features::run(void)
 	}
 
 	BOOL aimbot_button = apex::input::get_button_state(config::aimbot_button);
+
+
+	if (!m_previous_button && aimbot_button)
+	{
+		//
+		// reset target
+		//
+		m_previous_target = 0;
+	}
+
+
 	if (m_previous_target)
 	{
 		if (!apex::player::is_valid(m_previous_target))
@@ -44,7 +57,7 @@ void features::run(void)
 				)
 			{
 				float fov = math::get_fov(va, target_angle);
-				if (fov > config::aimbot_fov)
+				if (fov > 25.0f)
 				{
 					m_previous_target = 0;
 				}
@@ -147,6 +160,10 @@ static void features::aimbot(C_Player local_player, C_Player target_player, floa
 	angles.y = viewangles.y - aimbot_angle.y;
 	angles.z = 0;
 	math::vec_clamp(&angles);
+	if (qabs(angles.x) > 25.00f || qabs(angles.y) > 25.00f)
+	{
+		return;
+	}
 
 	float x = angles.y;
 	float y = angles.x;

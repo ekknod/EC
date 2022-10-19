@@ -81,6 +81,7 @@ void features::run(void)
 
 	if (!m_previous_button && current_button)
 	{
+		m_previous_target = 0; // reset target
 		m_rcs_old_shots_fired = 0;
 		m_weapon_class = cs::player::get_weapon_class(local_player);
 	}
@@ -167,7 +168,7 @@ void features::run(void)
 				vec3 best_angle = get_target_angle(local_player, bonepos, rcs_bullet_count);
 				float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
 
-				if (fov > config::aimbot_fov)
+				if (fov > 25.0f)
 				{
 					//
 					// reset target
@@ -573,7 +574,12 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	angles.x = viewangles.x - aimbot_angle.x;
 	angles.y = viewangles.y - aimbot_angle.y;
 	angles.z = 0;
+
 	math::vec_clamp(&angles);
+	if (qabs(angles.x) > 25.00f || qabs(angles.y) > 25.00f)
+	{
+		return;
+	}
 
 	float x = angles.y;
 	float y = angles.x;
@@ -614,13 +620,10 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 		sy = y;
 	}
 
-	//
-	// we can only aim max 100 pixels / tick (higher smooth = higher fov)
-	//
-	if (qabs((int)sx) > 100)
+	if (qabs((int)sx) > 127)
 		return;
 
-	if (qabs((int)sy) > 100)
+	if (qabs((int)sy) > 127)
 		return;
 
 	DWORD current_tick = cs::engine::get_current_tick();
