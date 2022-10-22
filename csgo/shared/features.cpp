@@ -6,6 +6,8 @@
 
 namespace features
 {
+	static vec2    m_viewangles{};
+
 	static vec2    m_rcs_old_punch{ 0, 0 };
 	static float   m_rcs_old_temp_punch_x = 0;
 	static DWORD   m_rcs_old_shots_fired = 0;
@@ -33,6 +35,8 @@ namespace features
 	}
 
 	static void     standalone_rcs(C_Player local_player);
+	static DWORD    get_incross_target(C_Player local_player);
+	static void     in_cross_triggerbot(C_Player local_player);
 	static BOOL     triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class);
 	static void     aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
 	static vec3     get_target_angle(C_Player local_player, vec3 position, DWORD bullet_count);
@@ -78,13 +82,25 @@ void features::run(void)
 	BOOL triggerbot_button = cs::input::get_button_state(config::triggerbot_button);
 	BOOL current_button = aimbot_button + triggerbot_button + mouse_1;
 
-
+	//
+	// button was pressed, find next target
+	//
 	if (!m_previous_button && current_button)
 	{
 		m_previous_target = 0; // reset target
 		m_rcs_old_shots_fired = 0;
 		m_weapon_class = cs::player::get_weapon_class(local_player);
 	}
+
+	//
+	// button was released
+	//
+	/*
+	if (m_previous_button && !current_button)
+	{
+		
+	}
+	*/
 
 	m_previous_button = current_button;
 
@@ -96,7 +112,6 @@ void features::run(void)
 	{
 		return;
 	}
-
 
 	BOOL  b_can_aimbot = 0;
 	DWORD rcs_bullet_count = 0;
@@ -135,6 +150,12 @@ void features::run(void)
 	if (aimbot_button || triggerbot_button)
 	{
 		m_aimbot_active = 1;
+
+		//
+		// optimizing code, we need this information only if aimbot/triggerbot active.
+		// once should be enough in each loop
+		//
+		m_viewangles = cs::player::get_viewangles(local_player);
 	}
 	else
 	{
@@ -153,35 +174,17 @@ void features::run(void)
 	{
 		if (!cs::player::is_valid(m_previous_target))
 		{
-			m_previous_target = 0;
-		}
-		else
-		{
-			matrix3x4_t matrix;
-			if (cs::player::get_bone_position(m_previous_target, 8, &matrix))
-			{
-				vec3 bonepos={};
-				bonepos.x = matrix[0][3];
-				bonepos.y = matrix[1][3];
-				bonepos.z = matrix[2][3];
+			//
+			// our target player is dead. do not allow to find new target
+			// it will remove obvious looking spray transfers.
+			// we can still do incross for awps
+			//
+			in_cross_triggerbot(local_player);
+			return;
 
-				vec3 best_angle = get_target_angle(local_player, bonepos, rcs_bullet_count);
-				float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
-
-				if (fov > 25.0f)
-				{
-					//
-					// reset target
-					//
-					m_previous_target = 0;
-				}
-			}
-			else {
-				//
-				// reset target
-				//
-				m_previous_target = 0;
-			}
+			//
+			// m_previous_target = 0
+			//
 		}
 	}
 
@@ -273,6 +276,95 @@ static void features::standalone_rcs(C_Player local_player)
 	m_rcs_old_punch = current_punch;
 }
 
+DWORD features::get_incross_target(C_Player local_player)
+{
+	int crosshair_id = cs::player::get_crosshair_id(local_player);
+	if (crosshair_id < 1)
+	{
+		return 0;
+	}
+
+	DWORD crosshair_target = cs::entity::get_client_entity(crosshair_id - 1);
+	if (crosshair_target == 0)
+	{
+		return 0;
+	}
+
+	if (cs::player::get_health(crosshair_target) < 1)
+	{
+		return 0;
+	}
+
+	if (cs::player::get_team_num(crosshair_target) == cs::player::get_team_num(local_player))
+	{
+		return 0;
+	}
+
+	return crosshair_target;
+}
+
+void features::in_cross_triggerbot(C_Player local_player)
+{
+	//
+	// mouse button is down, we don't have to go any further
+	//
+	if (m_mouse_down_tick)
+	{
+		return;
+	}
+
+
+	QWORD tick_count_skip = 0;
+
+	if (m_weapon_class == cs::WEAPON_CLASS::Pistol)
+	{
+		tick_count_skip = random_number(30, 50);
+	}
+	else if (m_weapon_class == cs::WEAPON_CLASS::Sniper)
+	{
+		tick_count_skip = random_number(30, 80);
+	}
+	else if (m_weapon_class == cs::WEAPON_CLASS::Rifle)
+	{
+		tick_count_skip = random_number(125, 170);
+	}
+	else
+	{
+		//
+		// invalid class
+		//
+		return;
+	}
+
+
+
+	//
+	// accurate shots only
+	//
+	vec2 punch = cs::player::get_vec_punch(local_player);
+	if (punch.x < -0.08f)
+	{
+		return;
+	}
+
+	//
+	// check if we have target in cross
+	//
+	if (!get_incross_target(local_player))
+	{
+		return;
+	}
+
+
+	QWORD current_tick = cs::engine::get_current_tick();
+	if (m_mouse_click_ticks < current_tick)
+	{
+		m_mouse_down_tick = current_tick;
+		m_mouse_click_ticks = tick_count_skip + m_mouse_down_tick;
+		input::mouse1_down();
+	}
+}
+
 static BOOL features::triggerbot(C_Player local_player, C_Player target_player, C_Team target_team, cs::WEAPON_CLASS weapon_class)
 {
 	//
@@ -283,7 +375,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 
 	if (weapon_class == cs::WEAPON_CLASS::Pistol)
 	{
-		tick_count_skip = random_number(15, 50);
+		tick_count_skip = random_number(30, 50);
 		head_only = 1;
 	}
 	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
@@ -328,14 +420,17 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 	//
 	if (head_only == 0)
 	{
-		//
-		// no team check, careful:D
-		//
-		int crosshair_id = cs::player::get_crosshair_id(local_player);
-		if (crosshair_id != 0)
+		DWORD incross_target = get_incross_target(local_player);
+		if (incross_target)
 		{
-			DWORD crosshair_target = cs::entity::get_client_entity(crosshair_id - 1);
-			if (cs::player::get_health(crosshair_target) > 0)
+			//
+			// if target is not same as aimbot target, force headonly
+			//
+			if (incross_target != target_player)
+			{
+				head_only = 1;
+			}
+			else
 			{
 				found = 1;
 			}
@@ -378,10 +473,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 			return head_only;
 		}
 
-		vec2 viewangles_2 = cs::player::get_viewangles(local_player);
-		vec3 viewangles = vec3{ viewangles_2.x, viewangles_2.y, 0 };
-
-		vec3 dir = math::vec_atd(viewangles);
+		vec3 dir = math::vec_atd(vec3{m_viewangles.x, m_viewangles.y, 0});
 		vec3 eye = cs::player::get_eye_position(local_player);
 
 		int  team_num = cs::teams::get_team_num(target_team);
@@ -547,7 +639,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 
 
 			vec3 best_angle = get_target_angle(local_player, temp_pos, bullet_count);
-			float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
+			float fov = math::get_fov(m_viewangles, *(vec3*)&best_angle);
 
 			if (fov < best_fov)
 			{
@@ -564,7 +656,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	}
 
 
-	float fov = math::get_fov(cs::player::get_viewangles(local_player), aimbot_angle);
+	float fov = math::get_fov(m_viewangles, aimbot_angle);
 	if (fov > config::aimbot_fov)
 	{
 		return;
@@ -576,11 +668,9 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 		sensitivity = (zoom_fov / 90.0f) * sensitivity;
 	}
 
-	vec2 viewangles = cs::player::get_viewangles(local_player);
-
 	vec3 angles{};
-	angles.x = viewangles.x - aimbot_angle.x;
-	angles.y = viewangles.y - aimbot_angle.y;
+	angles.x = m_viewangles.x - aimbot_angle.x;
+	angles.y = m_viewangles.y - aimbot_angle.y;
 	angles.z = 0;
 
 	math::vec_clamp(&angles);
@@ -750,7 +840,7 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 			bonepos.z = matrix[2][3];
 
 			vec3 best_angle = get_target_angle(local_player, bonepos, bullet_count);
-			float fov = math::get_fov(cs::player::get_viewangles(local_player), *(vec3*)&best_angle);
+			float fov = math::get_fov(m_viewangles, *(vec3*)&best_angle);
 
 			if (fov < best_fov)
 			{

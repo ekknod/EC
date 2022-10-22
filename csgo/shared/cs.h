@@ -9,6 +9,11 @@
 #include <stdio.h>
 #define DEBUG
 #define LOG printf
+#else
+
+// #define DEBUG
+#define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, __VA_ARGS__)
+
 #endif
 
 typedef DWORD C_Player;
@@ -73,6 +78,7 @@ namespace cs
 		BOOL         is_defusing(C_Player player_address);
 		BOOL         has_defuser(C_Player player_address);
 		int          get_player_id(C_Player player_address);
+		int          get_team_num(C_Player player_address);
 		int          get_crosshair_id(C_Player player_address);
 		BOOL         get_dormant(C_Player player_address);
 		int          get_life_state(C_Player player_address);

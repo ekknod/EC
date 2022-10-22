@@ -285,6 +285,11 @@ int cs::player::get_player_id(C_Player player_address)
 	return vm::read_i32(csgo_handle, (QWORD)(player_address + 0x64));
 }
 
+int cs::player::get_team_num(C_Player player_address)
+{
+	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iTeamNum));
+}
+
 int cs::player::get_crosshair_id(C_Player player_address)
 {
 	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iCrossHairID));
