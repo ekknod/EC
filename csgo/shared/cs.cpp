@@ -955,18 +955,29 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-	/* dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
-	if (dwViewAngles == 0)
+	if (C_BasePlayer == 0)
 	{
 #ifdef DEBUG
-		LOG("[-] failed to find dwViewAngles\n");
+		LOG("[-] failed to find C_BasePlayer\n");
 #endif
 		goto cleanup;
 	}
 
-	dwViewAngles += 4;
-	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
-	dwViewAngles += 0xC; */
+	if (g_TeamCount == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find g_TeamCount\n");
+#endif
+		goto cleanup;
+	}
+
+	if (g_Teams == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find g_Teams\n");
+#endif
+		goto cleanup;
+	}
 
 	VClientEntityList = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
