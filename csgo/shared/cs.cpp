@@ -1035,6 +1035,33 @@ static BOOL cs::initialize(void)
 	}
 
 #ifdef DEBUG
+	LOG("IInputSystem             0x%lx\n", IInputSystem            );
+	LOG("VEngineCvar              0x%lx\n", VEngineCvar             );
+	LOG("sensitivity              0x%lx\n", sensitivity             );
+	LOG("mp_teammates_are_enemies 0x%lx\n", mp_teammates_are_enemies);
+	LOG("C_BasePlayer             0x%lx\n", C_BasePlayer            );
+	LOG("g_TeamCount              0x%lx\n", g_TeamCount             );
+	LOG("g_Teams                  0x%lx\n", g_Teams                 );
+	LOG("dwViewAngles             0x%lx\n", dwViewAngles            );
+	LOG("VClientEntityList        0x%lx\n", VClientEntityList       );
+	LOG("dwGetAllClasses          0x%lx\n", dwGetAllClasses         );
+	LOG("dwClientState            0x%lx\n", dwClientState           );
+	LOG("netvar_status            0x%lx\n", netvar_status           );
+	LOG("m_iHealth                0x%lx\n", m_iHealth               );
+	LOG("m_vecViewOffset          0x%lx\n", m_vecViewOffset         );
+	LOG("m_lifeState              0x%lx\n", m_lifeState             );
+	LOG("m_vecPunch               0x%lx\n", m_vecPunch              );
+	LOG("m_iFOV                   0x%lx\n", m_iFOV                  );
+	LOG("m_vecOldViewAngles       0x%lx\n", m_vecOldViewAngles      );
+	LOG("m_iTeamNum               0x%lx\n", m_iTeamNum              );
+	LOG("m_bSpottedByMask         0x%lx\n", m_bSpottedByMask        );
+	LOG("m_vecOrigin              0x%lx\n", m_vecOrigin             );
+	LOG("m_hActiveWeapon          0x%lx\n", m_hActiveWeapon         );
+	LOG("m_iShotsFired            0x%lx\n", m_iShotsFired           );
+	LOG("m_iCrossHairID           0x%lx\n", m_iCrossHairID          );
+	LOG("m_bHasDefuser            0x%lx\n", m_bHasDefuser           );
+	LOG("m_bIsDefusing            0x%lx\n", m_bIsDefusing           );
+	LOG("m_dwBoneMatrix           0x%lx\n", m_dwBoneMatrix          );
 	LOG("[+] csgo.exe is running\n");
 #endif
 
