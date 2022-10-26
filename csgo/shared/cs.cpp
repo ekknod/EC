@@ -1034,6 +1034,13 @@ static BOOL cs::initialize(void)
 		}
 		dwViewAngles += 4;
 		dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
+		if (dwViewAngles == 0)
+		{
+			#ifdef DEBUG
+			LOG("[-] failed to find dwViewAngles\n");
+			#endif
+			goto cleanup;
+		}
 		dwViewAngles += 0xC;
 	}
 
