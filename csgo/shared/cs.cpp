@@ -336,14 +336,24 @@ vec2 cs::player::get_vec_punch(C_Player player_address)
 
 vec2 cs::player::get_viewangles(C_Player player_address)
 {
-	vec2 old_viewangles{};
+	vec2 va{};
 
-	if (!vm::read(csgo_handle, (QWORD)(player_address + m_vecOldViewAngles), &old_viewangles, sizeof(old_viewangles)))
+	if (dwViewAngles != 0)
 	{
-		old_viewangles.x = 0;
-		old_viewangles.y = 0;
+		if (!vm::read(csgo_handle, dwViewAngles, &va, sizeof(va)))
+		{
+			va.x = 0;
+			va.y = 0;
+		}
+		return va;
 	}
-	return old_viewangles;
+
+	if (!vm::read(csgo_handle, (QWORD)(player_address + m_vecOldViewAngles), &va, sizeof(va)))
+	{
+		va.x = 0;
+		va.y = 0;
+	}
+	return va;
 }
 
 int cs::player::get_fov(C_Player player_address)
@@ -865,6 +875,8 @@ static BOOL cs::initialize(void)
 		use_dormant_check = 0;
 	}
 
+	dwViewAngles = 0;
+
 	client_dll = (DWORD)vm::get_module(csgo_handle, S("client.dll"));
 	if (client_dll == 0)
 	{
@@ -1008,6 +1020,21 @@ static BOOL cs::initialize(void)
 		LOG("[-] failed to find dwGetAllClasses\n");
 #endif
 		goto cleanup;
+	}
+
+	if (vm::process_exists(S("Gamers Club AC")))
+	{
+		dwViewAngles = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
+		if (dwViewAngles == 0)
+		{
+			#ifdef DEBUG
+			LOG("[-] failed to find dwViewAngles\n");
+			#endif
+			goto cleanup;
+		}
+		dwViewAngles += 4;
+		dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
+		dwViewAngles += 0xC;
 	}
 
 	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(dwGetAllClasses + 2)));
