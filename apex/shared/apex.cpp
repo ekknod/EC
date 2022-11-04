@@ -86,7 +86,14 @@ C_Player apex::teams::get_local_player(void)
 
 float apex::engine::get_sensitivity(void)
 {
-	return vm::read_float(apex_handle, sensitivity);
+	//
+	// return vm::read_float(apex_handle, sensitivity);
+	//
+
+	//
+	// I don't have apex installed to make proper fix
+	//
+	return 2.5f;
 }
 
 DWORD apex::engine::get_current_tick(void)
@@ -347,6 +354,7 @@ static BOOL apex::initialize(void)
 		goto cleanup;
 	}
 
+	/*
 	sensitivity = vm::scan_pattern_direct(apex_handle, apex_base,
 		"\x48\x8B\x05\x00\x00\x00\x00\xF3\x0F\x10\x3D\x00\x00\x00\x00\xF3\x0F\x10\x70\x68", "xxx????xxxx????xxxxx", 20);
 	
@@ -367,6 +375,7 @@ static BOOL apex::initialize(void)
 #endif
 		goto cleanup;
 	}
+	*/
 
 
 	if (netvar_status == 0)
