@@ -1,0 +1,8 @@
+builder\build_apex.bat
+- build apex efi compatible binary (apex.bin)
+
+builder\build_csgo.bat
+- build csgo efi compatible binary (csgo.bin)
+
+builder\build_loader.bat
+- build EFI loader (bootx64.efi)
