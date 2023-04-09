@@ -415,36 +415,15 @@ BOOLEAN scan_and_unlink(QWORD winload_base, VOID *base, QWORD base_size, LOADER_
 
 
 
-	unsigned char bytes_3[] = { 'x','x','x','?','?','?','?','x','x','x','?','?','?','?',0 };
+	unsigned char bytes_3[] = { 'x','?','?','?','?','x','x','?','?','?','?','?','x','x','?','x','?','x','x','?','x','x','x','x',0 };
 
 	UINT64 loaderBlockScan = (UINT64)FindPattern((unsigned char*)winload_base, imageSize,
-		"\x48\x8B\x3D\x00\x00\x00\x00\x48\x8B\x8F\x00\x00\x00\x00", bytes_3);
+		"\xE8\x00\x00\x00\x00\x48\x8B\x00\x00\x00\x00\x00\x48\x85\x00\x74\x00\x48\x8B\x00\xF0\x00\x00\x00", bytes_3);
 	if (loaderBlockScan == 0) {
-
-		/* 1909 */
-		unsigned char bytes_2[] = { 'x','x','x','x','x','?','?','?','?',0 };
-		loaderBlockScan = (UINT64)FindPattern((unsigned char*)winload_base, imageSize,
-			"\x0F\x31\x48\x8B\x3D\x00\x00\x00\x00", bytes_2);
-		if (loaderBlockScan != 0)
-			loaderBlockScan += 2;
-
-		/* 1809 */
-		unsigned char bytes_1809[] = { 'x','x','x','?','?','?','?','x','x','x',0 };
-		if (loaderBlockScan == 0)
-			loaderBlockScan = (UINT64)FindPattern((unsigned char*)winload_base, imageSize,
-				"\x48\x8B\x3D\x00\x00\x00\x00\x48\x8B\xCF", bytes_1809);
-
-		unsigned char bytes_1[] = { 'x','x','x','?','?','?','?','x','x','x','x',0 };
-		/* 1607 */
-		if (loaderBlockScan == 0) {
-			loaderBlockScan = (UINT64)FindPattern((unsigned char*)winload_base, imageSize,
-				"\x48\x8B\x35\x00\x00\x00\x00\x48\x8B\x45\xF7", bytes_1);
-		}
-
-		if (loaderBlockScan == 0) {
-			return 0;
-		}
+		return 0;
 	}
+
+	loaderBlockScan += 5; //skip E8 call
 
 	UINT64 resolvedAddress = *(UINT64*)((loaderBlockScan + 7) + *(int*)(loaderBlockScan + 3));
 	if (resolvedAddress == 0) {

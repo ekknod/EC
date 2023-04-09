@@ -187,7 +187,7 @@ EFI_STATUS EFIAPI ExitBootServicesHook(
 		Print(L"Failed to start\n");
 		gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
 		PressAnyKey();
-		return 0;
+		return oExitBootServices(ImageHandle, MapKey);
 	}
 
 	BlpArchSwitchContext(ApplicationContext);
