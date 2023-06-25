@@ -30,20 +30,26 @@ namespace cs
 	}
 
 	static vm_handle csgo_handle              = 0;
-	static BOOL      use_dormant_check        = 0;
+	BOOL      use_dormant_check        = 0;
 	static DWORD     IInputSystem             = 0;
 
 	static DWORD     VEngineCvar              = 0;
 	static DWORD     sensitivity              = 0;
+	static DWORD     net_graphproportionalfont = 0;
 	static DWORD     mp_teammates_are_enemies = 0;
 
 	static DWORD     C_BasePlayer             = 0;
 	static DWORD     g_TeamCount              = 0;
 	static DWORD     g_Teams                  = 0;
+
+	static DWORD     dwViewMatrix             = 0;
+	static DWORD     dwScreenSize             = 0;
+
 	static DWORD     dwViewAngles             = 0;
 	static DWORD     VClientEntityList        = 0;
 	static DWORD     dwGetAllClasses          = 0;
 	static DWORD     dwClientState            = 0;
+	static DWORD     g_pNetGraphPanel         = 0;
 
 	static BOOL      netvar_status            = 0;
 	static DWORD     m_iHealth                = 0;
@@ -75,7 +81,9 @@ namespace cs
 	static DWORD get_interface(DWORD factory, PCSTR interface_name);
 	static DWORD get_interface_function(DWORD ptr, DWORD index);
 	static DWORD get_convar(PCSTR convar_name);
+	// static void  get_convarlist(void);
 	static int   get_convar_int(DWORD cvar);
+	// static void  set_convar_int(DWORD cvar, int value);
 	static float get_convar_float(DWORD cvar);
 	static BOOL  dump_netvar_tables(BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID buffer);
 	static DWORD dump_netvars(DWORD table, BOOL (*callback)(PCSTR, DWORD, PVOID), PVOID parameters);
@@ -132,6 +140,11 @@ void cs::reset_globals(void)
 	m_dwBoneMatrix           = 0;
 }
 
+BOOL cs::allow_triggerbot(void)
+{
+	return (dwViewAngles != 0) | use_dormant_check;
+}
+
 C_Player cs::teams::get_local_player(void)
 {
 	return vm::read_i32(csgo_handle, C_BasePlayer);
@@ -185,6 +198,11 @@ BOOL cs::teams::contains_player(C_PlayerList player_list, int player_count, int 
 	return 0;
 }
 
+DWORD cs::engine::get_viewangles_address(void)
+{
+	return dwViewAngles;
+}
+
 vec2 cs::engine::get_viewangles(void)
 {
 	vec2 viewangles{};
@@ -211,12 +229,93 @@ DWORD cs::engine::get_current_tick(void)
 	return vm::read_i32(csgo_handle, (QWORD)(IInputSystem + input::m_nLastPollTick));
 }
 
+#define GRAPH_RED       (unsigned char)(0.9 * 255)
+#define GRAPH_GREEN     (unsigned char)(0.9 * 255)
+#define GRAPH_BLUE	(unsigned char)(0.7 * 255)
+
+void cs::engine::net_graphcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
+{
+	if (use_dormant_check)
+	{
+
+		typedef struct {
+			unsigned char r,g,b,a;
+		} colors_t;
+
+		colors_t colors{};
+
+		colors.r = r;
+		colors.g = g;
+		colors.b = b;
+		colors.a = a;
+		vm::write(csgo_handle, (QWORD)(g_pNetGraphPanel + 0x1A5), &colors, sizeof(colors_t));
+
+	}
+	else
+	{
+		if (r == GRAPH_RED && g == GRAPH_GREEN && b == GRAPH_BLUE)
+		{
+			net_graphfont(6);
+		}
+		else
+		{
+			net_graphfont(5);
+		}
+	}
+
+}
+
+void cs::engine::net_graphfont(DWORD font)
+{
+	DWORD font_style = get_convar_int(net_graphproportionalfont);
+	if (font_style == 0)
+	{
+		vm::write_i32(csgo_handle, (QWORD)(g_pNetGraphPanel + 0x1320C), font);
+	}
+	else
+	{
+		vm::write_i32(csgo_handle, (QWORD)(g_pNetGraphPanel + 0x13208), font);
+	}
+}
+
+vec2_i cs::engine::get_screen_size(void)
+{
+	vec2_i screen_size{};
+
+	vm::read(csgo_handle, dwScreenSize, &screen_size, sizeof(screen_size));
+
+	return screen_size;
+}
+
+vec2_i cs::engine::get_screen_pos(void)
+{
+	vec2_i screen_pos{};
+
+	vm::read(csgo_handle, dwScreenSize + 0x08, &screen_pos, sizeof(screen_pos));
+
+	return screen_pos;
+}
+
+view_matrix_t cs::engine::get_viewmatrix(void)
+{
+	view_matrix_t matrix{};
+
+	vm::read(csgo_handle, dwViewMatrix, &matrix, sizeof(matrix));
+
+	return matrix;
+}
+
 DWORD cs::entity::get_client_entity(int index)
 {
 	index = index + 1;
 	index = index + 0xFFFFDFFF;
 	index = index + index;
 	return vm::read_i32(csgo_handle, (QWORD)(VClientEntityList + index * 8));
+}
+
+DWORD cs::input::get_hwnd()
+{
+	return vm::read_i32(csgo_handle, IInputSystem + 0x133c);
 }
 
 BOOL cs::input::get_button_state(DWORD button)
@@ -323,6 +422,15 @@ int cs::player::get_shots_fired(C_Player player_address)
 	return vm::read_i32(csgo_handle, (QWORD)(player_address + m_iShotsFired));
 }
 
+vec3 cs::player::get_origin(C_Player player_address)
+{
+	vec3 origin{};
+
+	vm::read(csgo_handle, player_address + m_vecOrigin, &origin, sizeof(origin));
+
+	return origin;
+}
+
 vec2 cs::player::get_vec_punch(C_Player player_address)
 {
 	vec2 vec_punch{};
@@ -404,7 +512,7 @@ static cs::WEAPON_CLASS cs::player::get_weapon_class_0(C_Player local_player)
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	char weapon_buffer[260]{};
+	char weapon_buffer[260];
 	vm::read(csgo_handle, m_pMapClassname, weapon_buffer, 260);
 
 
@@ -577,6 +685,12 @@ static int cs::get_convar_int(DWORD cvar)
 {
 	return vm::read_i32(csgo_handle, (QWORD)(cvar + 0x30)) ^ cvar;
 }
+/*
+void cs::set_convar_int(DWORD cvar, int value)
+{
+	vm::write_i32( csgo_handle, (QWORD)(cvar + 0x30), value ^ cvar);
+}
+*/
 
 static float cs::get_convar_float(DWORD cvar)
 {
@@ -937,6 +1051,15 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
+	net_graphproportionalfont = get_convar(S("net_graphproportionalfont"));
+	if (!net_graphproportionalfont)
+	{
+#ifdef DEBUG
+		LOG("[-] net_graphproportionalfont not found\n");
+#endif
+		goto cleanup;
+	}
+
 	mp_teammates_are_enemies = get_convar(S("mp_teammates_are_enemies"));
 	if (!mp_teammates_are_enemies)
 	{
@@ -991,6 +1114,21 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
+	g_pNetGraphPanel = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll,
+		"\x3F\xFF\x3F\xE8", S("xxxx"), 4);
+
+	if (g_pNetGraphPanel == 0)
+	{
+		goto cleanup;
+	}
+
+	g_pNetGraphPanel += 0x7C;
+	g_pNetGraphPanel = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, g_pNetGraphPanel + 0x02));
+	if (g_pNetGraphPanel == 0)
+	{
+		goto cleanup;
+	}
+
 	VClientEntityList = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
 	{
@@ -1021,6 +1159,48 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup;
 	}
+
+	
+	dwViewMatrix = (DWORD)vm::scan_pattern_direct(csgo_handle, client_dll,
+		"\xC6\x05\x00\x00\x00\x00\x00\xC6\x05\x00\x00\x00\x00\x00\x8B\x16",  S("xx?????xx?????xx"), 16);
+	if (dwViewMatrix == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewMatrix\n");
+#endif
+		goto cleanup;
+	}
+	dwViewMatrix = vm::read_i32(csgo_handle, dwViewMatrix + 0x02);
+	if (dwViewMatrix == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewMatrix\n");
+#endif
+		goto cleanup;
+	}
+	dwViewMatrix = dwViewMatrix - 0x16C;
+
+
+	
+	dwScreenSize = (DWORD)vm::scan_pattern_direct(csgo_handle, engine_dll,
+		"\xA1\x00\x00\x00\x00\x03\x44\x24\x08", S("x????xxxx"), 9);
+	if (dwScreenSize == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwScreenSize\n");
+#endif
+		goto cleanup;
+	}
+	dwScreenSize = vm::read_i32(csgo_handle, dwScreenSize + 1);
+	if (dwScreenSize == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwScreenSize\n");
+#endif
+		goto cleanup;
+	}
+	
+	
 
 	if (vm::process_exists(S("Gamers Club AC")))
 	{
@@ -1056,6 +1236,7 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup;
 	}
+
 
 	dwClientState = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(get_interface_function(VEngineClient, 7) + 3 + 1)));
 	if (dwClientState == 0)
@@ -1109,6 +1290,8 @@ static BOOL cs::initialize(void)
 	LOG("m_dwBoneMatrix           0x%lx\n", m_dwBoneMatrix          );
 	LOG("[+] csgo.exe is running\n");
 #endif
+
+
 
 	return 1;
 cleanup:

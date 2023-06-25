@@ -23,6 +23,7 @@ namespace features
 	static DWORD    m_previous_tick = 0;
 	static QWORD    m_mouse_down_tick = 0;
 	static QWORD    m_mouse_click_ticks = 0;
+	static BOOL     font_is_set = 0;
 
 	void reset(void)
 	{
@@ -41,6 +42,9 @@ namespace features
 	static void     aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
 	static vec3     get_target_angle(C_Player local_player, vec3 position, DWORD bullet_count);
 	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
+#ifdef _KERNEL_MODE
+	static void     esp(C_Player local_player, C_Player target_player);
+#endif
 }
 
 static QWORD get_random_number();
@@ -48,6 +52,10 @@ static QWORD random_number(QWORD min, QWORD max)
 {
 	return min + get_random_number() % (max + 1 - min);
 }
+
+#define GRAPH_RED       (unsigned char)(0.9 * 255)
+#define GRAPH_GREEN     (unsigned char)(0.9 * 255)
+#define GRAPH_BLUE	(unsigned char)(0.7 * 255)
 
 void features::run(void)
 {
@@ -73,6 +81,14 @@ void features::run(void)
 			input::mouse1_up();
 			m_mouse_down_tick = 0;
 		}
+
+		if (font_is_set)
+		{
+			// cs::engine::net_graphfont(6);
+			cs::engine::net_graphcolor(GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255);
+			font_is_set = 0;
+		}
+
 		reset();
 		return;
 	}
@@ -89,7 +105,6 @@ void features::run(void)
 	{
 		m_previous_target = 0; // reset target
 		m_rcs_old_shots_fired = 0;
-		m_weapon_class = cs::player::get_weapon_class(local_player);
 	}
 
 	//
@@ -108,14 +123,17 @@ void features::run(void)
 	//
 	// remove this in case some feature added what requires 24/7 action
 	//
+	/*
 	if (current_button == 0)
 	{
 		return;
 	}
+	*/
 
 	BOOL  b_can_aimbot = 0;
 	DWORD rcs_bullet_count = 0;
 
+	m_weapon_class = cs::player::get_weapon_class(local_player);
 	if (m_weapon_class == cs::WEAPON_CLASS::Knife)
 	{
 		b_can_aimbot = 0;
@@ -147,6 +165,8 @@ void features::run(void)
 		return;
 	}
 
+	m_viewangles = cs::player::get_viewangles(local_player);
+
 	if (aimbot_button || triggerbot_button)
 	{
 		m_aimbot_active = 1;
@@ -154,8 +174,7 @@ void features::run(void)
 		//
 		// optimizing code, we need this information only if aimbot/triggerbot active.
 		// once should be enough in each loop
-		//
-		m_viewangles = cs::player::get_viewangles(local_player);
+		//		
 	}
 	else
 	{
@@ -170,35 +189,20 @@ void features::run(void)
 		}
 	}
 
-	if (m_previous_target)
-	{
-		if (!cs::player::is_valid(m_previous_target))
-		{
-			//
-			// our target player is dead. do not allow to find new target
-			// it will remove obvious looking spray transfers.
-			// we can still do incross for awps
-			//
-			in_cross_triggerbot(local_player);
-			return;
-
-			//
-			// m_previous_target = 0
-			//
-		}
-	}
-
 	C_Team   target_team = 0;
 	C_Player target_player = m_previous_target;
+
+	C_Player new_player = get_best_target(local_player, rcs_bullet_count, &target_team);
 	if (target_player == 0)
 	{
 		m_aimbot_old_shots_fired = 0;
-		target_player = get_best_target(local_player, rcs_bullet_count, &target_team);
+		target_player = new_player;
 	}
 	else
 	{
 		target_team = m_previous_team;
 	}
+
 
 	m_previous_target = target_player;
 	m_previous_team = target_team;
@@ -208,6 +212,15 @@ void features::run(void)
 	//
 	if (target_player == 0)
 	{
+		return;
+	}
+
+	if (!cs::player::is_valid(target_player))
+	{
+		if (triggerbot_button)
+		{
+			in_cross_triggerbot(local_player);
+		}
 		return;
 	}
 
@@ -823,6 +836,14 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 				continue;
 			}
 
+#ifdef _KERNEL_MODE
+
+			if (config::visuals_enabled == 2)
+			{
+				esp(local_player, entity_address);
+			}
+#endif
+
 			if (config::aimbot_visibility_check && !cs::player::is_visible(local_player, entity_address))
 			{
 				continue;
@@ -850,8 +871,156 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 			}
 		}
 	}
+
+	if (config::visuals_enabled == 1)
+	{
+		if (best_fov < 5.0f)
+		{
+			float target_health = ((float)cs::player::get_health(target_address) / 100.0f) * 255.0f;
+			float r = 255.0f - target_health;
+			float g = target_health;
+			float b = 0.00f;
+
+			if (cs::player::is_defusing(target_address))
+			{
+				if (cs::player::has_defuser(target_address))
+				{
+					r = 0.00f;
+					g = 0.f;
+					b = 255.0f;
+				}
+				else
+				{
+					r = 0.00f;
+					g = 191.0f;
+					b = 255.0f;
+				}
+			}
+
+			// cs::engine::net_graphfont(5);
+			cs::engine::net_graphcolor((unsigned char)r, (unsigned char)g, (unsigned char)b, 255);
+			font_is_set = 1;
+		}
+		else
+		{
+			// cs::engine::net_graphfont(6);
+			cs::engine::net_graphcolor(GRAPH_RED, GRAPH_GREEN, GRAPH_BLUE, 255);
+			font_is_set = 0;
+		}
+	}
+
 	return target_address;
 }
+
+#ifdef _KERNEL_MODE
+namespace gdi
+{
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
+	void SetCursorPos(int x, int y);
+}
+#endif
+
+#ifdef _KERNEL_MODE
+static void features::esp(C_Player local_player, C_Player target_player)
+{
+	UNREFERENCED_PARAMETER(local_player);
+
+	vec3 origin = cs::player::get_origin(target_player);
+	vec3 top_origin = origin;
+	top_origin.z += 75.0f;
+
+	vec2_i screen_size = cs::engine::get_screen_size();
+
+	if (screen_size.x == 0 || screen_size.y == 0)
+	{
+		screen_size.x = 1920;
+		screen_size.x = 1080;
+	}
+
+	vec3 screen_bottom, screen_top;
+	view_matrix_t view_matrix = cs::engine::get_viewmatrix();
+
+
+
+	vec2 screen_size_fl{};
+	screen_size_fl.x = (float)screen_size.x;
+	screen_size_fl.y = (float)screen_size.y;
+
+	if (!math::world_to_screen(screen_size_fl, origin, screen_bottom, view_matrix) || !math::world_to_screen(screen_size_fl, top_origin, screen_top, view_matrix))
+	{
+		return;
+	}
+
+
+	float target_health = ((float)cs::player::get_health(target_player) / 100.0f) * 255.0f;
+	float r = 255.0f - target_health;
+	float g = target_health;
+	float b = 0.00f;
+
+
+
+	int box_height = (int)(screen_bottom.y - screen_top.y);
+	int box_width = box_height / 2;
+
+
+
+
+
+
+	vec2_i screen_pos = cs::engine::get_screen_pos();
+	LONG x = (LONG)screen_pos.x + (LONG)(screen_top.x - box_width / 2);
+	LONG y = (LONG)screen_pos.y + (LONG)(screen_top.y);
+
+
+	
+	//if (screen_pos.x != 0)
+	{
+		if (x > (LONG)(screen_pos.x + screen_size.x - (box_width)))
+		{
+			return;
+		}
+		else if (x < screen_pos.x)
+		{
+			return;
+		}
+	}
+
+	//if (screen_pos.y != 0)
+	{
+		if (y > (LONG)(screen_size.y + screen_pos.y - (box_height)))
+		{
+			return;
+		}
+		else if (y < screen_pos.y)
+		{
+			return;
+		}
+	}
+
+
+	//
+	// defusing???
+	//
+
+	if (cs::player::is_defusing(target_player))
+	{
+		if (cs::player::has_defuser(target_player))
+		{
+			r = 0.00f;
+			g = 0.f;
+			b = 255.0f;
+		}
+		else
+		{
+			r = 0.00f;
+			g = 191.0f;
+			b = 255.0f;
+		}
+	}
+
+	gdi::DrawRect((void *)(QWORD)cs::input::get_hwnd(),  x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+}
+#endif
 
 //
 // not random really

@@ -182,6 +182,54 @@ typedef UINT8 BYTE;
      ((ntheader))->FileHeader.SizeOfOptionalHeader   \
     ))
 
+
+BOOLEAN GetPhysicalMemoryRanges(QWORD *start_address, QWORD *end_address)
+{
+	UINT32 version;
+	UINTN map_size = 0;
+	EFI_MEMORY_DESCRIPTOR *map = 0;
+	UINTN map_key;
+	UINTN descriptor_size;
+
+	EFI_STATUS status = gBS->GetMemoryMap(&map_size, map, &map_key, &descriptor_size, &version);
+	do
+	{
+		status = gBS->AllocatePool(EfiBootServicesData, map_size, (VOID **)&map);
+		if (map == NULL)
+		{
+			return FALSE;
+		}
+
+		status = gBS->GetMemoryMap(&map_size, map, &map_key, &descriptor_size, &version);
+		if (EFI_ERROR(status))
+		{
+			gBS->FreePool(map);
+			map = 0;
+		}
+
+	} while (status == EFI_BUFFER_TOO_SMALL);
+
+	if (map == 0)
+		return FALSE;
+
+	UINT32 descriptor_count = (UINT32)map_size / (UINT32)descriptor_size;
+
+	EFI_MEMORY_DESCRIPTOR *entry_last = (EFI_MEMORY_DESCRIPTOR*)(
+		(char *)map + (  (descriptor_count - 1) * descriptor_size)
+		);
+
+	if (start_address)
+		*start_address = 0x1000; // windows memory map always starts from 0x1000
+
+	if (end_address)
+		*end_address = entry_last->PhysicalStart + (entry_last->NumberOfPages * 0x1000);
+
+	gBS->FreePool(map);
+
+	return TRUE;
+}
+
+
 EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTable)
 {
 	int vMenu = Menu();
@@ -270,7 +318,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTa
 		config_values[3] = (int)Atoi(find_sub((CHAR8*)config, "aimbot::key"));
 		config_values[4] = (int)Atoi(find_sub((CHAR8*)config, "aimbot::visibleOnly"));
 		config_values[5] = (int)Atoi(find_sub((CHAR8*)config, "triggerbot::key"));
-		config_values[6] = (int)Atoi(find_sub((CHAR8*)config, "security::legacy"));
+		config_values[6] = (int)Atoi(find_sub((CHAR8*)config, "visuals::mode"));
 
 		gBS->FreePool(config);
 
@@ -320,12 +368,35 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTa
 	void *empty_rwx = (void *)(0);
 	UINTN pages = EFI_SIZE_TO_PAGES (SIZE_8MB);
 
+
+	/*
 	if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesCode, pages, (EFI_PHYSICAL_ADDRESS*)&empty_rwx))) {
 		Print(L"Failed to allocate pages\n");
 		PressAnyKey();
 		return EFI_INVALID_PARAMETER;
 	}
+	*/
 
+
+	QWORD start_address=0, end_address=0;
+	if (!GetPhysicalMemoryRanges(&start_address, &end_address))
+	{
+		Print(L"Failed to allocate pages\n");
+		PressAnyKey();
+		return EFI_INVALID_PARAMETER;
+	}
+	// end_address=0x140000000;
+	while (1)
+	{
+		empty_rwx = (void*)end_address;
+		if (!EFI_ERROR(gBS->AllocatePages(AllocateAddress, EfiRuntimeServicesCode, pages, (EFI_PHYSICAL_ADDRESS*)&empty_rwx))) {
+			break;
+		}
+		end_address = end_address - 0x1000;
+	}
+
+	
+	
 
 	image.Revision = licence_length;	
 	image.reserved = (VOID*)registeration_key;
@@ -389,7 +460,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *SystemTa
 	*(UINTN*)&EntryPoint = (UINTN)(target_base + nt->OptionalHeader.AddressOfEntryPoint);
 	status = EntryPoint(&image, SystemTable);
 
-
+	// Print(L"Allocation: 0x%llx - 0x%llx\n", (QWORD)image.ImageBase, (QWORD)image.ImageBase + SIZE_8MB);
 	
 	{
 		EFI_STATUS         Status;

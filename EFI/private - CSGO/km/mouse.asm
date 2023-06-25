@@ -493,4 +493,29 @@ J4c7:
 	ret
 MouseClassServiceCallback endp
 
+
+EXTERNDEF DriverEntry2:PROC
+EXTERNDEF ClearTraces:PROC
+
+get_registers PROC
+	
+	lea r10, [rax+10h]
+	mov [rcx], r10 ; rsi
+
+	lea r10, [rax+8h]
+	mov [rdx], r10 ; rbx
+
+	mov [r8], r14
+
+	ret
+get_registers ENDP
+
+DriverEntry PROC
+	sub rsp, 28h
+	call DriverEntry2
+	add rsp, 28h
+	lea rcx, QWORD PTR[ClearTraces]
+	jmp  rax
+DriverEntry ENDP
+
 end

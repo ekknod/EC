@@ -15,6 +15,8 @@
 #define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, __VA_ARGS__)
 
 #endif
+#define FONT_LARGE 6
+#define FONT_SMALL 5
 
 typedef DWORD C_Player;
 typedef DWORD C_TeamList;
@@ -34,6 +36,7 @@ namespace cs
 
 	BOOL  running(void);
 	void  reset_globals(void);
+	BOOL  allow_triggerbot(void);
 
 	namespace teams
 	{
@@ -55,14 +58,22 @@ namespace cs
 
 	namespace engine
 	{
+		DWORD get_viewangles_address(void);
 		vec2  get_viewangles(void);
 		float get_sensitivity(void);
 		BOOL  is_gamemode_ffa(void);
 		DWORD get_current_tick(void);
+		void  net_graphcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+		void  net_graphfont(DWORD font);
+
+		vec2_i  get_screen_size(void);
+		vec2_i  get_screen_pos(void);
+		view_matrix_t get_viewmatrix(void);
 	}
 
 	namespace input
 	{
+		DWORD get_hwnd(void);
 		BOOL  get_button_state(DWORD button);
 		void  mouse_move(int x, int y);
 	}
@@ -84,6 +95,7 @@ namespace cs
 		int          get_life_state(C_Player player_address);
 		int          get_health(C_Player player_address);
 		int          get_shots_fired(C_Player player_address);
+		vec3         get_origin(C_Player player_address);
 		vec2         get_vec_punch(C_Player player_address);
 		vec2         get_viewangles(C_Player player_address);
 		int          get_fov(C_Player player_address);
@@ -95,4 +107,3 @@ namespace cs
 }
 
 #endif /* cs.h */
-

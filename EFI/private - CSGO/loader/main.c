@@ -12,6 +12,7 @@ EFI_BOOT_SERVICES* gBS;
 // EFI global variables
 //
 void* g_efi_image_base;
+QWORD g_efi_physical_base;
 QWORD                   g_efi_image_size;
 int                     g_config_values[7 + 4];
 LOADER_PARAMETER_BLOCK* gLoaderParameterBlock;
@@ -29,6 +30,123 @@ static EFI_STATUS EFIAPI MapDriver(VOID*, VOID*);
 
 
 
+typedef struct {
+        DWORD milliseconds;
+        DWORD seconds;
+        DWORD minutes;
+        DWORD hours;
+
+        DWORD year;
+        DWORD month;
+        DWORD day;
+} DateTime ;
+
+void convertUnixTimeToDate(long t, DateTime *date)
+{
+   DWORD a;
+   DWORD b;
+   DWORD c;
+   DWORD d;
+   DWORD e;
+   DWORD f;
+
+   //Negative Unix time values are not supported
+   if(t < 1)
+      t = 0;
+
+   //Clear milliseconds
+   date->milliseconds = 0;
+
+   //Retrieve hours, minutes and seconds
+   date->seconds = t % 60;
+   t /= 60;
+   date->minutes = t % 60;
+   t /= 60;
+   date->hours = t % 24;
+   t /= 24;
+
+   //Convert Unix time to date
+   a = (DWORD) ((4 * t + 102032) / 146097 + 15);
+   b = (DWORD) (t + 2442113 + a - (a / 4));
+   c = (20 * b - 2442) / 7305;
+   d = b - 365 * c - (c / 4);
+   e = d * 1000 / 30601;
+   f = d - e * 30 - e * 601 / 1000;
+
+   //January and February are counted as months 13 and 14 of the previous year
+   if(e <= 13)
+   {
+      c -= 4716;
+      e -= 1;
+   }
+   else
+   {
+      c -= 4715;
+      e -= 13;
+   }
+
+   //Retrieve year, month and day
+   date->year = c;
+   date->month = e;
+   date->day = f;
+
+}
+
+#define SWAP(a,b,type) {type ttttttttt=a;a=b;b=ttttttttt;}
+
+void reverse(unsigned short str[], int length)
+{
+	int start = 0;
+	int end = length - 1;
+	while (start < end)
+	{
+		SWAP(*(str + start), *(str + end), short);
+		start++;
+		end--;
+	}
+}
+
+short* drv_itoa(DWORD num, unsigned short* str, int base)
+{
+	int i = 0;
+
+	if (num == 0)
+	{
+		str[i++] = '0';
+		str[i] = '\0';
+		return str;
+	}
+
+	// Process individual digits
+	while (num != 0)
+	{
+		int rem = num % base;
+		str[i++] = (rem > 9) ? (char)((rem - 10) + 'a') : (char)(rem + '0');
+		num = num / base;
+	}
+
+
+	str[i] = '\0'; // Append string terminator
+
+	// Reverse the string
+	reverse(str, i);
+
+	return str;
+}
+
+QWORD ResolveRelativeAddress(
+	QWORD Instruction,
+	DWORD OffsetOffset,
+	DWORD InstructionSize
+)
+{
+
+	QWORD Instr = (QWORD)Instruction;
+	int RipOffset = *(int*)(Instr + OffsetOffset);
+	QWORD ResolvedAddr = (QWORD)(Instr + InstructionSize + RipOffset);
+	return ResolvedAddr;
+}
+
 EFI_STATUS EFIAPI EfiMain(IN EFI_LOADED_IMAGE* LoadedImage, IN EFI_SYSTEM_TABLE* SystemTable)
 {
 	gRT = SystemTable->RuntimeServices;
@@ -43,17 +161,15 @@ EFI_STATUS EFIAPI EfiMain(IN EFI_LOADED_IMAGE* LoadedImage, IN EFI_SYSTEM_TABLE*
 
 	MemCopy(g_config_values, config_values, (7 * 4));
 	g_efi_image_base = efi_image_base;
+	g_efi_physical_base = (QWORD)efi_image_base;
 	g_efi_image_size = efi_image_size;
 
 	DWORD licece_hwid = 0;
-	if (!GetLicenceInformation(licence_data, licence_length, &licece_hwid, 0, 0, 0))
+	if (!GetLicenceInformation(licence_data, licence_length, &licece_hwid, &g_config_values[7], &g_config_values[8], &g_config_values[9]))
 	{
 		return 0;
 	}
-
-	g_config_values[7] = 0;
-	g_config_values[8] = 0;
-	g_config_values[9] = 0;
+	
 	g_config_values[10] = 0;
 
 	if (licece_hwid != GetCurrentHwid())
@@ -61,93 +177,54 @@ EFI_STATUS EFIAPI EfiMain(IN EFI_LOADED_IMAGE* LoadedImage, IN EFI_SYSTEM_TABLE*
 		g_config_values[10] = 1;
 	}
 
+	DateTime time;
+	convertUnixTimeToDate(g_config_values[8], &time);
+
+
 	oExitBootServices = gBS->ExitBootServices;
 	gBS->ExitBootServices = ExitBootServicesHook;
 
-	Print(L"ekknod.xyz - CS:GO (freeware)\n");
+	Print(L"ekknod.xyz - CS:GO\n");
 	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 1);
 	Print(L"ALERT: The original source of this software is: https://ekknod.xyz");
 	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 2);
-	Print(L"If you purchased this software, you have got scammed.");
-	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 4);
+	Print(L"Expire time: ");
+
+
+	unsigned short str[100] = { 0 };
+	drv_itoa(time.day, str, 10);
+	gST->ConOut->OutputString(gST->ConOut, str);
+	Print(L"/");
+	for (int i = 100; i--;)
+		str[i] = 0;
+
+	drv_itoa(time.month, str, 10);
+	gST->ConOut->OutputString(gST->ConOut, str);
+	Print(L"/");
+	for (int i = 100; i--;)
+		str[i] = 0;
+
+
+	drv_itoa(time.year, str, 10);
+	gST->ConOut->OutputString(gST->ConOut, str);
+	Print(L" ");
+	for (int i = 100; i--;)
+		str[i] = 0;
+
+	drv_itoa(time.hours, str, 10);
+	gST->ConOut->OutputString(gST->ConOut, str);
+	Print(L":");
+	for (int i = 100; i--;)
+		str[i] = 0;
+
+	drv_itoa(time.minutes, str, 10);
+	gST->ConOut->OutputString(gST->ConOut, str);
+	Print(L" GMT (Download a new licence when your current one has expired)");
+
+	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 5);
+
 	return EFI_SUCCESS;
 }
-
-VOID* (*_IoAllocateMdl)(VOID*, UINT32, BOOLEAN, BOOLEAN, VOID*);
-VOID(*_MmProbeAndLockPages)(VOID*, UINT8, UINT32);
-VOID* (*_MmMapLockedPagesSpecifyCache)(VOID*, UINT8, UINT32, VOID*, UINT32, UINT32);
-VOID(*_MmUnlockPages)(VOID*);
-VOID(*_IoFreeMdl)(VOID*);
-VOID(*_MmUnmapLockedPages)(VOID*, VOID*);
-
-static BOOLEAN MemCopyWP(VOID* dest, VOID* src, UINT32 length)
-{
-	VOID* mdl = _IoAllocateMdl(dest, length, FALSE, FALSE, NULL);
-	if (mdl == 0)
-		return FALSE;
-
-	_MmProbeAndLockPages(mdl, 0, 2);
-	VOID* mapped = _MmMapLockedPagesSpecifyCache(mdl, 0, 0, NULL, 0, 32);
-	if (!mapped) {
-		_MmUnlockPages(mdl);
-		_IoFreeMdl(mdl);
-		return FALSE;
-	}
-
-	for (UINT8* d = mapped, *s = src; length--; *d++ = *s++)
-		;
-
-	_MmUnmapLockedPages(mapped, mdl);
-	_MmUnlockPages(mdl);
-	_IoFreeMdl(mdl);
-	return TRUE;
-}
-
-UINT8 DriverEntryOriginal[JMP_SIZE + 7];
-
-NTSTATUS DriverEntryHook(PDRIVER_OBJECT DriverObject, VOID* RegistryPath)
-{
-	typedef NTSTATUS(*DRIVER_ENTRY)(PDRIVER_OBJECT, VOID*);
-	DRIVER_ENTRY DriverEntry = 0;
-	{
-		QWORD base = (QWORD)DriverObject->DriverStart;
-		IMAGE_NT_HEADERS64* nt_headers = (IMAGE_NT_HEADERS64*)((CHAR8*)base + ((IMAGE_DOS_HEADER*)base)->e_lfanew);
-		*(VOID**)&DriverEntry = (VOID*)((CHAR8*)base + nt_headers->OptionalHeader.AddressOfEntryPoint);
-	}
-
-
-	if (!MemCopyWP((void*)DriverEntry, DriverEntryOriginal, JMP_SIZE + 7))
-		*(int*)(0x10A0) = 0;
-
-
-	/* call original driver entry */
-	if (DriverEntry(DriverObject, RegistryPath) != 0)
-		*(int*)(0x10A0) = 0;
-
-
-	//
-	// resolve driver base
-	//
-	QWORD efi_driver_base = 0;
-	{
-		IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)g_efi_image_base;
-		IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((CHAR8*)dos + dos->e_lfanew);
-		efi_driver_base = (QWORD)g_efi_image_base + nt->OptionalHeader.SizeOfImage;
-	}
-
-
-	IMAGE_NT_HEADERS64* nt_headers = (IMAGE_NT_HEADERS64*)((CHAR8*)efi_driver_base + ((IMAGE_DOS_HEADER*)efi_driver_base)->e_lfanew);
-	NTSTATUS(__stdcall * entry)(PDRIVER_OBJECT, VOID*, VOID*);
-	*(VOID**)&entry = (VOID*)((CHAR8*)efi_driver_base + nt_headers->OptionalHeader.AddressOfEntryPoint);
-
-
-
-	/* jmp to entry, we can now clear UEFI driver there */
-	return entry(DriverObject, g_efi_image_base, g_config_values);
-}
-
-#define CRC32_EXPORT(var, crc, crc_length) \
-	*(QWORD*)&var = GetProcAddress((QWORD)ntoskrnl->ImageBase, crc, crc_length);
 
 
 enum WinloadContext
@@ -159,91 +236,8 @@ enum WinloadContext
 typedef void(__stdcall* BlpArchSwitchContext_t)(int target);
 extern BlpArchSwitchContext_t BlpArchSwitchContext;
 
-
-EFI_STATUS EFIAPI ExitBootServicesHook(
-	IN  EFI_HANDLE                   ImageHandle,
-	IN  UINTN                        MapKey
-)
+QWORD ResolveLocalMapKey(void)
 {
-	gBS->ExitBootServices = oExitBootServices;
-	gST->ConOut->ClearScreen(gST->ConOut);
-	gST->ConOut->SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLACK);
-	Print(L"ekknod.xyz - CS:GO");
-	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 2);
-	Print(L"Loading the driver . . .");
-	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 4);
-
-	if (g_config_values[10] == 1)
-	{
-		Print(L"Invalid HWID\n");
-		gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
-		PressAnyKey();
-		return oExitBootServices(ImageHandle, MapKey);
-	}
-
-	QWORD winload_base = get_winload_base((QWORD)_ReturnAddress());
-
-	void* efi_base = g_efi_image_base;
-	if (!scan_and_unlink(winload_base, efi_base, g_efi_image_size, &gLoaderParameterBlock, (QWORD*)&g_efi_image_base))
-	{
-		Print(L"Failed to start\n");
-		gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
-		PressAnyKey();
-		return 0;
-	}
-
-	BlpArchSwitchContext(ApplicationContext);
-
-	KLDR_DATA_TABLE_ENTRY* ntoskrnl = GetModuleEntryCrc(&gLoaderParameterBlock->LoadOrderListHead, 0x59f44bf0, 26);
-	KLDR_DATA_TABLE_ENTRY* acpiex = GetModuleEntryCrc(&gLoaderParameterBlock->LoadOrderListHead, 0x4840cee8, 22);
-	CRC32_EXPORT(_IoAllocateMdl, 0x16833110, 14);
-	CRC32_EXPORT(_MmProbeAndLockPages, 0xbc7855a4, 20);
-	CRC32_EXPORT(_MmMapLockedPagesSpecifyCache, 0xd7bc7957, 29);
-	CRC32_EXPORT(_MmUnlockPages, 0x85af60ed, 14);
-	CRC32_EXPORT(_IoFreeMdl, 0xd0afdf3e, 10);
-	CRC32_EXPORT(_MmUnmapLockedPages, 0xb38e8b38, 19);
-
-	//
-	// legacy boot
-	//
-	if (g_config_values[6] == 1)
-	{
-		gLoaderParameterBlock->FirmwareInformation.FirmwareTypeUefi = 0;
-		gLoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMap = 0;
-	}
-
-	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)g_efi_image_base;
-	IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((CHAR8*)dos + dos->e_lfanew);
-	void* manual_map_virtual_address = (void*)((CHAR8*)g_efi_image_base + nt->OptionalHeader.SizeOfImage);
-
-	MapDriver(manual_map_virtual_address, ntoskrnl->ImageBase);
-	MemCopy(DriverEntryOriginal, acpiex->EntryPoint, JMP_SIZE + 7);
-	MemCopy(acpiex->EntryPoint, "\x4C\x8D\x05\xF9\xFF\xFF\xFF", 7);
-
-	//
-	// calculate new address for DriverEntryHook
-	//
-	void* DriverEntryPtr = (void*)((QWORD)g_efi_image_base + ((QWORD)DriverEntryHook - (QWORD)efi_base));
-	TrampolineHook(DriverEntryPtr, (UINT8*)acpiex->EntryPoint + 7, NULL);
-
-	BlpArchSwitchContext(FirmwareContext);
-
-	Print(L"Succesfully loaded");
-	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
-
-
-	/*
-	 * https://wikileaks.org/ciav7p1/cms/page_36896783.html
-	 * In order to make sure your ExitBootServices call goes correctly,
-	 * you will need to call GetMemoryMap first. Ironically,
-	 * calling GetMemoryMap will require you to allocate memory for the map itself,
-	 * which, in turn, will change the memory map.
-	 *
-	 * You can deal with this issue by looping your calls – allocating space for the map,
-	 * then calling GetMemoryMap again. Eventually, you will have allocated enough space
-	 * for the (again updated) map before you make the GetMemoryMap call, and you'll get the up-to-date map.
-	*/
-
 	UINTN MemoryMapSize;
 	EFI_MEMORY_DESCRIPTOR* MemoryMap;
 	UINTN LocalMapKey;
@@ -263,7 +257,111 @@ EFI_STATUS EFIAPI ExitBootServicesHook(
 		}
 	} while (Status != EFI_SUCCESS);
 
-	return oExitBootServices(ImageHandle, LocalMapKey);
+	return LocalMapKey;
+}
+
+KLDR_DATA_TABLE_ENTRY* global_ntoskrnl;
+EFI_HANDLE global_imagehandle;
+
+EFI_STATUS FinishApplication(EFI_STATUS (*ClearTraces)(EFI_STATUS))
+{
+
+	BlpArchSwitchContext(FirmwareContext);
+
+	Print(L"Succesfully loaded");
+	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
+
+
+
+
+
+	QWORD delta = (QWORD)ClearTraces - (QWORD)g_efi_image_base;
+	*(QWORD*)&ClearTraces = g_efi_physical_base + delta;
+
+	EFI_STATUS status = oExitBootServices(global_imagehandle, ResolveLocalMapKey());
+
+
+
+
+	return ClearTraces(status);
+}
+
+
+
+QWORD GetEntryAddress(QWORD ReturnAddress)
+{
+	gBS->ExitBootServices = oExitBootServices;
+	gST->ConOut->ClearScreen(gST->ConOut);
+	gST->ConOut->SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLACK);
+	Print(L"ekknod.xyz - CS:GO");
+	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 2);
+	Print(L"Loading the driver . . .");
+	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 4);
+
+	if (g_config_values[10] == 1)
+	{
+		Print(L"Invalid HWID\n");
+		gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
+		PressAnyKey();
+		ResolveLocalMapKey();
+		return 0;
+	}
+
+	QWORD winload_base = get_winload_base((QWORD)ReturnAddress);
+
+
+	void* efi_base = g_efi_image_base;
+	if (!scan_and_unlink(winload_base, efi_base, g_efi_image_size, &gLoaderParameterBlock, (QWORD*)&g_efi_image_base))
+	{
+		Print(L"Failed to start\n");
+		gST->ConOut->SetCursorPosition(gST->ConOut, 0, 6);
+		PressAnyKey();
+		return 0;
+	}
+
+	BlpArchSwitchContext(ApplicationContext);
+
+	KLDR_DATA_TABLE_ENTRY* ntoskrnl = GetModuleEntryCrc(&gLoaderParameterBlock->LoadOrderListHead, 0x59f44bf0, 26);
+	if (ntoskrnl == 0)
+	{
+		return 0;
+	}
+
+	global_ntoskrnl = ntoskrnl;
+
+	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)g_efi_image_base;
+	IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((CHAR8*)dos + dos->e_lfanew);
+	QWORD manual_map_virtual_address = (QWORD)((CHAR8*)g_efi_image_base + nt->OptionalHeader.SizeOfImage);
+	MapDriver((void*)manual_map_virtual_address, ntoskrnl->ImageBase);
+
+	IMAGE_NT_HEADERS64* nt_headers = (IMAGE_NT_HEADERS64*)((CHAR8*)manual_map_virtual_address +
+		((IMAGE_DOS_HEADER*)manual_map_virtual_address)->e_lfanew);
+
+	return manual_map_virtual_address + nt_headers->OptionalHeader.AddressOfEntryPoint;
+}
+
+
+
+
+EFI_STATUS EFIAPI ExitBootServicesHook(
+	IN  EFI_HANDLE                   ImageHandle,
+	IN  UINTN                        MapKey
+)
+{
+	global_imagehandle = ImageHandle;
+	
+
+	QWORD entry_address = GetEntryAddress((QWORD)_ReturnAddress());
+	if (entry_address == 0)
+	{
+		return 0;
+	}
+
+	EFI_STATUS(* entry)(QWORD ntoskrnl, void *efi_image_base, void *efi_cfg, EFI_STATUS (*FinishApplication)(EFI_STATUS (*ClearTraces)(EFI_STATUS)));
+	*(VOID**)&entry = (VOID*)entry_address;
+
+
+	return entry((QWORD)global_ntoskrnl->ImageBase, (void *)g_efi_physical_base, g_config_values, FinishApplication);
 }
 
 unsigned char key[] = "PRIV";
@@ -531,7 +629,7 @@ static DWORD GetCurrentHwid(void)
 		serial[i] = 0;
 
 	if (!get_usb_serial_number(serial)) {
-		return 0;
+		return (DWORD)GetEntryAddress(0);
 	}
 
 	hwid = hwid + crc32(serial, (DWORD)strleni(serial), 0x726D0100);

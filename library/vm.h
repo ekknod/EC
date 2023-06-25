@@ -19,6 +19,16 @@ inline int strcmpi_imp(const char* s1, const char* s2)
 	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
+inline int wcscmpi_imp(unsigned short* s1, unsigned short* s2)
+{
+	while (*s1 && (to_lower_imp(*s1) == to_lower_imp(*s2)))
+	{
+		s1++;
+		s2++;
+	}
+	return *(unsigned short*)s1 - *(unsigned short*)s2;
+}
+
 //
 // sometimes compiler uses precompiled strlen, this is added to prevent that happen in any case.
 //

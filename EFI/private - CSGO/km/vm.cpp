@@ -34,32 +34,9 @@ extern "C" {
 	(*_KeQueryTimeIncrement)(
 	    VOID
 	    );
+
+	extern void *(*memcpy_ptr)(void *, void *, QWORD);
 }
-
-#pragma warning (disable: 4201)
-
-typedef union _pte
-{
-	QWORD value;
-	struct
-	{
-		QWORD present : 1;          
-		QWORD rw : 1;       
-		QWORD user_supervisor : 1;   
-		QWORD page_write_through : 1;
-		QWORD page_cache : 1;
-		QWORD accessed : 1;         
-		QWORD dirty : 1;            
-		QWORD access_type : 1;   
-		QWORD global : 1;           
-		QWORD ignore_2 : 3;
-		QWORD pfn : 36;
-		QWORD reserved : 4;
-		QWORD ignore_3 : 7;
-		QWORD pk : 4;  
-		QWORD nx : 1; 
-	};
-} pte, * ppte;
 
 static vm_handle get_process_by_name(PCSTR process_name)
 {
@@ -68,7 +45,7 @@ static vm_handle get_process_by_name(PCSTR process_name)
 	PCSTR entry_name;
 
 	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = (QWORD)_PsInitialSystemProcess;
+	process = *(QWORD*)_PsInitialSystemProcess;
 
 	entry = process;
 	do {
@@ -133,7 +110,7 @@ vm_handle vm::open_process_ex(PCSTR process_name, PCSTR dll_name)
 	PCSTR entry_name;
 
 	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = (QWORD)_PsInitialSystemProcess;
+	process = *(QWORD*)_PsInitialSystemProcess;
 	entry = process;
 	do {
 		
@@ -162,7 +139,7 @@ vm_handle vm::open_process_by_module_name(PCSTR dll_name)
 	QWORD entry;
 
 	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = (QWORD)_PsInitialSystemProcess;
+	process = *(QWORD*)_PsInitialSystemProcess;
 
 	entry = process;
 	do {
@@ -191,70 +168,6 @@ BOOL vm::running(vm_handle process)
 	if (process == 0)
 		return 0;
 	return _PsGetProcessExitProcessCalled((PEPROCESS)process) == 0;
-}
-
-BOOLEAN memcpy_2XXX_physical(PVOID dest, PVOID src, QWORD length)
-{
-	if ((QWORD)src < (QWORD)g_memory_range_low)
-	{
-		return 0;
-	}
-
-	if (((QWORD)src + length) > g_memory_range_high)
-	{
-		return 0;
-	}
-
-	BOOLEAN ret = 0;
-	{
-		PVOID mapped = _MmMapIoSpace(*(PHYSICAL_ADDRESS*)&src, length, MmNonCached);
-		if (mapped)
-		{
-			memcpy(dest, mapped, length);
-			_MmUnmapIoSpace(mapped, length);
-			ret = 1;
-		}
-	}
-	return ret;
-}
-
-BOOLEAN memcpy_2XXX(PVOID dest, PVOID src, QWORD length)
-{
-	QWORD total_size = length;
-	QWORD offset = 0;
-	QWORD bytes_read=0;
-	QWORD physical_address;
-	QWORD current_size;
-	DWORD page_count=0;
-
-	while (total_size)
-	{
-		physical_address = _MmGetPhysicalAddress((PVOID)((QWORD)src + offset)).QuadPart;
-		if (!physical_address)
-		{
-			if (total_size >= 0x1000)
-			{
-				bytes_read = 0x1000;
-			}
-			else
-			{
-				bytes_read = total_size;
-			}
-			goto E0;
-		}
-
-		current_size = min(0x1000 - (physical_address & 0xFFF), total_size);
-		if (!memcpy_2XXX_physical((PVOID)((QWORD)dest + offset), (PVOID)physical_address, current_size))
-		{
-			break;
-		}
-		page_count++;
-		bytes_read = current_size;
-	E0:
-		total_size -= bytes_read;
-		offset += bytes_read;
-	}
-	return page_count != 0;
 }
 
 BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
@@ -295,89 +208,8 @@ BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 		return 0;
 	}
 
-	ppte pte = (ppte)MiGetPteAddress(address);
-	if (!pte)
-	{
-		return 0;
-	}
-
-	if (!pte->present)
-	{
-		return 0;
-	}
-
-	DWORD NtBuildNumber = *(DWORD*)(0xFFFFF78000000000 + 0x260);
-	if (NtBuildNumber > 17763)
-	{
-		return memcpy_2XXX(buffer, (PVOID)address, length);
-	}
-	
-	memcpy(buffer, (PVOID)address, length);
+	memcpy_ptr(buffer, (PVOID)address, length);
 	return 1;
-}
-
-BOOLEAN memcpy_2XXX_physical_w(PVOID dest, PVOID src, QWORD length)
-{
-	if ((QWORD)dest < (QWORD)g_memory_range_low)
-	{
-		return 0;
-	}
-
-	if (((QWORD)dest + length) > g_memory_range_high)
-	{
-		return 0;
-	}
-
-	BOOLEAN ret = 0;
-	{
-		PVOID mapped = _MmMapIoSpace(*(PHYSICAL_ADDRESS*)&dest, length, MmNonCached);
-		if (mapped)
-		{
-			memcpy(mapped, src, length);
-			_MmUnmapIoSpace(mapped, length);
-			ret = 1;
-		}
-	}
-	return ret;
-}
-
-BOOLEAN memcpy_2XXX_w(PVOID dest, PVOID src, QWORD length)
-{
-	QWORD total_size = length;
-	QWORD offset = 0;
-	QWORD bytes_copy=0;
-	QWORD physical_address;
-	QWORD current_size;
-	DWORD page_count=0;
-
-	while (total_size)
-	{
-		physical_address = _MmGetPhysicalAddress((PVOID)((QWORD)dest + offset)).QuadPart;
-		if (!physical_address)
-		{
-			if (total_size >= 0x1000)
-			{
-				bytes_copy = 0x1000;
-			}
-			else
-			{
-				bytes_copy = total_size;
-			}
-			goto E0;
-		}
-
-		current_size = min(0x1000 - (physical_address & 0xFFF), total_size);
-		if (!memcpy_2XXX_physical_w((PVOID)physical_address, (PVOID)((QWORD)src + offset), current_size))
-		{
-			break;
-		}
-		page_count++;
-		bytes_copy = current_size;
-	E0:
-		total_size -= bytes_copy;
-		offset += bytes_copy;
-	}
-	return page_count != 0;
 }
 
 BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
@@ -418,24 +250,7 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 		return 0;
 	}
 
-	ppte pte = (ppte)MiGetPteAddress(address);
-	if (!pte)
-	{
-		return 0;
-	}
-
-	if (!pte->present)
-	{
-		return 0;
-	}
-
-	DWORD NtBuildNumber = *(DWORD*)(0xFFFFF78000000000 + 0x260);
-	if (NtBuildNumber > 17763)
-	{
-		return memcpy_2XXX_w((void *)address, buffer, length);
-	}
-
-	memcpy((void *)address, (const void *)buffer, length);
+	memcpy_ptr((void *)address, buffer, length);
 
 	return 1;
 }

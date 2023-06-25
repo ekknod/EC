@@ -1,4 +1,9 @@
-#include "../../../CSGO/shared/shared.h"
+#include "../../../csgo/shared/shared.h"
+
+#define _AMD64_ 1
+
+#include <ntifs.h>
+#include <intrin.h>
 
 //
 // disables warnings for unused functions
@@ -13,15 +18,12 @@ int _fltused;
 //
 // used by vm.cpp
 //
-QWORD g_memory_range_low  = 0;
-QWORD g_memory_range_high = 0;
-
 
 //
 // dynamic imports, used globally
 //
 extern "C" {
-	// ULONG (__cdecl *_DbgPrintEx)(ULONG, ULONG, PCSTR, ...);
+	ULONG (__cdecl *_DbgPrintEx)(ULONG, ULONG, PCSTR, ...);
 	QWORD _KeAcquireSpinLockAtDpcLevel;
 	QWORD _KeReleaseSpinLockFromDpcLevel;
 	QWORD _IofCompleteRequest;
@@ -51,23 +53,7 @@ extern "C" {
 	//
 	// tested and stable approach, we can now fix IAT for them
 	//
-	
-	BOOLEAN (*_KeInsertQueueDpc)(
-	    _Inout_ PRKDPC Dpc,
-	    _In_opt_ PVOID SystemArgument1,
-	    _In_opt_ __drv_aliasesMem PVOID SystemArgument2
-	    );
 
-	VOID (*_KeSetTargetProcessorDpc)(
-	    _Inout_ PRKDPC Dpc,
-	    _In_ CCHAR Number
-	    );
-
-	VOID (*_KeInitializeDpc)(
-	    _Out_ __drv_aliasesMem PRKDPC Dpc,
-	    _In_ PKDEFERRED_ROUTINE DeferredRoutine,
-	    _In_opt_ __drv_aliasesMem PVOID DeferredContext
-	    );
 
 	PHYSICAL_ADDRESS
 	(*_MmGetPhysicalAddress)(
@@ -84,7 +70,23 @@ extern "C" {
 	    VOID
 	    );
 
-	CCHAR _KeNumberProcessors;
+
+	NTSTATUS (__fastcall *memcpy_safe_func)(void *, void *, DWORD);
+	void *(*memcpy_ptr)(void *, void *, QWORD);
+
+
+	
+	KIRQL (*_KfRaiseIrql)(
+	    _In_ KIRQL NewIrql
+	    );
+
+	
+	VOID
+	(*_KeLowerIrql)(
+	    _In_ _Notliteral_ _IRQL_restores_ KIRQL NewIrql
+	   );
+
+	LIST_ENTRY *_PsLoadedModuleList;
 };
 
 
@@ -227,18 +229,23 @@ namespace input
 {
 	void mouse_move(int x, int y)
 	{
-		// cs::input::mouse_move(x,y);
 		mouse::move(x, y, 0);
 	}
 
 	void mouse1_down(void)
 	{
-		mouse::move(0, 0, 0x01);
+		if (cs::allow_triggerbot())
+		{
+			mouse::move(0, 0, 0x01);
+		}
 	}
 
 	void mouse1_up(void)
 	{
-		mouse::move(0, 0, 0x02);
+		if (cs::allow_triggerbot())
+		{
+			mouse::move(0, 0, 0x02);
+		}
 	}
 }
 
@@ -250,6 +257,7 @@ namespace config
 	float aimbot_smooth           = 100.0f;
 	BOOL  aimbot_visibility_check = 0;
 	DWORD triggerbot_button       = 111;
+	BOOL  visuals_enabled         = 0;
 
 	//
 	// time_begin/time_end/licence_type used before in EC/W3
@@ -260,12 +268,10 @@ namespace config
 	DWORD invalid_hwid = 0;
 }
 
-static QWORD get_ntoskrnl_data_location(QWORD ntoskrnl);
+
 static void  clear_image_traces(QWORD efi_image_base);
-static void  get_physical_memory_ranges(QWORD *low, QWORD *high);
 static QWORD FindPattern(QWORD module, BYTE *bMask, CHAR *szMask, QWORD len, int counter);
-static QWORD GetSystemBaseAddress(PDRIVER_OBJECT DriverObject, const unsigned short* driver_name);
-static QWORD GetProcAddressQ(QWORD base, PCSTR export_name);
+QWORD GetProcAddressQ(QWORD base, PCSTR export_name);
 
 //
 // it never should return zero, in case it does because of potential typo, loop forever
@@ -275,67 +281,161 @@ static QWORD GetProcAddressQ(QWORD base, PCSTR export_name);
 	if (var == 0) while (1) ; \
 
 
+// #include <intrin.h>
+extern "C" QWORD DriverEntry(QWORD ntoskrnl, void *efi_image_base, void *efi_cfg, NTSTATUS (*FinishApplication)(VOID*));
+extern "C" QWORD DriverEntry2(QWORD ntoskrnl, void *efi_image_base, void *efi_cfg, NTSTATUS (*FinishApplication)(VOID*));
+DWORD gEntryPointAddress = 0;
+QWORD gImageBase = 0;
+DWORD gImageSize = 0;
 
-PKDPC dpc_object;
+DWORD hook_original_offset;
 
-#include <intrin.h>
 
-void DpcRoutine(void)
+
+
+
+QWORD __fastcall PsGetProcessDxgProcessHook2(
+	QWORD rcx
+)
 {
+	// _disable();
 	//
-	// if we are explorer.exe, lets find mouse
+	// get current thread
 	//
-	if (gMouseObject.use_mouse == 0)
-	{
-		PEPROCESS process = *(PEPROCESS*)(__readgsqword(0x188) + 0xB8);
-		PCSTR image_name = _PsGetProcessImageFileName(process);
+	QWORD current_thread = __readgsqword(0x188);
 
+	//
+	// previous mode == KernelMode
+	//
+	if (*(BYTE*)(current_thread + 0x232) == 0)
+	{
+		// _enable();
+		return *(QWORD*)(rcx + hook_original_offset);
+	}
+
+	//
+	// is getting called from DxgiSubmitCommand
+	//
+	QWORD return_address = (QWORD)_ReturnAddress();
+	if (*(DWORD*)(return_address + 0x4D) != 0xccc35f30)
+	{
+		// _enable();
+		return *(QWORD*)(rcx + hook_original_offset);
+	}
+
+	//
+	// csgo process
+	//
+	PEPROCESS process = *(PEPROCESS*)(__readgsqword(0x188) + 0xB8);
+	const char* image_name = _PsGetProcessImageFileName(process);
+	QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
+	if (cr3 == __readcr3())
+	{
 		//
 		// explorer.exe
 		//
-		if (image_name && *(QWORD*)(image_name) == 0x7265726f6c707865)
+		if (!gMouseObject.use_mouse)
 		{
-			mouse::open();
-		}
-	}
-
-	if (gMouseObject.use_mouse)
-	{
-		PEPROCESS process = *(PEPROCESS*)(__readgsqword(0x188) + 0xB8);
-		PCSTR image_name = _PsGetProcessImageFileName(process);
-		QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
-
-		if (cr3 == __readcr3())
-		{
-			//
-			// csgo.exe
-			//
-			if (image_name && *(QWORD*)image_name == 0x6578652e6f677363)
+			if (image_name && *(QWORD*)(image_name) == 0x7265726f6c707865)
 			{
-				csgo::run();
+				mouse::open();
 			}
 		}
-	}
 
-	ULONG num = KeGetCurrentProcessorNumber();
-	UCHAR next_num = 0;
 
-	for (CCHAR i = 0; i < _KeNumberProcessors; i++)
-	{
-		if ((CCHAR)num != i)
+		//
+		// csgo.exe
+		//
+		if (image_name && *(QWORD*)image_name == 0x6578652e6f677363)
 		{
-			next_num = i;
-			break;
+			csgo::run();
 		}
 	}
-
-	_KeSetTargetProcessorDpc(dpc_object, ((CHAR)next_num));
-	dpc_object->Importance = LowImportance;
-	dpc_object->Type = 19;
-	_KeInsertQueueDpc(dpc_object, 0, 0);
+	// _enable();
+	return *(QWORD*)(rcx + hook_original_offset);
 }
 
-extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, void *efi_image_base, void *efi_cfg)
+VOID *memcpy_wrapper(void *dst, void *src, QWORD length)
+{
+	typedef struct {
+		QWORD dst_addr;
+		DWORD _0xffffffff;
+		char zero[17];
+		bool error;
+	} bullshit ;
+
+	bullshit call_data{};
+	call_data.dst_addr = (QWORD)dst;
+	call_data._0xffffffff = 0xffffffff;
+
+	if (memcpy_safe_func(&call_data, src, (DWORD)length) != STATUS_SUCCESS)
+	{
+		return 0;
+	}
+
+	return (void*)1;
+}
+
+static QWORD efi_loader_base_traces;
+extern "C" QWORD ClearTraces(QWORD ret)
+{
+
+	clear_image_traces((QWORD)efi_loader_base_traces);
+
+	return ret;
+}
+
+extern "C" void get_registers(QWORD *rcx, QWORD *rdx, QWORD *r8);
+
+inline BOOL IsInRange(QWORD memory_begin, QWORD memory_end, QWORD address, QWORD length)
+{
+	if (address >= memory_end)
+	{
+		return 0;
+	}
+	
+	if ((address + length) <= memory_begin)
+	{
+	    return 0;
+	}
+	return 1;
+}
+
+void *  __cdecl memset_hook2(void * _Dst, int _Val, QWORD _Size, ULONG flags)
+{
+	UNREFERENCED_PARAMETER(flags);
+
+	QWORD rcx,rdx,r8;
+	get_registers(&rcx, &rdx, &r8);
+
+
+	QWORD virtual_base_begin = (QWORD)DriverEntry - gEntryPointAddress;
+	if (IsInRange(virtual_base_begin, virtual_base_begin + gImageSize, *(QWORD*)rdx, r8))
+	{
+		*(QWORD*)rdx = 0x1000;
+	}
+	else if (IsInRange(gImageBase, gImageBase + gImageSize, *(QWORD*)rdx, r8))
+	{
+		*(QWORD*)rdx = 0xfffff80000000000;
+	}
+
+	return memset(_Dst, _Val, _Size);
+}
+
+QWORD ResolveRelativeAddress(
+	QWORD Instruction,
+	DWORD OffsetOffset,
+	DWORD InstructionSize
+)
+{
+
+	QWORD Instr = (QWORD)Instruction;
+	int RipOffset = *(int*)(Instr + OffsetOffset);
+	QWORD ResolvedAddr = (QWORD)(Instr + InstructionSize + RipOffset);
+	return ResolvedAddr;
+}
+
+extern "C" QWORD DriverEntry2(QWORD ntoskrnl, void *efi_image_base, void *efi_cfg, NTSTATUS (*FinishApplication)(VOID*))
 {
 	void *efi_loader_base = efi_image_base;
 	int *cfg = (int *)efi_cfg;
@@ -346,43 +446,39 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, void *efi_image_bas
 	config::aimbot_button = cfg[3];
 	config::aimbot_visibility_check = cfg[4];
 	config::triggerbot_button = cfg[5];
+	config::visuals_enabled = cfg[6];
 	config::time_begin = cfg[7];
 	config::time_end = cfg[8];
 	config::licence_type = cfg[9];
 	config::invalid_hwid = cfg[10];
-	clear_image_traces((QWORD)efi_loader_base);
 
-	QWORD ntoskrnl = GetSystemBaseAddress(DriverObject, L"ntoskrnl.exe");
-	if (ntoskrnl == 0)
+	//
+	// 48 89 5C 24 ? 48 89 4C 24 ? 57 48 83 EC 20 41
+	//
+	QWORD addr = FindPattern(ntoskrnl, (BYTE*)"\x48\x89\x5C\x24\x00\x48\x89\x4C\x24\x00\x57\x48\x83\xEC\x20\x41", (CHAR*)"xxxx?xxxx?xxxxxx", 16, 1);
+	if (addr == 0)
 	{
-		//
-		// crash (PAGE_FAULT), ntoskrnl.exe not found
-		//
-		*(int*)(0x10A0) = 0;
+		*(QWORD*)&memcpy_ptr = (QWORD)memcpy;
 	}
-
-	QWORD JMP_QWORD_PTR_RDX = FindPattern(ntoskrnl, (BYTE*)"\xFF\x22", (CHAR*)"xx", 2, 1);
-	if (JMP_QWORD_PTR_RDX == 0)
+	else
 	{
-		//
-		// crash (PAGE_FAULT), JMP_QWORD_PTR_RCX not found
-		//
-		*(int*)(0x10A0) = 0;
-	}
+		*(QWORD*)&memcpy_safe_func = addr;
 
-	QWORD KiGlobalBuffer = get_ntoskrnl_data_location(ntoskrnl);
-	if (KiGlobalBuffer == 0)
-	{
 		//
-		// crash (PAGE_FAULT), KiGlobalBuffer not found
+		// https://www.unknowncheats.me/forum/3742948-post13.html
 		//
-		*(int*)(0x10A0) = 0;
+		*(QWORD*)&memcpy_ptr = (QWORD)memcpy_wrapper;
 	}
 
 	QWORD MmUnlockPreChargedPagedPoolAddress = 0;
-	QWORD processor_count=0;
 
-	// EXPORT_ADDRESS2(_DbgPrintEx, "DbgPrintEx");
+
+	
+	QWORD target_routine;
+	QWORD target_routine2;
+	EXPORT_ADDRESS2(_DbgPrintEx, "DbgPrintEx");
+	EXPORT_ADDRESS2(target_routine, "PsGetProcessDxgProcess");
+	EXPORT_ADDRESS2(target_routine2, "MmCopyMemory");
 	EXPORT_ADDRESS2(MmUnlockPreChargedPagedPoolAddress, "MmUnlockPreChargedPagedPool");
 	EXPORT_ADDRESS2(_KeAcquireSpinLockAtDpcLevel, "KeAcquireSpinLockAtDpcLevel");
 	EXPORT_ADDRESS2(_KeReleaseSpinLockFromDpcLevel, "KeReleaseSpinLockFromDpcLevel");
@@ -404,33 +500,18 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, void *efi_image_bas
 	EXPORT_ADDRESS2(_ObfDereferenceObject, "ObfDereferenceObject");
 	EXPORT_ADDRESS2(_IoDriverObjectType, "IoDriverObjectType");
 	EXPORT_ADDRESS2(_PsInitialSystemProcess, "PsInitialSystemProcess");
-	EXPORT_ADDRESS2(_KeInsertQueueDpc, "KeInsertQueueDpc");
-	EXPORT_ADDRESS2(_KeSetTargetProcessorDpc, "KeSetTargetProcessorDpc");
-	EXPORT_ADDRESS2(_KeInitializeDpc, "KeInitializeDpc");
 	EXPORT_ADDRESS2(_MmGetPhysicalAddress, "MmGetPhysicalAddress");
 	EXPORT_ADDRESS2(_MmIsAddressValid, "MmIsAddressValid");
 	EXPORT_ADDRESS2(_KeQueryTimeIncrement, "KeQueryTimeIncrement");
-	EXPORT_ADDRESS2(processor_count, "KeNumberProcessors");
-	_KeNumberProcessors = *(CCHAR*)processor_count;
+	EXPORT_ADDRESS2(_KfRaiseIrql, "KfRaiseIrql");
+	EXPORT_ADDRESS2(_KeLowerIrql, "KeLowerIrql");
+	EXPORT_ADDRESS2(_PsLoadedModuleList, "PsLoadedModuleList");
 
-	_PsInitialSystemProcess = (PEPROCESS)*(QWORD*)_PsInitialSystemProcess;
+	QWORD hook_routine = (QWORD)PsGetProcessDxgProcessHook2;
+	hook_original_offset = *(DWORD*)(target_routine + 0x03);
 
 	g_system_previous_ms = 0;
-
-	
 	*(QWORD*)&MiGetPteAddress = (QWORD)(*(int*)(MmUnlockPreChargedPagedPoolAddress + 8) + MmUnlockPreChargedPagedPoolAddress + 12);
-
-	QWORD km_base = 0;
-	{
-		IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)efi_loader_base;
-		IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64*)((char*)dos + dos->e_lfanew);
-		km_base = (QWORD)efi_loader_base + nt->OptionalHeader.SizeOfImage;
-		km_base = km_base - 0x1000;
-	}
-	km_base = (QWORD)PAGE_ALIGN(km_base);
-
-
-	get_physical_memory_ranges(&g_memory_range_low, &g_memory_range_high);
 
 
 	//
@@ -439,37 +520,60 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, void *efi_image_bas
 	cs::reset_globals();
 
 
-	*(QWORD*)(KiGlobalBuffer + 0x00) = (QWORD)DpcRoutine;
-	dpc_object = (PKDPC)(KiGlobalBuffer + 0x68);
-	memset(dpc_object, 0, sizeof(KDPC));
-
-	 
-
-	_KeInitializeDpc(dpc_object, (PKDEFERRED_ROUTINE)JMP_QWORD_PTR_RDX, (PVOID)KiGlobalBuffer);
-
-	ULONG num = KeGetCurrentProcessorNumber();
-	UCHAR next_num = 0;
-
-	for (CCHAR i = 0; i < _KeNumberProcessors; i++)
+	//
+	// place win32k hook here
+	//
+	unsigned char PsGetProcessDxgProcessOriginal[8];
+	for (int i = sizeof(PsGetProcessDxgProcessOriginal); i--;)
 	{
-		if ((CCHAR)num != i)
-		{
-			next_num = i;
-			break;
-		}
+		((unsigned char*)PsGetProcessDxgProcessOriginal)[i] = ((unsigned char*)target_routine)[i];
 	}
 
-	_KeSetTargetProcessorDpc(dpc_object, ((CHAR)next_num));
-	dpc_object->Importance = LowImportance;
-	dpc_object->Type = 19;
-	_KeInsertQueueDpc(dpc_object, 0, 0);
+	hook_original_offset = *(DWORD*)(target_routine + 0x03);
+	unsigned char payload_bytes[] = { 0xE9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC3 } ;
+	for (int i = sizeof(payload_bytes); i--;)
+	{
+		((unsigned char*)target_routine)[i] = payload_bytes[i];
+	}
+
+	int fixed_address = 0;
+	if (hook_routine > target_routine)
+	{
+		fixed_address = (int)(hook_routine - target_routine);
+	}
+	else
+	{
+		fixed_address = (int)(target_routine - hook_routine);
+	}
+
+	*(int*)(target_routine + 1) = (int)fixed_address - 5;
 
 
-	return STATUS_SUCCESS;
+
+	target_routine2 = target_routine2 + 0x58;
+
+	if (*(unsigned char*)(target_routine2) == 0xE8)
+	{
+		fixed_address = 0;
+	
+		hook_routine = (QWORD)memset_hook2;
+		if (hook_routine > target_routine2)
+		{
+			fixed_address = (int)(hook_routine - target_routine2);
+		}
+		else
+		{
+			fixed_address = (int)(target_routine2 - hook_routine);
+		}
+		*(int*)(target_routine2 + 1) = (int)fixed_address - 5;
+	}
+
+	efi_loader_base_traces = (QWORD)efi_loader_base;
+
+	return (QWORD)FinishApplication;
 }
 
-
-static QWORD GetProcAddressQ(QWORD base, PCSTR export_name)
+QWORD GetProcAddressQ(QWORD base, PCSTR export_name)
 {
 	QWORD a0;
 	DWORD a1[4];
@@ -508,51 +612,18 @@ static void clear_image_traces(QWORD efi_image_base)
 	{
 		IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)km_base;
 		IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64*)((char*)dos + dos->e_lfanew);
+
+		gEntryPointAddress = nt->OptionalHeader.AddressOfEntryPoint;
+
+		gImageBase = km_base;
+		gImageSize = nt->OptionalHeader.SizeOfImage;
+
 		for (int i = nt->OptionalHeader.SizeOfHeaders; i--;)
 			((unsigned char*)km_base)[i] = 0;
 	}
 }
 
-static void get_physical_memory_ranges(QWORD *low, QWORD *high)
-{
-	PPHYSICAL_MEMORY_RANGE memory_range = _MmGetPhysicalMemoryRanges();
-	int counter=0;
 
-	while (1)
-	{
-		if (memory_range[counter].BaseAddress.QuadPart == 0)
-		{
-			break;
-		}
-		counter++;
-	}
-	
-	*low = memory_range[0].BaseAddress.QuadPart;
-	*high = memory_range[counter - 1].BaseAddress.QuadPart + memory_range[counter - 1].NumberOfBytes.QuadPart;
-	_ExFreePoolWithTag(memory_range, 'hPmM');
-}
-
-static QWORD get_ntoskrnl_data_location(QWORD ntoskrnl)
-{
-	QWORD ntoskrnl_data_address = 0;
-
-	IMAGE_DOS_HEADER *hdr = (IMAGE_DOS_HEADER*)(ntoskrnl);
-	IMAGE_NT_HEADERS64 *nt = (IMAGE_NT_HEADERS64*)((char*)hdr + hdr->e_lfanew);
-	IMAGE_SECTION_HEADER *section =
-	(IMAGE_SECTION_HEADER *)((UINT8 *)&nt->OptionalHeader +
-		nt->FileHeader.SizeOfOptionalHeader);
-
-	for (UINT16 i = 0; i < nt->FileHeader.NumberOfSections; ++i) {
-		if (*(QWORD*)section[i].Name == 0x617461642e)
-		{
-			ntoskrnl_data_address = (QWORD)ntoskrnl + section[i].VirtualAddress +
-				section[i].Misc.VirtualSize - 0x1000;
-
-			break;
-		}
-	}
-	return ntoskrnl_data_address;
-}
 
 static BOOLEAN bDataCompare(const BYTE* pData, const BYTE* bMask, const char* szMask)
 {
@@ -646,17 +717,23 @@ inline int wcscmp_imp(const unsigned short* s1, const unsigned short* s2)
 	return *(const unsigned short*)s1 - *(const unsigned short*)s2;
 }
 
-static QWORD GetSystemBaseAddress(PDRIVER_OBJECT DriverObject, const unsigned short* driver_name)
+QWORD GetModuleEntry(PCWSTR module_name)
 {
-	PLDR_DATA_TABLE_ENTRY ldr = (PLDR_DATA_TABLE_ENTRY)DriverObject->DriverSection;
-	for (PLIST_ENTRY pListEntry = ldr->InLoadOrderLinks.Flink; pListEntry != &ldr->InLoadOrderLinks; pListEntry = pListEntry->Flink)
+	LIST_ENTRY *PsLoadedModuleList2 = (LIST_ENTRY*)*(QWORD*)_PsLoadedModuleList;
+
+	for (PLIST_ENTRY pListEntry = PsLoadedModuleList2->Flink; pListEntry != PsLoadedModuleList2; pListEntry = pListEntry->Flink)
 	{
 		PLDR_DATA_TABLE_ENTRY pEntry = CONTAINING_RECORD(pListEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
-		if (pEntry->BaseDllName.Buffer && wcscmp_imp(pEntry->BaseDllName.Buffer, driver_name) == 0) {
-			
+		if (pEntry->DllBase == 0)
+			continue;
+
+		if (pEntry->BaseDllName.Length && wcscmpi_imp((unsigned short *)pEntry->BaseDllName.Buffer, (unsigned short*)module_name) == 0)
+		{			
 			return (QWORD)pEntry->DllBase;
 		}
+
 	}
+
 	return 0;
 }
 
@@ -687,7 +764,7 @@ static BOOL mouse::open(void)
 			return 0;
 		}
 
-		PVOID class_driver_base = NULL;
+
 		PDEVICE_OBJECT hid_device_object = hid_driver_object->DeviceObject;
 		while (hid_device_object && !gMouseObject.service_callback)
 		{
@@ -701,7 +778,6 @@ static BOOL mouse::open(void)
 
 				PULONG_PTR device_extension = (PULONG_PTR)hid_device_object->DeviceExtension;
 				ULONG_PTR device_ext_size = ((ULONG_PTR)hid_device_object->DeviceObjectExtension - (ULONG_PTR)hid_device_object->DeviceExtension) / 4;
-				class_driver_base = class_driver_object->DriverStart;
 				for (ULONG_PTR i = 0; i < device_ext_size; i++)
 				{
 					if (device_extension[i] == (ULONG_PTR)class_device_object && device_extension[i + 1] > (ULONG_PTR)class_driver_object)
@@ -740,20 +816,23 @@ static BOOL mouse::open(void)
 	return gMouseObject.mouse_device && gMouseObject.service_callback;
 }
 
+#define KeMRaiseIrql(a,b) *(b) = _KfRaiseIrql(a)
 extern "C" VOID MouseClassServiceCallback(PDEVICE_OBJECT, PMOUSE_INPUT_DATA, PMOUSE_INPUT_DATA, PULONG);
 static void mouse::move(long x, long y, unsigned short button_flags)
 {
-
 	if (gMouseObject.use_mouse == 0)
 	{
 		return;
 	}
 	ULONG input_data;
 	MOUSE_INPUT_DATA mid = { 0 };
+	KIRQL irql;
 	mid.LastX = x;
 	mid.LastY = y;
 	mid.ButtonFlags = button_flags;
 	mid.UnitId = 1;
+	KeMRaiseIrql(DISPATCH_LEVEL, &irql);
 	MouseClassServiceCallback(gMouseObject.mouse_device, &mid, (PMOUSE_INPUT_DATA)&mid + 1, &input_data);
+	_KeLowerIrql(irql);
 }
 
