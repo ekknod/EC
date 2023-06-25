@@ -1,12 +1,9 @@
-#define _AMD64_ 1
 #include <ntifs.h>
 #include <WinDef.h>
 #include <wingdi.h>
 
-
 typedef ULONG_PTR QWORD;
 typedef DWORD LFTYPE;
-
 
 namespace gdi
 {

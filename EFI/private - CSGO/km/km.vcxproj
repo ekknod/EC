@@ -170,9 +170,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\csgo\shared\features.cpp" />
     <ClCompile Include="..\..\..\csgo\shared\cs.cpp" />
+    <ClCompile Include="..\..\..\library\vm_efi\vm.cpp" />
     <ClCompile Include="gdi.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="vm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="mouse.asm" />

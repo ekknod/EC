@@ -1,24 +1,12 @@
-#include "../../../library/vm.h"
+#include "../vm.h"
 #include <intrin.h>
 
-#define LOG(...) DbgPrintEx(76, 0, __VA_ARGS__)
-
 extern "C" {
-	extern PCSTR ( *_PsGetProcessImageFileName)(PEPROCESS);
 	extern BOOLEAN ( *_PsGetProcessExitProcessCalled)(PEPROCESS);
 	extern PVOID ( *_PsGetProcessPeb)(PEPROCESS);
 	extern PVOID ( *_PsGetProcessWow64Process)(PEPROCESS);
-	extern HANDLE ( *_PsGetProcessId)(_In_ PEPROCESS);
-	extern PVOID ( *_MmMapIoSpace)(PHYSICAL_ADDRESS, SIZE_T, MEMORY_CACHING_TYPE);
-	extern VOID ( *_MmUnmapIoSpace)(PVOID, SIZE_T);
-	extern PEPROCESS _PsInitialSystemProcess;
-
 	extern PVOID (*_ExAllocatePoolWithTag)(POOL_TYPE, SIZE_T, ULONG);
 	extern VOID ( *_ExFreePoolWithTag)( PVOID, ULONG );
-
-	extern QWORD g_system_previous_ms;
-
-	extern __int64 (__fastcall *MiGetPteAddress)(unsigned __int64 a1);
 
 	extern PHYSICAL_ADDRESS
 	(*_MmGetPhysicalAddress)(
@@ -30,41 +18,13 @@ extern "C" {
 	    _In_ PVOID VirtualAddress
 	    );
 
-	extern ULONG
-	(*_KeQueryTimeIncrement)(
-	    VOID
-	    );
-
 	extern void *(*memcpy_ptr)(void *, void *, QWORD);
 }
 
 static vm_handle get_process_by_name(PCSTR process_name)
 {
-	QWORD process;
-	QWORD entry;
-	PCSTR entry_name;
-
-	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = *(QWORD*)_PsInitialSystemProcess;
-
-	entry = process;
-	do {
-		if (_PsGetProcessExitProcessCalled((PEPROCESS)entry))
-			goto L0;
-
-		entry_name = _PsGetProcessImageFileName((PEPROCESS)entry);
-		if (entry_name != 0 && entry_name[0] != 0)
-		{
-			if (strcmpi_imp(entry_name, process_name) == 0)
-			{
-				return (vm_handle)entry;
-			}
-		}
-	L0:
-		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
-	} while (entry != process);
-
-	return 0;
+	UNREFERENCED_PARAMETER(process_name);
+	return *(vm_handle*)(__readgsqword(0x188) + 0xB8);
 }
 
 BOOL vm::process_exists(PCSTR process_name)
@@ -77,89 +37,21 @@ vm_handle vm::open_process(PCSTR process_name)
 	return get_process_by_name(process_name);
 }
 
-static QWORD GetMilliSeconds()
-{
-#ifdef _KERNEL_MODE
-	LARGE_INTEGER start_time;
-	KeQueryTickCount(&start_time);
-	QWORD start_time_in_msec = (QWORD)(start_time.QuadPart * _KeQueryTimeIncrement() / 10000);
-
-	return start_time_in_msec;
-#else
-	return system_current_time_millis();
-#endif
-}
-
 vm_handle vm::open_process_ex(PCSTR process_name, PCSTR dll_name)
 {
-	QWORD ms = GetMilliSeconds();
-
-	//
-	// wait 5 seconds before finding process again
-	// optimization for useless process finds
-	//
-	if (ms - g_system_previous_ms < 5000)
-	{
-		return 0;
-	}
-	g_system_previous_ms = ms;
-
-
-	QWORD process;
-	QWORD entry;
-	PCSTR entry_name;
-
-	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = *(QWORD*)_PsInitialSystemProcess;
-	entry = process;
-	do {
-		
-		if (_PsGetProcessExitProcessCalled((PEPROCESS)entry))
-			goto L0;
-
-		entry_name = _PsGetProcessImageFileName((PEPROCESS)entry);
-		if (entry_name != 0 && entry_name[0] != 0)
-		{
-			if (strcmpi_imp(entry_name, process_name) == 0)
-			{
-				if (get_module((vm_handle)entry, dll_name))
-					return (vm_handle)entry;
-			}
-		}
-	L0:
-		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
-	} while (entry != process);
-
-	return 0;
+	UNREFERENCED_PARAMETER(process_name);
+	UNREFERENCED_PARAMETER(dll_name);
+	return *(vm_handle*)(__readgsqword(0x188) + 0xB8);
 }
 
 vm_handle vm::open_process_by_module_name(PCSTR dll_name)
 {
-	QWORD process;
-	QWORD entry;
-
-	DWORD gActiveProcessLink = *(DWORD*)((BYTE*)_PsGetProcessId + 3) + 8;
-	process = *(QWORD*)_PsInitialSystemProcess;
-
-	entry = process;
-	do {
-		if (_PsGetProcessExitProcessCalled((PEPROCESS)entry))
-			goto L0;
-
-		if (get_module((vm_handle)entry, dll_name))
-			return (vm_handle)entry;
-	L0:
-		entry = *(QWORD*)(entry + gActiveProcessLink) - gActiveProcessLink;
-	} while (entry != process);
-
-	return 0;
+	UNREFERENCED_PARAMETER(dll_name);
+	return *(vm_handle*)(__readgsqword(0x188) + 0xB8);
 }
 
 void vm::close(vm_handle process)
 {
-	//
-	// do nothing
-	//
 	UNREFERENCED_PARAMETER(process);
 }
 
@@ -251,7 +143,6 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	}
 
 	memcpy_ptr((void *)address, buffer, length);
-
 	return 1;
 }
 
