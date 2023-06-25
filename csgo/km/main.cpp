@@ -89,12 +89,18 @@ namespace input
 
 namespace config
 {
-	BOOL  rcs = 0;
+	BOOL  rcs = 1;
 	DWORD aimbot_button = 110;
 	float aimbot_fov = 2.0f;
-	float aimbot_smooth = 100.0f;
+	float aimbot_smooth = 10.0f;
 	BOOL  aimbot_visibility_check = 0;
 	DWORD triggerbot_button = 111;
+	BOOL  visuals_enabled = 1;
+
+	DWORD time_begin      = 0;
+	DWORD time_end        = 0;
+	DWORD licence_type    = 0;
+	DWORD invalid_hwid    = 0;
 }
 
 static void NtSleep(DWORD milliseconds);
@@ -137,6 +143,26 @@ DriverUnload(
 
 	DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[+] EC-CSGO.sys is closed\n");
 }
+
+//
+// supported only in EFI mode
+//
+namespace gdi
+{
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+	
+		UNREFERENCED_PARAMETER(hwnd);
+		UNREFERENCED_PARAMETER(x);
+		UNREFERENCED_PARAMETER(y);
+		UNREFERENCED_PARAMETER(w);
+		UNREFERENCED_PARAMETER(h);
+		UNREFERENCED_PARAMETER(r);
+		UNREFERENCED_PARAMETER(g);
+		UNREFERENCED_PARAMETER(b);
+	}
+}
+
 
 extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
