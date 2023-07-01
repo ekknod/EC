@@ -1,11 +1,11 @@
 #pragma warning(disable: 4200)
 
-#include "pcileech/leechcore.h"
-#include "pcileech/vmmdll.h"
+#include "./pcileech/leechcore.h"
+#include "./pcileech/vmmdll.h"
 #include "../vm.h"
 
-#pragma comment(lib, "leechcore.lib")
-#pragma comment(lib, "vmm.lib")
+#pragma comment(lib, "..\\..\\library\\vm_pcileech\\pcileech\\leechcore.lib")
+#pragma comment(lib, "..\\..\\library\\vm_pcileech\\pcileech\\vmm.lib")
 
 
 static VMM_HANDLE vmdll = 0;
@@ -49,21 +49,21 @@ vm_handle vm::open_process_ex(PCSTR process_name, PCSTR dll_name)
 
 	DWORD i, pid = 0;
 
-	SIZE_T count = 0;
-	if (!VMMDLL_PidList(vmdll, 0, &count))
+	SIZE_T process_count = 0;
+	if (!VMMDLL_PidList(vmdll, 0, &process_count))
 	{
 		return 0;
 	}
 
-	DWORD *pid_array = (DWORD*)malloc(count*4);
+	DWORD *pid_array = (DWORD*)malloc(process_count*4);
 
-	if (!VMMDLL_PidList(vmdll, pid_array, &count))
+	if (!VMMDLL_PidList(vmdll, pid_array, &process_count))
 	{
 		goto E0;
 	}
 
 
-	for (i = 0; i < count; i++)
+	for (i = 0; i < process_count; i++)
 	{
 		VMMDLL_MAP_MODULE *module_map = 0;
 		if (!VMMDLL_Map_GetModuleU(vmdll, pid_array[i], &module_map, 0))
@@ -129,6 +129,8 @@ void vm::close(vm_handle process)
 
 BOOL vm::running(vm_handle process)
 {
+	UNREFERENCED_PARAMETER(process);
+
 	if (!initialize()) return 0;
 	//
 	// not implemented yet
