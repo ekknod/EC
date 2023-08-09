@@ -1,6 +1,0 @@
-mkdir build
-cd build
-cmake ..
-make -j 8
-cd ..
-sudo ./build/apex/ec_apex
