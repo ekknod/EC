@@ -47,7 +47,7 @@ inline unsigned long long strlen_imp(const char *str)
 #include <ntifs.h>
 typedef unsigned __int8  BYTE;
 typedef unsigned __int16 WORD;
-typedef unsigned __int32 DWORD;
+typedef unsigned long DWORD;
 typedef unsigned __int64 QWORD;
 typedef int BOOL;
 

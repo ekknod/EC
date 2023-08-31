@@ -56,11 +56,6 @@ namespace config
 	extern BOOL  aimbot_visibility_check;
 	extern DWORD triggerbot_button;
 	extern BOOL  visuals_enabled;
-
-	extern DWORD time_begin   ;
-	extern DWORD time_end     ;
-	extern DWORD licence_type ;
-	extern DWORD invalid_hwid ;
 }
 
 namespace csgo

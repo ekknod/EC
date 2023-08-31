@@ -408,7 +408,6 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 		return 0;
 	}
 
-
 	//
 	// mouse is still pressed
 	//
@@ -916,7 +915,6 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 namespace gdi
 {
 	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
-	void SetCursorPos(int x, int y);
 }
 #endif
 

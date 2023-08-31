@@ -1,7 +1,0 @@
-aimbot::fov=2
-aimbot::smooth=20
-aimbot::rcs=0
-aimbot::key=107
-aimbot::visibleOnly=0
-triggerbot::key=111
-visuals::mode=2
