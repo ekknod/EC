@@ -73,12 +73,23 @@ BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	
+	if ((address + length) > (ULONG_PTR)0x7FFFFFFEFFFF)
+	{
+		return 0;
+	}
+	if (address < (QWORD)0x10000)
+	{
+		return 0;
+	}
+	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
+	if (physical_address == 0)
+	{
+		return 0;
+	}
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
 	}
-
 	memcpy(buffer, (PVOID)address, length);
 	return 1;
 }
@@ -89,12 +100,23 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	
+	if ((address + length) > (ULONG_PTR)0x7FFFFFFEFFFF)
+	{
+		return 0;
+	}
+	if (address < (QWORD)0x10000)
+	{
+		return 0;
+	}
+	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
+	if (physical_address == 0)
+	{
+		return 0;
+	}
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
 	}
-
 	memcpy((void *)address, buffer, length);
 	return 1;
 }
