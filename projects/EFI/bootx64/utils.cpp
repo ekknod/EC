@@ -29,7 +29,7 @@ QWORD get_winload_base(QWORD return_address)
 
 QWORD get_loader_block(QWORD winload_base)
 {
-	QWORD a0 = winload_base + *(DWORD*)(*(DWORD*)(winload_base + 0x03C) + (QWORD)winload_base + 0x28);
+	QWORD a0 = get_pe_entrypoint(winload_base);
 	while (*(unsigned short*)a0 != 0xC35D) a0++;
 	while (*(unsigned char*)a0 != 0xE8) a0--; a0--;
 	while (*(unsigned char*)a0 != 0xE8) a0--;

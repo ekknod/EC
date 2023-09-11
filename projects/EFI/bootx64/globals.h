@@ -21,8 +21,9 @@ QWORD GetExport(QWORD base, const char *name);
 //
 // pe
 //
-BOOL pe_resolve_imports(QWORD ntoskrnl, QWORD base);
-void pe_clear_headers(QWORD base);
+BOOL  pe_resolve_imports(QWORD ntoskrnl, QWORD base);
+void  pe_clear_headers(QWORD base);
+QWORD get_pe_entrypoint(QWORD base);
 
 
 #define FILENAME L"[bootx64.efi]"

@@ -56,7 +56,6 @@ gST->ConOut->OutputString(gST->ConOut, private_text); \
 } \
 
 EFI_GUID gEfiLoadedImageProtocolGuid    = { 0x5B1B31A1, 0x9562, 0x11D2, { 0x8E, 0x3F, 0x00, 0xA0, 0xC9, 0x69, 0x72, 0x3B }};
-QWORD get_pe_entrypoint(QWORD base);
 
 inline void PressAnyKey()
 {
@@ -147,157 +146,20 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	return EFI_SUCCESS;
 }
 
-struct _I386_LOADER_BLOCK
+BOOLEAN EfiConvertPointer(QWORD loader_parameter_block, QWORD physical_address, QWORD *virtual_address)
 {
-	VOID* CommonDataArea;                                                   //0x0
-	UINT32 MachineType;                                                      //0x8
-	UINT32 VirtualBias;                                                      //0xc
-};
-
-struct _ARM_LOADER_BLOCK
-{
-	UINT32 PlaceHolder;                                                      //0x0
-};
-
-struct _EFI_FIRMWARE_INFORMATION
-{
-	UINT32 FirmwareVersion;                                                 //0x0
-	struct _VIRTUAL_EFI_RUNTIME_SERVICES* VirtualEfiRuntimeServices;        //0x8
-	UINT32 SetVirtualAddressMapStatus;                                      //0x10
-	UINT32 MissedMappingsCount;                                             //0x14
-	struct _LIST_ENTRY FirmwareResourceList;                                //0x18
-	VOID* EfiMemoryMap;                                                     //0x28
-	UINT32 EfiMemoryMapSize;                                                 //0x30
-	UINT32 EfiMemoryMapDescriptorSize;                                       //0x34
-};
-
-struct _PCAT_FIRMWARE_INFORMATION
-{
-	UINT32 PlaceHolder;                                                      //0x0
-};
-
-struct _FIRMWARE_INFORMATION_LOADER_BLOCK
-{
-	UINT32 FirmwareTypeUefi:1;                                               //0x0
-	UINT32 EfiRuntimeUseIum:1;                                               //0x0
-	UINT32 EfiRuntimePageProtectionSupported:1;                              //0x0
-	UINT32 Reserved:29;                                                      //0x0
-	union
-	{
-		struct _EFI_FIRMWARE_INFORMATION EfiInformation;                 //0x8
-		struct _PCAT_FIRMWARE_INFORMATION PcatInformation;               //0x8
-	} u;                                                                     //0x8
-};
-
-enum _TYPE_OF_MEMORY
-{
-    LoaderExceptionBlock = 0,
-    LoaderSystemBlock = 1,
-    LoaderFree = 2,
-    LoaderBad = 3,
-    LoaderLoadedProgram = 4,
-    LoaderFirmwareTemporary = 5,
-    LoaderFirmwarePermanent = 6,
-    LoaderOsloaderHeap = 7,
-    LoaderOsloaderStack = 8,
-    LoaderSystemCode = 9,
-    LoaderHalCode = 10,
-    LoaderBootDriver = 11,
-    LoaderConsoleInDriver = 12,
-    LoaderConsoleOutDriver = 13,
-    LoaderStartupDpcStack = 14,
-    LoaderStartupKernelStack = 15,
-    LoaderStartupPanicStack = 16,
-    LoaderStartupPcrPage = 17,
-    LoaderStartupPdrPage = 18,
-    LoaderRegistryData = 19,
-    LoaderMemoryData = 20,
-    LoaderNlsData = 21,
-    LoaderSpecialMemory = 22,
-    LoaderBBTMemory = 23,
-    LoaderZero = 24,
-    LoaderXIPRom = 25,
-    LoaderHALCachedMemory = 26,
-    LoaderLargePageFiller = 27,
-    LoaderErrorLogMemory = 28,
-    LoaderVsmMemory = 29,
-    LoaderFirmwareCode = 30,
-    LoaderFirmwareData = 31,
-    LoaderFirmwareReserved = 32,
-    LoaderEnclaveMemory = 33,
-    LoaderFirmwareKsr = 34,
-    LoaderEnclaveKsr = 35,
-    LoaderSkMemory = 36,
-    LoaderSkFirmwareReserved = 37,
-    LoaderIoSpaceMemoryZeroed = 38,
-    LoaderIoSpaceMemoryFree = 39,
-    LoaderIoSpaceMemoryKsr = 40,
-    LoaderMaximum = 41
-};
-
-typedef struct _MEMORY_ALLOCATION_DESCRIPTOR
-{
-	struct _LIST_ENTRY ListEntry;                                       //0x0
-	enum _TYPE_OF_MEMORY MemoryType;                                    //0x10
-	UINTN BasePage;                                                     //0x18
-	UINTN PageCount;                                                    //0x20
-} MEMORY_ALLOCATION_DESCRIPTOR, *PMEMORY_ALLOCATION_DESCRIPTOR  ; 
-
-typedef struct _LOADER_PARAMETER_BLOCK {
-	UINT32 OsMajorVersion;                                                   //0x0
-	UINT32 OsMinorVersion;                                                   //0x4
-	UINT32 Size;                                                             //0x8
-	UINT32 OsLoaderSecurityVersion;                                          //0xc
-	struct _LIST_ENTRY LoadOrderListHead;                                   //0x10
-	struct _LIST_ENTRY MemoryDescriptorListHead;                            //0x20
-	struct _LIST_ENTRY BootDriverListHead;                                  //0x30
-	struct _LIST_ENTRY EarlyLaunchListHead;                                 //0x40
-	struct _LIST_ENTRY CoreDriverListHead;                                  //0x50
-	struct _LIST_ENTRY CoreExtensionsDriverListHead;                        //0x60
-	struct _LIST_ENTRY TpmCoreDriverListHead;                               //0x70
-	UINT64 KernelStack;                                                     //0x80
-	UINT64 Prcb;                                                            //0x88
-	UINT64 Process;                                                         //0x90
-	UINT64 Thread;                                                          //0x98
-	UINT32 KernelStackSize;                                                 //0xa0
-	UINT32 RegistryLength;                                                  //0xa4
-	VOID* RegistryBase;                                                     //0xa8
-	struct _CONFIGURATION_COMPONENT_DATA* ConfigurationRoot;                //0xb0
-	char* ArcBootDeviceName;                                                //0xb8
-	char* ArcHalDeviceName;                                                 //0xc0
-	char* NtBootPathName;                                                   //0xc8
-	char* NtHalPathName;                                                    //0xd0
-	char* LoadOptions;                                                      //0xd8
-	struct _NLS_DATA_BLOCK* NlsData;                                        //0xe0
-	struct _ARC_DISK_INFORMATION* ArcDiskInformation;                       //0xe8
-	struct _LOADER_PARAMETER_EXTENSION* Extension;                          //0xf0
-	union
-	{
-		struct _I386_LOADER_BLOCK I386;                                         //0xf8
-		struct _ARM_LOADER_BLOCK Arm;                                           //0xf8
-	} u;                                                                    //0xf8
-	struct _FIRMWARE_INFORMATION_LOADER_BLOCK FirmwareInformation;          //0x108
-	char* OsBootstatPathName;                                               //0x148
-	char* ArcOSDataDeviceName;                                              //0x150
-	char* ArcWindowsSysPartName;                                            //0x158
-} LOADER_PARAMETER_BLOCK  ;
-
-#define CONTAINING_RECORD(address, type, field) ((type *)((UINT8 *)(address) - (UINTN)(&((type *)0)->field)))
-
-BOOLEAN GetEfiVirtualAddress(LOADER_PARAMETER_BLOCK *LoaderParameterBlock, VOID *Address, QWORD *VirtualAddress)
-{
-	VOID *map = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMap;
-	UINT32 map_size = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMapSize;
-	UINT32 descriptor_size = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMapDescriptorSize;
+	VOID *map = *(VOID**)(loader_parameter_block + 0x110 + 0x28);
+	UINT32 map_size = *(UINT32*)(loader_parameter_block + 0x110 + 0x30);
+	UINT32 descriptor_size = *(UINT32*)(loader_parameter_block + 0x110 + 0x34);
 	UINT32 descriptor_count = map_size / descriptor_size;
 
 	for (UINT32 i = 0; i < descriptor_count; i++)
 	{
 		EFI_MEMORY_DESCRIPTOR *entry = (EFI_MEMORY_DESCRIPTOR*)((char *)map + (i*descriptor_size));
-		if ((UINTN)Address >= entry->PhysicalStart && (UINTN)Address <= (entry->PhysicalStart + EFI_PAGES_TO_SIZE(entry->NumberOfPages)))
+		if (physical_address >= entry->PhysicalStart && physical_address <= (entry->PhysicalStart + EFI_PAGES_TO_SIZE(entry->NumberOfPages)))
 		{
-			INT64 delta = (INT64)Address - (INT64)entry->PhysicalStart;
-			*VirtualAddress = (entry->VirtualStart + delta);
+			INT64 delta = (INT64)physical_address - (INT64)entry->PhysicalStart;
+			*virtual_address = (entry->VirtualStart + delta);
 			return 1;
 		}
 	}
@@ -314,9 +176,9 @@ namespace km
 	BOOLEAN initialize(void);
 }
 
-BOOLEAN InitializeKernel(LOADER_PARAMETER_BLOCK *LoaderParameterBlock)
+BOOLEAN initialize_kernelmode(QWORD LoaderParameterBlock)
 {
-	QWORD ntoskrnl = GetModuleEntry(&LoaderParameterBlock->LoadOrderListHead, L"ntoskrnl.exe");
+	QWORD ntoskrnl = GetModuleEntry((LIST_ENTRY*)(LoaderParameterBlock + 0x10), L"ntoskrnl.exe");
 	if (!ntoskrnl)
 	{
 		return 0;
@@ -365,9 +227,9 @@ extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle,UINTN M
 	BlpArchSwitchContext(ApplicationContext);
 
 	BOOLEAN status = 0;
-	if (GetEfiVirtualAddress((LOADER_PARAMETER_BLOCK*)loader_parameter_block, (VOID*)EfiBaseAddress, &EfiBaseVirtualAddress))
+	if (EfiConvertPointer(loader_parameter_block, EfiBaseAddress, &EfiBaseVirtualAddress))
 	{
-		status = InitializeKernel((LOADER_PARAMETER_BLOCK*)loader_parameter_block);
+		status = initialize_kernelmode(loader_parameter_block);
 	}
 
 	BlpArchSwitchContext(FirmwareContext);
