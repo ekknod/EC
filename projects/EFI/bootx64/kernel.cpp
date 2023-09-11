@@ -7,13 +7,6 @@ int _fltused;
 
 extern "C"
 {
-	//
-	// EFI image variables
-	//
-	extern QWORD EfiBaseVirtualAddress;
-	extern QWORD EfiBaseAddress;
-	extern QWORD EfiBaseSize;
-
 	QWORD _KeAcquireSpinLockAtDpcLevel;
 	QWORD _KeReleaseSpinLockFromDpcLevel;
 	QWORD _IofCompleteRequest;
@@ -23,11 +16,6 @@ extern "C"
 namespace km
 {
 	BOOLEAN initialize(void);
-
-
-	void *  __cdecl MmCopyMemoryHook(void * _Dst, int _Val, QWORD _Size, ULONG flags);
-
-
 	DWORD PsGetProcessDxgProcessOffset;
 	QWORD __fastcall PsGetProcessDxgProcessHook(QWORD rcx);
 }
@@ -110,48 +98,6 @@ extern "C" NTSYSCALLAPI NTSTATUS ObReferenceObjectByName(
 	__out PVOID* Object
 );
 
-
-//
-// hooks memset call in MmCopyMemory function
-//
-inline BOOLEAN IsInRange(QWORD memory_begin, QWORD memory_end, QWORD address, QWORD length);
-void *  __cdecl km::MmCopyMemoryHook(void * _Dst, int _Val, QWORD _Size, ULONG flags)
-{
-	//
-	// warning.. because we are dumb and hooking memset instead of directly MmCopyMemory, we have to resolve parameters from stack.
-	// if you change anything from this hook, there is chance you have to correct some of these offsets.
-	// these offsets can be found from our bootx64.efi binary sub_180001078 (sub_MmCopyMemory)
-	// 
-	// pros:
-	// - works as good anti paste
-	// - only 4 byte change for ntoskrnl.exe
-	// - no obvious looking trampoline
-	// 
-	// cons: extra work,potentially less compatibility
-	// 
-	//
-	QWORD rsp = (QWORD)_AddressOfReturnAddress();
-	QWORD SourceAddress = rsp + 0x08;  // mov     [rax+8], rbx
-	QWORD NumberOfBytes = rsp - 0x08;  // push    r14
-	
-	if (flags == MM_COPY_MEMORY_VIRTUAL)
-	{
-		if (IsInRange(EfiBaseVirtualAddress, EfiBaseVirtualAddress + EfiBaseSize, *(QWORD*)SourceAddress, *(QWORD*)NumberOfBytes))
-		{
-			*(QWORD*)SourceAddress = EfiBaseAddress;
-		}
-	}
-	else if (flags == MM_COPY_MEMORY_PHYSICAL)
-	{
-		if (IsInRange(EfiBaseAddress, EfiBaseAddress + EfiBaseSize, *(QWORD*)SourceAddress, *(QWORD*)NumberOfBytes))
-		{
-			*(QWORD*)SourceAddress = EfiBaseVirtualAddress;
-		}
-	}
-
-	return memset(_Dst, _Val, _Size);
-}
-
 QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 {
 	//
@@ -214,36 +160,15 @@ int get_relative_address(QWORD hook, QWORD target)
 
 BOOLEAN km::initialize(void)
 {
-	QWORD temp = (QWORD)MmCopyMemory + 0x58;
-	*(int*)(temp + 1) = get_relative_address( (QWORD)km::MmCopyMemoryHook, temp );
-	
-	
 	PsGetProcessDxgProcessOffset = *(DWORD*)((QWORD)PsGetProcessDxgProcess + 3);
 	*(unsigned char*)((QWORD)PsGetProcessDxgProcess + 0) = 0xE9;
 	*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
 	
-
 	_KeAcquireSpinLockAtDpcLevel = (QWORD)KeAcquireSpinLockAtDpcLevel;
 	_KeReleaseSpinLockFromDpcLevel = (QWORD)KeReleaseSpinLockFromDpcLevel;
 	_IofCompleteRequest = (QWORD)IofCompleteRequest;
 	_IoReleaseRemoveLockEx = (QWORD)IoReleaseRemoveLockEx;
-
 	return TRUE;
-}
-
-inline BOOLEAN IsInRange(QWORD memory_begin, QWORD memory_end, QWORD address, QWORD length)
-{
-	if (address >= memory_end)
-	{
-		return 0;
-	}
-	
-	if ((address + length) <= memory_begin)
-	{
-	    return 0;
-	}
-
-	return 1;
 }
 
 static BOOL mouse::open(void)

@@ -15,9 +15,6 @@
 #include <intrin.h>
 #include "globals.h"
 
-
-
-
 extern "C"
 {
 	//
@@ -99,7 +96,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	}
 
 
-	UINTN page_count = EFI_SIZE_TO_PAGES (SIZE_4MB);
+	UINTN page_count = EFI_SIZE_TO_PAGES (current_image->ImageSize);
 	VOID  *rwx       = 0;
 
 
@@ -131,9 +128,8 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	//
 	// save our new EFI address information
 	//
-	EfiBaseAddress = (QWORD)rwx;
-	EfiBaseSize    = (QWORD)current_image->ImageSize;
-
+	EfiBaseAddress  = (QWORD)rwx;
+	EfiBaseSize     = (QWORD)current_image->ImageSize;
 
 	//
 	// hook ExitBootServices
@@ -288,74 +284,24 @@ typedef struct _LOADER_PARAMETER_BLOCK {
 
 #define CONTAINING_RECORD(address, type, field) ((type *)((UINT8 *)(address) - (UINTN)(&((type *)0)->field)))
 
-BOOLEAN GetEfiVirtualAddress(
-	LOADER_PARAMETER_BLOCK* LoaderParameterBlock,
-	VOID *Address,
-	UINTN Length,
-	QWORD *VirtualAddress
-	)
+BOOLEAN GetEfiVirtualAddress(LOADER_PARAMETER_BLOCK *LoaderParameterBlock, VOID *Address, QWORD *VirtualAddress)
 {
-
-	LIST_ENTRY *list = &LoaderParameterBlock->MemoryDescriptorListHead;
-	while ((list = list->ForwardLink) != &LoaderParameterBlock->MemoryDescriptorListHead) {
-		PMEMORY_ALLOCATION_DESCRIPTOR entry = CONTAINING_RECORD(list, MEMORY_ALLOCATION_DESCRIPTOR, ListEntry);
-		UINTN addr = entry->BasePage * 0x1000;
-		UINTN addr_length = EFI_PAGES_TO_SIZE(entry->PageCount);
-
-		if ((UINTN)Address >= addr &&  (UINTN)((UINTN)Address + Length) <= (addr + addr_length))
-		{
-			LIST_ENTRY *previous_entry = list->BackLink;
-			LIST_ENTRY *next_entry = list->ForwardLink;
-			previous_entry->ForwardLink = list->ForwardLink;
-			next_entry->BackLink = list->BackLink;
-		}
-	}
-
 	VOID *map = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMap;
 	UINT32 map_size = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMapSize;
 	UINT32 descriptor_size = LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMapDescriptorSize;
 	UINT32 descriptor_count = map_size / descriptor_size;
 
-	EFI_MEMORY_DESCRIPTOR *previous_entry = (EFI_MEMORY_DESCRIPTOR*)map;
-	BOOLEAN copy_operation = 0;
-
-
-	/* check if it's last item, then we don't need to move any pages */
-	EFI_MEMORY_DESCRIPTOR *entry = (EFI_MEMORY_DESCRIPTOR*)((char *)map + ((descriptor_count - 1) * descriptor_size));
-	UINTN addr = entry->PhysicalStart;
-	UINTN addr_length = (entry->NumberOfPages * 0x1000);
-	if ((UINTN)Address >= addr &&  (UINTN)((UINTN)Address + Length) <= (addr + addr_length)) {
-		*VirtualAddress = entry->VirtualStart;
-		copy_operation = 1;
-		goto skip_remap;
-	}
-
-	for (UINT32 i = 0; i < descriptor_count; i++) {
-		entry = (EFI_MEMORY_DESCRIPTOR*)((char *)map + (i*descriptor_size));
-
-		if (copy_operation == 0) {
-			addr = previous_entry->PhysicalStart;
-			addr_length = EFI_PAGES_TO_SIZE(previous_entry->NumberOfPages);
-
-			if ((UINTN)Address >= addr &&  (UINTN)((UINTN)Address + Length) <= (addr + addr_length)) {
-				*VirtualAddress = previous_entry->VirtualStart;
-				copy_operation = 1;
-			}
+	for (UINT32 i = 0; i < descriptor_count; i++)
+	{
+		EFI_MEMORY_DESCRIPTOR *entry = (EFI_MEMORY_DESCRIPTOR*)((char *)map + (i*descriptor_size));
+		if ((UINTN)Address >= entry->PhysicalStart && (UINTN)Address <= (entry->PhysicalStart + EFI_PAGES_TO_SIZE(entry->NumberOfPages)))
+		{
+			INT64 delta = (INT64)Address - (INT64)entry->PhysicalStart;
+			*VirtualAddress = (entry->VirtualStart + delta);
+			return 1;
 		}
-
-		if (copy_operation) {
-			/* if it's first item, we don't need to copy it */
-			if (previous_entry != entry) {
-				MemCopy(previous_entry, entry, sizeof(EFI_MEMORY_DESCRIPTOR));
-			}
-		}
-
-		previous_entry = entry;
 	}
-skip_remap:
-	if (copy_operation == 1)
-		LoaderParameterBlock->FirmwareInformation.u.EfiInformation.EfiMemoryMapSize -= descriptor_size;
-	return copy_operation;
+	return 0;
 }
 
 inline QWORD get_virtual_address(VOID *ptr)
@@ -390,7 +336,6 @@ extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle,UINTN M
 	gST->ConOut->ClearScreen(gST->ConOut);
 	gST->ConOut->SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLACK);
 
-	BOOLEAN status = 0;
 
 	QWORD winload_base = get_winload_base((QWORD)_ReturnAddress());
 	if (winload_base == 0)
@@ -398,102 +343,47 @@ extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle,UINTN M
 		//
 		// failed to load
 		//
-		goto E0;
+		return 0;
 	}
 
+	
+	enum WinloadContext
 	{
-		enum WinloadContext
-		{
-			ApplicationContext,
-			FirmwareContext
-		};
+		ApplicationContext,
+		FirmwareContext
+	};
 
-		typedef void(__stdcall* BlpArchSwitchContext_t)(int target);
-		BlpArchSwitchContext_t BlpArchSwitchContext;
-
-		unsigned char bytes_3[] = { 'x','x','x','?','?','?','?','x','x','x','?','?','?','?',0 };
-
-		UINT64 loaderBlockScan = (UINT64)FindPattern(winload_base,
-			(unsigned char*)"\x48\x8B\x3D\x00\x00\x00\x00\x48\x8B\x8F\x00\x00\x00\x00", bytes_3);
-		if (loaderBlockScan == 0) {
-
-			/* 1909 */
-			unsigned char bytes_2[] = { 'x','x','x','x','x','?','?','?','?',0 };
-			loaderBlockScan = (UINT64)FindPattern(winload_base,
-				(unsigned char*)"\x0F\x31\x48\x8B\x3D\x00\x00\x00\x00", bytes_2);
-			if (loaderBlockScan != 0)
-				loaderBlockScan += 2;
-
-			/* 1809 */
-			unsigned char bytes_1809[] = { 'x','x','x','?','?','?','?','x','x','x',0 };
-			if (loaderBlockScan == 0)
-				loaderBlockScan = (UINT64)FindPattern(winload_base,
-					(unsigned char*)"\x48\x8B\x3D\x00\x00\x00\x00\x48\x8B\xCF", bytes_1809);
-
-			unsigned char bytes_1[] = { 'x','x','x','?','?','?','?','x','x','x','x',0 };
-			/* 1607 */
-			if (loaderBlockScan == 0) {
-				loaderBlockScan = (UINT64)FindPattern(winload_base,
-					(unsigned char*)"\x48\x8B\x35\x00\x00\x00\x00\x48\x8B\x45\xF7", bytes_1);
-			}
-
-			if (loaderBlockScan == 0) {
-				goto E0;
-			}
-		}
-
-		UINT64 resolvedAddress = *(UINT64*)((loaderBlockScan + 7) + *(int*)(loaderBlockScan + 3));
-		if (resolvedAddress == 0) {
-			goto E0;
-		}
-
-		unsigned char bytes_0[] = { 'x','x','x','x','x','x','x','x','x',0 };
-		BlpArchSwitchContext = (BlpArchSwitchContext_t)(FindPattern(winload_base,
-			(unsigned char*)"\x40\x53\x48\x83\xEC\x20\x48\x8B\x15", bytes_0));
-		if (BlpArchSwitchContext == 0) {
-			goto E0;
-		}
-
-		BlpArchSwitchContext(ApplicationContext);
-
-		LOADER_PARAMETER_BLOCK* loaderBlock = (LOADER_PARAMETER_BLOCK*)(resolvedAddress);
-
-		if (GetEfiVirtualAddress(loaderBlock, (VOID*)EfiBaseAddress, EfiBaseSize, &EfiBaseVirtualAddress))
-		{
-			status = InitializeKernel(loaderBlock);
-		}
-
-
-		BlpArchSwitchContext(FirmwareContext);
+	typedef void(__stdcall* BlpArchSwitchContext_t)(int target);
+	BlpArchSwitchContext_t BlpArchSwitchContext;
+	BlpArchSwitchContext = (BlpArchSwitchContext_t)(FindPattern(winload_base, (unsigned char*)"\x40\x53\x48\x83\xEC\x20\x48\x8B\x15", (unsigned char*)"xxxxxxxxx"));
+	if (BlpArchSwitchContext == 0)
+	{
+		return 0;
 	}
-E0:
-	if (status) {
+
+	QWORD loader_parameter_block = get_loader_block(winload_base);
+	BlpArchSwitchContext(ApplicationContext);
+
+	BOOLEAN status = 0;
+	if (GetEfiVirtualAddress((LOADER_PARAMETER_BLOCK*)loader_parameter_block, (VOID*)EfiBaseAddress, &EfiBaseVirtualAddress))
+	{
+		status = InitializeKernel((LOADER_PARAMETER_BLOCK*)loader_parameter_block);
+	}
+
+	BlpArchSwitchContext(FirmwareContext);
+
+	if (status)
+	{
 		Print(FILENAME L" Success -> " SERVICE_NAME L" service is running.");
-	} else {
+	}
+	else
+	{
 		Print(FILENAME L" Failure -> Unsupported OS.");
 	}
 
 	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 1);
 	PressAnyKey();
 
-	UINTN MemoryMapSize;
-	EFI_MEMORY_DESCRIPTOR* MemoryMap;
-	UINTN LocalMapKey;
-	UINTN DescriptorSize;
-	UINT32 DescriptorVersion;
-	MemoryMap = 0;
-	MemoryMapSize = 0;
-	EFI_STATUS Status;
-	do {
-		Status = gBS->GetMemoryMap(&MemoryMapSize, MemoryMap, &LocalMapKey, &DescriptorSize, &DescriptorVersion);
-		if (Status == EFI_BUFFER_TOO_SMALL) {
-			gBS->AllocatePool(EfiBootServicesData, MemoryMapSize + 1, (void **)&MemoryMap);
-			Status = gBS->GetMemoryMap(&MemoryMapSize, MemoryMap, &LocalMapKey, &DescriptorSize, &DescriptorVersion);
-		}
-		else {
-			/* Status is likely success - let the while() statement check success */
-		}
-	} while (Status != EFI_SUCCESS);
-	return oExitBootServices(ImageHandle, LocalMapKey);
+	return gBS->ExitBootServices(ImageHandle, MapKey);
 }
 

@@ -9,6 +9,7 @@ typedef int BOOL;
 
 void  SwapMemory(QWORD BaseAddress, QWORD ImageSize, QWORD NewBase);
 QWORD get_winload_base(QWORD return_address);
+QWORD get_loader_block(QWORD winload_base);
 void  MemCopy(void* dest, void* src, QWORD size);
 typedef struct _LIST_ENTRY LIST_ENTRY;
 QWORD GetModuleEntry(LIST_ENTRY* entry, const wchar_t *name);

@@ -27,6 +27,21 @@ QWORD get_winload_base(QWORD return_address)
 	return (QWORD)return_address;
 }
 
+QWORD get_loader_block(QWORD winload_base)
+{
+	QWORD a0 = winload_base + *(DWORD*)(*(DWORD*)(winload_base + 0x03C) + (QWORD)winload_base + 0x28);
+	while (*(unsigned short*)a0 != 0xC35D) a0++;
+	while (*(unsigned char*)a0 != 0xE8) a0--; a0--;
+	while (*(unsigned char*)a0 != 0xE8) a0--;
+	a0 = a0 + *(int*)(a0 + 1) + 5;
+	while (*(DWORD*)a0 != 0x67636D30) a0++;
+	while (*(unsigned short*)a0 != 0xD88B) a0--;
+	a0 = a0 - 5;
+	a0 = a0 + *(int*)(a0 + 1) + 5;
+	while (*(unsigned short*)a0 != 0x8B48) a0++;
+	return *(QWORD*)((a0 + 7) + *(int*)(a0 + 3));
+}
+
 static int strcmpi_imp(const char *cs, const char *ct)
 {
 	unsigned char c1, c2;
