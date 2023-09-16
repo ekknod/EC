@@ -153,16 +153,36 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 	return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
 }
 
-int get_relative_address(QWORD hook, QWORD target)
+int get_relative_address_offset(QWORD hook, QWORD target)
 {
 	return (hook > target ? (int)(hook - target) : (int)(target - hook)) - 5;
+}
+
+int get_relative_address_offset2(QWORD hook, QWORD target)
+{
+	return (hook < target ? (int)(hook - target) : (int)(target - hook)) - 5;
+}
+
+inline QWORD get_relative_address(QWORD instruction, DWORD offset, DWORD instruction_size)
+{
+	INT32 rip_address = *(INT32*)(instruction + offset);
+	return (QWORD)(instruction + instruction_size + rip_address);
 }
 
 BOOLEAN km::initialize(void)
 {
 	PsGetProcessDxgProcessOffset = *(DWORD*)((QWORD)PsGetProcessDxgProcess + 3);
 	*(unsigned char*)((QWORD)PsGetProcessDxgProcess + 0) = 0xE9;
-	*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
+
+	*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address_offset( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
+	if (get_relative_address((QWORD)PsGetProcessDxgProcess, 1, 5) != (QWORD)km::PsGetProcessDxgProcessHook)
+	{
+		*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address_offset2( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
+		if (get_relative_address((QWORD)PsGetProcessDxgProcess, 1, 5) != (QWORD)km::PsGetProcessDxgProcessHook)
+		{
+			return 0;
+		}
+	}
 	
 	_KeAcquireSpinLockAtDpcLevel = (QWORD)KeAcquireSpinLockAtDpcLevel;
 	_KeReleaseSpinLockFromDpcLevel = (QWORD)KeReleaseSpinLockFromDpcLevel;

@@ -4,6 +4,9 @@
 
 typedef ULONG_PTR QWORD;
 
+#define PAGE_SIZE 0x1000
+#define PAGE_ALIGN(Va) ((VOID*)((QWORD)(Va) & ~(PAGE_SIZE - 1)))
+
 void SwapMemory(QWORD BaseAddress, QWORD ImageSize, QWORD NewBase)
 {
 	INT32 current_location = (INT32)((QWORD)_ReturnAddress() - BaseAddress);
@@ -19,12 +22,25 @@ void SwapMemory(QWORD BaseAddress, QWORD ImageSize, QWORD NewBase)
 	*(QWORD*)(_AddressOfReturnAddress()) = NewBase + current_location;
 }
 
-QWORD get_winload_base(QWORD return_address)
+void SwapMemory2(QWORD CurrentBase, QWORD NewBase)
 {
-	while (*(unsigned short*)return_address != IMAGE_DOS_SIGNATURE)
-		return_address = return_address - 1;
+	INT32 current_location = (INT32)((QWORD)_ReturnAddress() - CurrentBase);
+	//
+	// swap memory
+	//
+	*(QWORD*)(_AddressOfReturnAddress()) = NewBase + current_location;
+}
 
-	return (QWORD)return_address;
+QWORD get_caller_base(QWORD return_address)
+{
+	return_address = (QWORD)PAGE_ALIGN(return_address);
+
+	while (*(unsigned short*)(return_address) != IMAGE_DOS_SIGNATURE)
+	{
+		return_address -= PAGE_SIZE;
+	}
+
+	return return_address;
 }
 
 QWORD get_loader_block(QWORD winload_base)
@@ -42,7 +58,13 @@ QWORD get_loader_block(QWORD winload_base)
 	return *(QWORD*)((a0 + 7) + *(int*)(a0 + 3));
 }
 
-static int strcmpi_imp(const char *cs, const char *ct)
+void MemCopy(void* dest, void* src, QWORD size)
+{
+	for (unsigned char* d = (unsigned char*)dest, *s = (unsigned char*)src; size--; *d++ = *s++)
+		;
+}
+
+int strcmp_imp(const char *cs, const char *ct)
 {
 	unsigned char c1, c2;
 
@@ -57,13 +79,7 @@ static int strcmpi_imp(const char *cs, const char *ct)
 	return 0;
 }
 
-void MemCopy(void* dest, void* src, QWORD size)
-{
-	for (unsigned char* d = (unsigned char*)dest, *s = (unsigned char*)src; size--; *d++ = *s++)
-		;
-}
-
-static int wcscmpi_imp(const wchar_t *cs, const wchar_t *ct)
+int wcscmp_imp(const wchar_t *cs, const wchar_t *ct)
 {
 	unsigned short c1, c2;
 
@@ -85,14 +101,30 @@ QWORD GetExportByName(QWORD base, const char* export_name)
 	DWORD a1[4];
 
 	a0 = base + *(unsigned short*)(base + 0x3C);
-	a0 = base + *(DWORD*)(a0 + 0x88);
+	if (a0 == base)
+	{
+		return 0;
+	}
+
+
+	WORD machine = *(WORD*)(a0 + 0x4);
+
+	a0 = machine == 0x8664 ? base + *(DWORD*)(a0 + 0x88) : base + *(DWORD*)(a0 + 0x78);
+
+	if (a0 == base)
+	{
+		return 0;
+	}
+
+
 	a1[0] = *(DWORD*)(a0 + 0x18);
 	a1[1] = *(DWORD*)(a0 + 0x1C);
 	a1[2] = *(DWORD*)(a0 + 0x20);
 	a1[3] = *(DWORD*)(a0 + 0x24);
 	while (a1[0]--) {
 		a0 = base + *(DWORD*)(base + a1[2] + (a1[0] * 4));
-		if (strcmpi_imp((const char *)a0, export_name) == 0) {
+		if (strcmp_imp((const char *)a0, export_name) == 0)
+		{
 			return (base + *(DWORD*)(base + a1[1] + (*(unsigned short*)(base + a1[3] + (a1[0] * 2)) * 4)));
 		}
 	}
@@ -104,6 +136,64 @@ QWORD get_pe_entrypoint(QWORD base)
 	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
 	IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((char*)dos + dos->e_lfanew);
 	return base + nt->OptionalHeader.AddressOfEntryPoint;
+}
+
+DWORD get_pe_size(QWORD base)
+{
+	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
+	IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((char*)dos + dos->e_lfanew);
+	return nt->OptionalHeader.SizeOfImage;
+}
+
+QWORD get_pe_section(QWORD base, const char *section_name, DWORD *size)
+{
+	/*
+	QWORD image_dos_header = (QWORD)base;
+	QWORD image_nt_header = *(DWORD*)(image_dos_header + 0x03C) + image_dos_header;
+	unsigned short machine = *(WORD*)(image_nt_header + 0x4);
+
+	QWORD section_header_off = machine == 0x8664 ?
+		image_nt_header + 0x0108 :
+		image_nt_header + 0x00F8;
+
+	for (WORD i = 0; i < *(WORD*)(image_nt_header + 0x06); i++) {
+		QWORD section = section_header_off + (i * 40);
+		ULONG section_virtual_address = *(ULONG*)(section + 0x0C);
+		ULONG section_virtual_size = *(ULONG*)(section + 0x08);
+
+		if (!strcmp((const char *)(UCHAR*)(section + 0x00), section_name))
+		{
+			if (size)
+			{
+				*size = section_virtual_size;
+			}
+			return base + section_virtual_address;
+		}
+	}
+	return 0;
+	*/
+
+
+
+	
+
+	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
+	IMAGE_NT_HEADERS64* nt = (IMAGE_NT_HEADERS64*)((char*)dos + dos->e_lfanew);
+
+	QWORD section_header_off = (QWORD)nt + 0x0108;
+	for (WORD i = 0; i < nt->FileHeader.NumberOfSections; i++)
+	{
+		PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)(section_header_off + (i * 40));
+		if (!strcmp((const char *)section->Name, section_name))
+		{
+			if (size)
+			{
+				*size = section->Misc.VirtualSize;
+			}
+			return base + section->VirtualAddress;
+		}
+	}
+	return 0;
 }
 
 BOOL pe_resolve_imports(QWORD ntoskrnl, QWORD base)
@@ -187,14 +277,14 @@ typedef struct _KLDR_DATA_TABLE_ENTRY {
 	UNICODE_STRING BaseImageName;
 } KLDR_DATA_TABLE_ENTRY;
 
-QWORD GetModuleEntry(LIST_ENTRY* entry, const wchar_t * name)
+QWORD GetModuleEntry(LIST_ENTRY* entry, const unsigned short *name)
 {
 	LIST_ENTRY *list = entry;
 	while ((list = list->Flink) != entry) {
 		KLDR_DATA_TABLE_ENTRY *module =
 			CONTAINING_RECORD(list, KLDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
 
-		if (module && wcscmpi_imp((wchar_t*)module->BaseImageName.Buffer, name) == 0)
+		if (module && wcscmp_imp((wchar_t*)module->BaseImageName.Buffer, name) == 0)
 		{
 			return (QWORD)module->ImageBase;
 		}
@@ -219,7 +309,7 @@ static QWORD strleni(const char *s)
 	return sc - s;
 }
 
-static void *FindPatternEx(unsigned char* base, QWORD size, unsigned char* pattern, unsigned char* mask)
+void *FindPatternEx(unsigned char* base, QWORD size, unsigned char* pattern, unsigned char* mask)
 {
 	size -= strleni((const char *)mask);
 	for (QWORD i = 0; i <= size; ++i) {
@@ -267,41 +357,4 @@ QWORD FindPattern(QWORD base, unsigned char* pattern, unsigned char* mask)
 	}
 	return 0;
 }
-
-QWORD GetExport(QWORD base, const char *name)
-{
-	QWORD a0;
-	DWORD a1[4];
-
-	a0 = base + *(unsigned short*)(base + 0x3C);
-	if (a0 == base)
-	{
-		return 0;
-	}
-
-
-	WORD machine = *(WORD*)(a0 + 0x4);
-
-	a0 = machine == 0x8664 ? base + *(DWORD*)(a0 + 0x88) : base + *(DWORD*)(a0 + 0x78);
-
-	if (a0 == base)
-	{
-		return 0;
-	}
-
-
-	a1[0] = *(DWORD*)(a0 + 0x18);
-	a1[1] = *(DWORD*)(a0 + 0x1C);
-	a1[2] = *(DWORD*)(a0 + 0x20);
-	a1[3] = *(DWORD*)(a0 + 0x24);
-	while (a1[0]--) {
-		a0 = base + *(DWORD*)(base + a1[2] + (a1[0] * 4));
-		if (strcmpi_imp((const char *)a0, name) == 0)
-		{
-			return (base + *(DWORD*)(base + a1[1] + (*(unsigned short*)(base + a1[3] + (a1[0] * 2)) * 4)));
-		}
-	}
-	return 0;
-}
-
 
