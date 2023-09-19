@@ -98,17 +98,41 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 		return 0;
 	}
 
-	//
-	// save image information
-	//
-	EfiBaseAddress = (QWORD)current_image->ImageBase;
-	EfiBaseSize    = current_image->ImageSize;
+
+	UINTN page_count = EFI_SIZE_TO_PAGES (current_image->ImageSize);
+	VOID  *rwx       = 0;
+
 
 	//
-	// prevent gBS->StartImage for terminating us
+	// allocate space for SwapMemory
 	//
-	*(QWORD *)((QWORD)current_image - 0x18) = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
-	
+	if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiBootServicesCode, page_count, (EFI_PHYSICAL_ADDRESS*)&rwx)))
+	{
+		Print(FILENAME L" Failed to start " SERVICE_NAME L" service.");
+		return 0;
+	}
+
+	//
+	// swap our context to new memory region
+	//
+	SwapMemory( (QWORD)current_image->ImageBase, (QWORD)current_image->ImageSize, (QWORD)rwx );
+
+
+	//
+	// clear old image from memory
+	//
+	for (QWORD i = current_image->ImageSize; i--;)
+	{
+		((unsigned char*)current_image->ImageBase)[i] = 0;
+	}
+
+
+	//
+	// save our new EFI address information
+	//
+	EfiBaseAddress  = (QWORD)rwx;
+	EfiBaseSize     = (QWORD)current_image->ImageSize;
+
 
 	//
 	// GetMemoryMapHook: Reserve RAM space
@@ -116,12 +140,14 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	oGetMemoryMap = gBS->GetMemoryMap;
 	gBS->GetMemoryMap = GetMemoryMapHook;
 
+
 	//
 	// ExitBootServices: Output EFI status
 	//
 	oExitBootServices = gBS->ExitBootServices;
 	gBS->ExitBootServices = ExitBootServicesHook;
 	
+
 	//
 	// AllocatePages: winload/ntoskrnl.exe hooks
 	//
