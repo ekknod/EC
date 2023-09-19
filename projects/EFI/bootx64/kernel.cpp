@@ -7,6 +7,7 @@ int _fltused;
 
 extern "C"
 {
+	QWORD DxgkSubmitCommand;
 	QWORD _KeAcquireSpinLockAtDpcLevel;
 	QWORD _KeReleaseSpinLockFromDpcLevel;
 	QWORD _IofCompleteRequest;
@@ -117,7 +118,27 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 	// is getting called from DxgiSubmitCommand
 	//
 	QWORD return_address = (QWORD)_ReturnAddress();
-	if (*(DWORD*)(return_address + 0x4D) != 0xccc35f30)
+	if (*(WORD*)(return_address - 0xC) != 0x8B4C)
+	{
+		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+	}
+
+	if (DxgkSubmitCommand == 0)
+	{
+		QWORD routine_address = GetExportByName(get_caller_base(return_address), "NtGdiDdDDISubmitCommand");
+		if (routine_address == 0)
+		{
+			return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+		}
+		DxgkSubmitCommand = routine_address;
+	}
+
+	if (return_address < DxgkSubmitCommand)
+	{
+		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+	}
+
+	if (return_address > (DxgkSubmitCommand + 0x50))
 	{
 		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
 	}
@@ -184,6 +205,7 @@ BOOLEAN km::initialize(void)
 		}
 	}
 	
+	DxgkSubmitCommand = 0;
 	_KeAcquireSpinLockAtDpcLevel = (QWORD)KeAcquireSpinLockAtDpcLevel;
 	_KeReleaseSpinLockFromDpcLevel = (QWORD)KeReleaseSpinLockFromDpcLevel;
 	_IofCompleteRequest = (QWORD)IofCompleteRequest;
