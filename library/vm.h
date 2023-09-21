@@ -102,9 +102,8 @@ namespace vm
 	QWORD     get_peb(vm_handle process);
 	QWORD     get_wow64_process(vm_handle process);
 
-	PVOID     dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
-	void      free_module(PVOID dumped_module);
-
+	inline PVOID dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
+	inline void  free_module(PVOID dumped_module);
 
 	inline BYTE  read_i8(vm_handle process, QWORD address);
 	inline WORD  read_i16(vm_handle process, QWORD address);
@@ -122,17 +121,91 @@ namespace vm
 	inline QWORD get_module(vm_handle process, PCSTR dll_name);
 	inline QWORD get_module_export(vm_handle process, QWORD base, PCSTR export_name);
 
-	inline QWORD scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length);
+	
 	inline QWORD scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length);
+	inline QWORD scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length);
+
 
 	namespace utils
 	{
 		inline BOOL  bDataCompare(const BYTE* pData, const BYTE* bMask, const char* szMask);
 		inline DWORD FindSectionOffset(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
 		inline QWORD FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
-		inline QWORD scan_section(vm_handle process, QWORD section_address,
-			DWORD section_size, PCSTR pattern, PCSTR mask, DWORD len);
 	}
+}
+
+inline PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
+{
+	QWORD nt_header;
+	DWORD image_size;
+	BYTE* ret;
+
+	if (base == 0)
+	{
+		return 0;
+	}
+
+	nt_header = (QWORD)read_i32(process, base + 0x03C) + base;
+	if (nt_header == base)
+	{
+		return 0;
+	}
+
+	image_size = read_i32(process, nt_header + 0x050);
+	if (image_size == 0)
+	{
+		return 0;
+	}
+
+#ifdef _KERNEL_MODE
+	ret = (BYTE*)ExAllocatePool2(POOL_FLAG_NON_PAGED, (QWORD)(image_size + 16), 'ofnI');
+#else
+	ret = (BYTE*)malloc((QWORD)image_size + 16);
+#endif
+	if (ret == 0)
+		return 0;
+
+	*(QWORD*)(ret + 0) = base;
+	*(QWORD*)(ret + 8) = image_size;
+	ret += 16;
+
+	DWORD headers_size = read_i32(process, nt_header + 0x54);
+	read(process, base, ret, headers_size);
+
+	WORD machine = read_i16(process, nt_header + 0x4);
+	QWORD section_header = machine == 0x8664 ?
+		nt_header + 0x0108 :
+		nt_header + 0x00F8;
+
+
+	for (WORD i = 0; i < read_i16(process, nt_header + 0x06); i++) {
+		QWORD section = section_header + ((QWORD)i * 40);
+		if (module_type == VM_MODULE_TYPE::CodeSectionsOnly)
+		{
+			DWORD section_characteristics = read_i32(process, section + 0x24);
+			if (!(section_characteristics & 0x00000020))
+				continue;
+		}
+
+		QWORD target_address = (QWORD)ret + (QWORD)read_i32(process, section + ((module_type == VM_MODULE_TYPE::Raw) ? 0x14 : 0x0C));
+		QWORD virtual_address = base + (QWORD)read_i32(process, section + 0x0C);
+		DWORD virtual_size = read_i32(process, section + 0x08);
+		read(process, virtual_address, (PVOID)target_address, virtual_size);
+	}
+
+	return (PVOID)ret;
+}
+
+inline void vm::free_module(PVOID dumped_module)
+{
+	QWORD a0 = (QWORD)dumped_module;
+
+	a0 -= 16;
+#ifdef _KERNEL_MODE
+	ExFreePoolWithTag((void*)a0, 'ofnI');
+#else
+	free((void*)a0);
+#endif
 }
 
 inline BYTE vm::read_i8(vm_handle process, QWORD address)
@@ -344,40 +417,6 @@ QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 	return 0;
 }
 
-inline QWORD vm::scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length)
-{
-	if (base == 0)
-	{
-		return 0;
-	}
-
-	QWORD nt_header = (QWORD)read_i32(process, base + 0x03C) + base;
-	if (nt_header == base)
-	{
-		return 0;
-	}
-
-	WORD machine = read_i16(process, nt_header + 0x4);
-	QWORD section_header = machine == 0x8664 ?
-		nt_header + 0x0108 :
-		nt_header + 0x00F8;
-
-	for (WORD i = 0; i < read_i16(process, nt_header + 0x06); i++) {
-		QWORD section = section_header + ((QWORD)i * 40);
-		if (!(read_i32(process, section + 0x24) & 0x00000020))
-			continue;
-
-		QWORD virtual_address = base + (QWORD)read_i32(process, section + 0x0C);
-		DWORD virtual_size = read_i32(process, section + 0x08);
-		QWORD found_pattern = utils::scan_section(process, virtual_address, virtual_size, pattern, mask, length);
-		if (found_pattern)
-		{
-			return found_pattern;
-		}
-	}
-	return 0;
-}
-
 inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length)
 {
 	QWORD ret = 0;
@@ -415,6 +454,25 @@ inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QW
 	return ret;
 }
 
+QWORD vm::scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length)
+{
+	if (base == 0)
+	{
+		return 0;
+	}
+	
+	PVOID dumped_module = vm::dump_module(process, base, VM_MODULE_TYPE::CodeSectionsOnly);
+	if (dumped_module == 0)
+	{
+		return 0;
+	}
+
+	QWORD patt = vm::scan_pattern(dumped_module, pattern, mask, length);
+
+	vm::free_module(dumped_module);
+	return patt;
+}
+
 inline BOOL vm::utils::bDataCompare(const BYTE* pData, const BYTE* bMask, const char* szMask)
 {
 
@@ -446,50 +504,6 @@ inline QWORD vm::utils::FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask,
 		if (bDataCompare((BYTE*)(dwAddress + i), bMask, szMask))
 			return (QWORD)(dwAddress + i);
 
-	return 0;
-}
-
-//
-// disables stack check, maybe there is better workaround for this as well
-//
-static BYTE GLOBAL_SECTION_DATA[0x1000];
-inline QWORD vm::utils::scan_section(vm_handle process, QWORD section_address,
-	DWORD section_size, PCSTR pattern, PCSTR mask, DWORD len)
-{
-	DWORD offset = 0;
-	while (section_size)
-	{
-		for (int i = 0x1000; i--;)
-			GLOBAL_SECTION_DATA[i] = 0;
-
-		if (section_size >= 0x1000)
-		{
-			BOOL read_status = vm::read(process, section_address + offset, GLOBAL_SECTION_DATA, 0x1000);
-			section_size -= 0x1000;
-
-			if (!read_status)
-			{
-				offset += 0x1000;
-				continue;
-			}
-		}
-		else
-		{
-			if (!vm::read(process, section_address + offset, GLOBAL_SECTION_DATA, section_size))
-			{
-				return 0;
-			}
-			section_size = 0;
-		}
-
-		DWORD index = utils::FindSectionOffset((QWORD)GLOBAL_SECTION_DATA,
-			(QWORD)0x1000 - len, (BYTE*)pattern, (char*)mask);
-		if (index)
-		{
-			return section_address + offset + index;
-		}
-		offset += 0x1000;
-	}
 	return 0;
 }
 

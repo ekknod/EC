@@ -115,7 +115,7 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 	}
 
 	//
-	// is getting called from DxgiSubmitCommand
+	// is getting called from NtGdiDdDDISubmitCommand
 	//
 	QWORD return_address = (QWORD)_ReturnAddress();
 	if (*(WORD*)(return_address - 0xC) != 0x8B4C)
@@ -162,12 +162,12 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 			}
 		}
 
-
 		//
 		// csgo.exe
 		//
 		if (image_name && *(QWORD*)image_name == 0x6578652e6f677363)
 		{
+			LOG("process: %s\n", image_name);
 			csgo::run();
 		}
 	}

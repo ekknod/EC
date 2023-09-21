@@ -4,9 +4,7 @@ namespace input
 {
 	void mouse_move(int x, int y)
 	{
-		// mouse_event(MOUSEEVENTF_MOVE, (DWORD)x, (DWORD)y, 0, 0);
-
-		cs::input::mouse_move(x, y);
+		mouse_event(MOUSEEVENTF_MOVE, (DWORD)x, (DWORD)y, 0, 0);
 	}
 
 	void mouse1_down(void)

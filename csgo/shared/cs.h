@@ -11,7 +11,7 @@
 #define LOG printf
 #else
 
-// #define DEBUG
+#define DEBUG
 #define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, __VA_ARGS__)
 
 #endif

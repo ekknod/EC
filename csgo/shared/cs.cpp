@@ -5,7 +5,7 @@
 // pros: no need system memory allocation
 // cons: performance is worse + function might fail in some cases.
 //
-#define DIRECT_PATTERNS
+// #define DIRECT_PATTERNS
 
 
 //
@@ -702,10 +702,12 @@ static float cs::get_convar_float(DWORD cvar)
 static BOOL cs::initialize(void)
 {
 	DWORD client_dll, engine_dll;
-	PVOID client_dump = 0;
-	DWORD GetLocalTeam;
 
-	PVOID engine_dump = 0;
+
+	PVOID dumped_client, dumped_engine;
+
+
+	DWORD GetLocalTeam;
 	DWORD VEngineClient;
 
 	int   counter;
@@ -740,6 +742,8 @@ static BOOL cs::initialize(void)
 		use_dormant_check = 0;
 	}
 
+	dwViewAngles = 0;
+
 	client_dll = (DWORD)vm::get_module(csgo_handle, S("client.dll"));
 	if (client_dll == 0)
 	{
@@ -770,9 +774,14 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
-	input::m_ButtonState = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 28) + 0xC1 + 2));
-	input::m_nLastPollTick = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 13) + 0x44));
-	input::m_mouseRawAccum = vm::read_i32(csgo_handle, (QWORD)(get_interface_function(IInputSystem, 61) + 8));
+	input::m_ButtonState = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 28) + 0xC1 + 2));
+
+	input::m_nLastPollTick = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 13) + 0x44));
+
+	input::m_mouseRawAccum = vm::read_i32(csgo_handle,
+		(QWORD)(get_interface_function(IInputSystem, 61) + 8));
 
 	VEngineCvar = get_interface(
 		get_interface_factory((DWORD)vm::get_module(csgo_handle, S("vstdlib.dll"))),
@@ -795,6 +804,15 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
+	net_graphproportionalfont = get_convar(S("net_graphproportionalfont"));
+	if (!net_graphproportionalfont)
+	{
+#ifdef DEBUG
+		LOG("[-] net_graphproportionalfont not found\n");
+#endif
+		goto cleanup;
+	}
+
 	mp_teammates_are_enemies = get_convar(S("mp_teammates_are_enemies"));
 	if (!mp_teammates_are_enemies)
 	{
@@ -803,17 +821,30 @@ static BOOL cs::initialize(void)
 #endif
 		goto cleanup;
 	}
-	
-	client_dump = vm::dump_module(csgo_handle, client_dll , VM_MODULE_TYPE::CodeSectionsOnly);
-	if (client_dump == 0)
+
+
+
+	dumped_client = vm::dump_module(csgo_handle, client_dll, VM_MODULE_TYPE::CodeSectionsOnly);
+	if (dumped_client == 0)
 	{
 #ifdef DEBUG
-		LOG("[-] failed to dump client.dll\n");
+		LOG("[-] client.dll dump failed\n");
 #endif
 		goto cleanup;
 	}
 
-	GetLocalTeam = (DWORD)vm::scan_pattern(client_dump,
+	dumped_engine = vm::dump_module(csgo_handle, engine_dll, VM_MODULE_TYPE::CodeSectionsOnly);
+	if (dumped_engine == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] engine.dll dump failed\n");
+#endif
+		vm::free_module(dumped_client);
+		goto cleanup;
+	}
+
+	
+	GetLocalTeam = (DWORD)vm::scan_pattern(dumped_client,
 		"\xE8\x00\x00\x00\x00\x85\xC0\x74\x11\x5F", S("x????xxxxx"), 10);
 
 	if (GetLocalTeam == 0)
@@ -821,7 +852,7 @@ static BOOL cs::initialize(void)
 #ifdef DEBUG
 		LOG("[-] failed to find GetLocalTeam\n");
 #endif
-		goto cleanup2;
+		goto cleanup_mod;
 	}
 
 	GetLocalTeam = (DWORD)vm::get_relative_address(csgo_handle, GetLocalTeam, 1, 5);
@@ -834,40 +865,52 @@ static BOOL cs::initialize(void)
 	g_Teams = vm::read_i32(csgo_handle,
 		vm::get_relative_address(csgo_handle, (QWORD)(GetLocalTeam + 0x1D), 1, 5) + 0x10 + 1);
 
-
-	vm::free_module(client_dump);
-	client_dump = 0;
-
-	engine_dump = vm::dump_module(csgo_handle, engine_dll, VM_MODULE_TYPE::CodeSectionsOnly);
-	if (engine_dump == 0)
+	if (C_BasePlayer == 0)
 	{
 #ifdef DEBUG
-		LOG("[-] failed to dump engine.dll\n");
+		LOG("[-] failed to find C_BasePlayer\n");
 #endif
-		goto cleanup;
+		goto cleanup_mod;
 	}
 
-
-	/* dwViewAngles = (DWORD)vm::scan_pattern(engine_dump, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
-	if (dwViewAngles == 0)
+	if (g_TeamCount == 0)
 	{
 #ifdef DEBUG
-		LOG("[-] failed to find dwViewAngles\n");
+		LOG("[-] failed to find g_TeamCount\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
 	}
 
-	dwViewAngles += 4;
-	dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
-	dwViewAngles += 0xC;*/
+	if (g_Teams == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find g_Teams\n");
+#endif
+		goto cleanup_mod;
+	}
 
-	VClientEntityList = (DWORD)vm::scan_pattern(engine_dump, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
+	g_pNetGraphPanel = (DWORD)vm::scan_pattern(dumped_client,
+		"\x3F\xFF\x3F\xE8", S("xxxx"), 4);
+
+	if (g_pNetGraphPanel == 0)
+	{
+		goto cleanup_mod;
+	}
+
+	g_pNetGraphPanel += 0x7C;
+	g_pNetGraphPanel = vm::read_i32(csgo_handle, vm::read_i32(csgo_handle, g_pNetGraphPanel + 0x02));
+	if (g_pNetGraphPanel == 0)
+	{
+		goto cleanup_mod;
+	}
+
+	VClientEntityList = (DWORD)vm::scan_pattern(dumped_engine, "\x8A\x47\x12\x8B\x0D", S("xxxxx"), 5);
 	if (VClientEntityList == 0)
 	{
 #ifdef DEBUG
 		LOG("[-] failed to find VClientEntityList\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
 	}
 
 	VClientEntityList = vm::read_i32(csgo_handle, (QWORD)(VClientEntityList + 5));
@@ -878,10 +921,10 @@ static BOOL cs::initialize(void)
 #ifdef DEBUG
 		LOG("[-] failed to find VClientEntityList\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
 	}
 
-	dwGetAllClasses = (DWORD)vm::scan_pattern(engine_dump,
+	dwGetAllClasses = (DWORD)vm::scan_pattern(dumped_engine,
 		"\x8B\x0D\x00\x00\x00\x00\x0F\x57\xC0\xC7\x45", S("xx????xxxxx"), 11);
 
 	if (dwGetAllClasses == 0)
@@ -889,34 +932,95 @@ static BOOL cs::initialize(void)
 #ifdef DEBUG
 		LOG("[-] failed to find dwGetAllClasses\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
+	}
+
+	
+	dwViewMatrix = (DWORD)vm::scan_pattern(dumped_client,
+		"\xC6\x05\x00\x00\x00\x00\x00\xC6\x05\x00\x00\x00\x00\x00\x8B\x16",  S("xx?????xx?????xx"), 16);
+	if (dwViewMatrix == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewMatrix\n");
+#endif
+		goto cleanup_mod;
+	}
+	dwViewMatrix = vm::read_i32(csgo_handle, dwViewMatrix + 0x02);
+	if (dwViewMatrix == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwViewMatrix\n");
+#endif
+		goto cleanup_mod;
+	}
+	dwViewMatrix = dwViewMatrix - 0x16C;
+
+
+	
+	dwScreenSize = (DWORD)vm::scan_pattern(dumped_engine,
+		"\xA1\x00\x00\x00\x00\x03\x44\x24\x08", S("x????xxxx"), 9);
+	if (dwScreenSize == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwScreenSize\n");
+#endif
+		goto cleanup_mod;
+	}
+	dwScreenSize = vm::read_i32(csgo_handle, dwScreenSize + 1);
+	if (dwScreenSize == 0)
+	{
+#ifdef DEBUG
+		LOG("[-] failed to find dwScreenSize\n");
+#endif
+		goto cleanup_mod;
+	}
+	
+	
+
+	if (vm::process_exists(S("Gamers Club AC")))
+	{
+		dwViewAngles = (DWORD)vm::scan_pattern(dumped_engine, "\x00\x0F\x11\x05\x00\x00\x00\x00\xF3\x0F", S("xxxx????xx"), 10);
+		if (dwViewAngles == 0)
+		{
+			#ifdef DEBUG
+			LOG("[-] failed to find dwViewAngles\n");
+			#endif
+			goto cleanup_mod;
+		}
+		dwViewAngles += 4;
+		dwViewAngles = vm::read_i32(csgo_handle, dwViewAngles);
+		if (dwViewAngles == 0)
+		{
+			#ifdef DEBUG
+			LOG("[-] failed to find dwViewAngles\n");
+			#endif
+			goto cleanup_mod;
+		}
+		dwViewAngles += 0xC;
 	}
 
 	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(dwGetAllClasses + 2)));
 	dwGetAllClasses = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle,
 		(QWORD)(get_interface_function(dwGetAllClasses, 8) + 1)));
 
-	VEngineClient = get_interface(get_interface_factory2(engine_dump), S("VEngineClient0"));
+	VEngineClient = get_interface(get_interface_factory2(dumped_engine), S("VEngineClient0"));
 	if (VEngineClient == 0)
 	{
 #ifdef DEBUG
 		LOG("[-] failed to find VEngineClient\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
 	}
 
-	dwClientState = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle,
-		(QWORD)(get_interface_function(VEngineClient, 7) + 3 + 1)));
+
+	dwClientState = vm::read_i32(csgo_handle, (QWORD)vm::read_i32(csgo_handle, (QWORD)(get_interface_function(VEngineClient, 7) + 3 + 1)));
 	if (dwClientState == 0)
 	{
 #ifdef DEBUG
 		LOG("[-] failed to find dwClientState\n");
 #endif
-		goto cleanup3;
+		goto cleanup_mod;
 	}
-
-	vm::free_module(engine_dump);
-	engine_dump = 0;
 
 	//
 	// once should be enough :P
@@ -926,22 +1030,54 @@ static BOOL cs::initialize(void)
 		counter = 0;
 		if (!dump_netvar_tables(dump_netvar_table_callback, &counter))
 		{
-			return 0;
+#ifdef DEBUG
+			LOG("[-] failed to dump netvar tables\n");
+#endif
+			goto cleanup_mod;
 		}
 		netvar_status = 1;
 	}
 
 #ifdef DEBUG
+	LOG("IInputSystem             0x%lx\n", IInputSystem            );
+	LOG("VEngineCvar              0x%lx\n", VEngineCvar             );
+	LOG("sensitivity              0x%lx\n", sensitivity             );
+	LOG("mp_teammates_are_enemies 0x%lx\n", mp_teammates_are_enemies);
+	LOG("C_BasePlayer             0x%lx\n", C_BasePlayer            );
+	LOG("g_TeamCount              0x%lx\n", g_TeamCount             );
+	LOG("g_Teams                  0x%lx\n", g_Teams                 );
+	LOG("dwViewAngles             0x%lx\n", dwViewAngles            );
+	LOG("VClientEntityList        0x%lx\n", VClientEntityList       );
+	LOG("dwGetAllClasses          0x%lx\n", dwGetAllClasses         );
+	LOG("dwClientState            0x%lx\n", dwClientState           );
+	LOG("netvar_status            0x%lx\n", netvar_status           );
+	LOG("m_iHealth                0x%lx\n", m_iHealth               );
+	LOG("m_vecViewOffset          0x%lx\n", m_vecViewOffset         );
+	LOG("m_lifeState              0x%lx\n", m_lifeState             );
+	LOG("m_vecPunch               0x%lx\n", m_vecPunch              );
+	LOG("m_iFOV                   0x%lx\n", m_iFOV                  );
+	LOG("m_vecOldViewAngles       0x%lx\n", m_vecOldViewAngles      );
+	LOG("m_iTeamNum               0x%lx\n", m_iTeamNum              );
+	LOG("m_bSpottedByMask         0x%lx\n", m_bSpottedByMask        );
+	LOG("m_vecOrigin              0x%lx\n", m_vecOrigin             );
+	LOG("m_hActiveWeapon          0x%lx\n", m_hActiveWeapon         );
+	LOG("m_iShotsFired            0x%lx\n", m_iShotsFired           );
+	LOG("m_iCrossHairID           0x%lx\n", m_iCrossHairID          );
+	LOG("m_bHasDefuser            0x%lx\n", m_bHasDefuser           );
+	LOG("m_bIsDefusing            0x%lx\n", m_bIsDefusing           );
+	LOG("m_dwBoneMatrix           0x%lx\n", m_dwBoneMatrix          );
 	LOG("[+] csgo.exe is running\n");
 #endif
 
+	vm::free_module(dumped_client);
+	vm::free_module(dumped_engine);
+
 	return 1;
-cleanup3:
-	if (engine_dump)
-		vm::free_module(engine_dump);
-cleanup2:
-	if (client_dump)
-		vm::free_module(client_dump);
+
+
+cleanup_mod:
+	vm::free_module(dumped_client);
+	vm::free_module(dumped_engine);
 cleanup:
 	if (csgo_handle)
 		vm::close(csgo_handle);
