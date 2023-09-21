@@ -167,7 +167,6 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 		//
 		if (image_name && *(QWORD*)image_name == 0x6578652e6f677363)
 		{
-			LOG("process: %s\n", image_name);
 			csgo::run();
 		}
 	}
