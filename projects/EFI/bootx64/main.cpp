@@ -46,9 +46,9 @@ namespace config
 {
 	BOOL  rcs = 0;
 	DWORD aimbot_button = 107;
-	float aimbot_fov = 2.0f;
-	float aimbot_smooth = 20.0f;
-	BOOL  aimbot_visibility_check = 0;
+	float aimbot_fov = 1.4f;
+	float aimbot_smooth = 22.0f;
+	BOOL  aimbot_visibility_check = 1;
 	DWORD triggerbot_button = 111;
 	BOOL  visuals_enabled = 1;
 }
