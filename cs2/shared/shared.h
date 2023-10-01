@@ -36,6 +36,7 @@ namespace input
 	extern void mouse_move(int x, int y);
 	extern void mouse1_down(void);
 	extern void mouse1_up(void);
+	extern BOOL is_button_down(DWORD button);
 }
 
 

@@ -15,16 +15,34 @@
 #define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, __VA_ARGS__)
 
 #endif
-#define FONT_LARGE 6
-#define FONT_SMALL 5
-
-typedef DWORD C_Player;
-typedef DWORD C_TeamList;
-typedef DWORD C_Team;
-typedef DWORD C_PlayerList;
 
 namespace cs
 {
+	namespace engine
+	{
+		QWORD get_convar(const char *name);
+		DWORD get_current_tick(void);
+	}
+
+	namespace entity
+	{
+		QWORD get_local_player_controller(void);
+		QWORD get_client_entity(int index);
+		QWORD get_player(QWORD controller);
+	}
+
+	namespace mouse
+	{
+		float get_sensitivity(void);
+	}
+
+	namespace player
+	{
+		DWORD get_health(QWORD player);
+		DWORD get_team_num(QWORD player);
+		DWORD get_crosshair_id(QWORD player);
+	}
+
 	BOOL running(void);
 }
 

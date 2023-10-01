@@ -16,6 +16,11 @@ namespace input
 	{
 		mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 	}
+
+	BOOL is_button_down(DWORD button)
+	{
+		return GetAsyncKeyState(button);
+	}
 }
 
 namespace config
@@ -25,7 +30,7 @@ namespace config
 	float aimbot_fov = 2.0f;
 	float aimbot_smooth = 20.0f;
 	BOOL  aimbot_visibility_check = 0;
-	DWORD triggerbot_button = 111;
+	DWORD triggerbot_button = 6;
 	BOOL  visuals_enabled = 1;
 }
 
