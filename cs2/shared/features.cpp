@@ -89,10 +89,7 @@ static void features::triggerbot(QWORD local_player)
 	if (cs::player::get_health(crosshair_target) < 1)
 		return;
 
-	DWORD local_team = cs::player::get_team_num(local_player);
-	DWORD targt_team = cs::player::get_team_num(crosshair_target);
-
-	if (local_team == targt_team)
+	if (cs::player::get_team_num(local_player) == cs::player::get_team_num(crosshair_target))
 		return;
 
 	DWORD current_tick = cs::engine::get_current_tick();

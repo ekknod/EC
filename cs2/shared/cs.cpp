@@ -4,9 +4,6 @@ namespace cs
 {
 	static vm_handle game_handle = 0;
 
-	//
-	// interfaces
-	//
 	namespace interfaces
 	{
 		static QWORD resource;
@@ -28,13 +25,7 @@ namespace cs
 		static QWORD sensitivity;
 	}
 
-
 	static BOOL initialize(void);
-
-
-	//
-	// get dll game objects
-	//
 	static QWORD get_interface(QWORD base, PCSTR name);
 	QWORD get_interface_function(QWORD interface_address, DWORD index);
 }
@@ -65,10 +56,6 @@ E0:
 		return 0;
 	}
 
-
-	//
-	// initialize game addresses
-	//
 	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
