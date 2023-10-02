@@ -147,6 +147,10 @@ void features::run(void)
 		}
 	}
 
+
+	aimbot_active = 0;
+
+
 	//
 	// no valid target found
 	//
@@ -232,6 +236,8 @@ void features::run(void)
 
 	if (qabs((int)sy) > 127)
 		return;
+
+	aimbot_active = 1;
 
 	DWORD current_tick = cs::engine::get_current_tick();
 	if (current_tick - aimbot_tick > aim_ticks)

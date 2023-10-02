@@ -57,7 +57,7 @@ namespace input
 
 namespace config
 {
-	BOOL  rcs = 1;
+	BOOL  rcs = 0;
 	DWORD aimbot_button = 314; // mouse left key
 	float aimbot_fov = 2.0f;
 	float aimbot_smooth = 20.0f;
