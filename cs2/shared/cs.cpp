@@ -114,7 +114,6 @@ E0:
 	LOG("direct::local_player   %llx\n", direct::local_player);
 	LOG("direct::view_angles    %llx\n", direct::view_angles);
 	LOG("direct::view_matrix    %llx\n", direct::view_matrix);
-	LOG("mouse::sensitivity     %llx\n", mouse::sensitivity);
 	LOG("game is running\n");
 #endif
 	return 1;
@@ -137,6 +136,9 @@ QWORD cs::engine::get_convar(const char *name)
 
 		if (!strcmpi_imp(convar_name, name))
 		{
+#ifdef DEBUG
+			LOG("get_convar [%s %llx]\n", name, entry);
+#endif
 			return entry;
 		}
 	}
@@ -201,6 +203,72 @@ DWORD cs::player::get_team_num(QWORD player)
 DWORD cs::player::get_crosshair_id(QWORD player)
 {
 	return vm::read_i32(game_handle, player + 0x152c);
+}
+
+DWORD cs::player::get_shots_fired(QWORD player)
+{
+	return vm::read_i32(game_handle, player + 0x1404);
+}
+
+vec3 cs::player::get_eye_angles(QWORD player)
+{
+	vec3 value{};
+	if (!vm::read(game_handle, player + 0x1500, &value, sizeof(value)))
+	{
+		value = {};
+	}
+	return value;
+}
+
+float cs::player::get_fov_multipler(QWORD player)
+{
+	return vm::read_float(game_handle, player + 0x120c);
+}
+
+vec3 cs::player::get_vec_punch(QWORD player)
+{
+	vec3 data{};
+
+	QWORD aim_punch_cache[2]{};
+	if (!vm::read(game_handle, player + 0x1728, &aim_punch_cache, sizeof(aim_punch_cache)))
+	{
+		return data;
+	}
+
+	DWORD aimpunch_size = ((DWORD*)&aim_punch_cache[0])[0];
+	if (aimpunch_size < 1)
+	{
+		return data;
+	}
+
+	if (aimpunch_size == 129)
+		aimpunch_size = 130;
+
+	if (!vm::read(game_handle, aim_punch_cache[1] + ((aimpunch_size-1) * 12), &data, sizeof(data)))
+	{
+		data = {};
+	}
+
+	return data;
+}
+
+QWORD cs::player::get_node(QWORD player)
+{
+	return vm::read_i64(game_handle, player + 0x310);
+}
+
+BOOLEAN cs::node::is_dormant(QWORD node)
+{
+	return vm::read_i8( game_handle, node + 0xe7 );
+}
+
+BOOL cs::node::get_bone_position(QWORD node, int index, vec3 *data)
+{
+	QWORD bone_array = vm::read_i64(game_handle, node + 0x1E0);
+	if (bone_array == 0)
+		return 0;
+
+	return vm::read( game_handle, bone_array + (index * 32), data, sizeof(vec3));
 }
 
 static QWORD cs::get_interface(QWORD base, PCSTR name)

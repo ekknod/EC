@@ -6,15 +6,32 @@
 
 namespace features
 {
+	//
+	// triggerbot
+	//
 	static DWORD mouse_down_tick;
 	static DWORD mouse_up_tick;
+
+	//
+	// rcs
+	//
+	static vec3  rcs_old_punch;
+
+	//
+	// aimbot
+	//
+	static BOOL  aimbot_active;
+
 
 	void reset(void)
 	{
 		mouse_down_tick  = 0;
 		mouse_up_tick    = 0;
+		rcs_old_punch    = {};
+		aimbot_active    = 0;
 	}
 
+	static void standalone_rcs(DWORD shots_fired, vec3 vec_punch, float sensitivity);
 	static void triggerbot(QWORD local_player);
 }
 
@@ -44,10 +61,25 @@ void features::run(void)
 
 	if (local_player == 0)
 		return;
-	
+
+	DWORD num_shots   = cs::player::get_shots_fired(local_player);
+	vec3  aim_punch   = cs::player::get_vec_punch(local_player);
+	float sensitivity = cs::mouse::get_sensitivity() * cs::player::get_fov_multipler(local_player);
+
+	if (config::rcs)
+	{
+		standalone_rcs(num_shots, aim_punch, sensitivity);
+	}
+
 	if (input::is_button_down(config::triggerbot_button))
 	{
-		triggerbot(local_player);
+		//
+		// accurate shots only
+		//
+		if (aim_punch.x > -0.04f)
+		{
+			triggerbot(local_player);
+		}
 	}
 
 	/*
@@ -68,6 +100,24 @@ void features::run(void)
 
 	}
 	*/
+}
+
+static void features::standalone_rcs(DWORD num_shots, vec3 vec_punch, float sensitivity)
+{
+	if (num_shots > 1)
+	{
+		float x = (vec_punch.x - rcs_old_punch.x) * -1.0f;
+		float y = (vec_punch.y - rcs_old_punch.y) * -1.0f;
+		
+		int mouse_angle_x = (int)(((y * 2.0f) / sensitivity) / -0.022f);
+		int mouse_angle_y = (int)(((x * 2.0f) / sensitivity) / 0.022f);
+
+		if (!aimbot_active)
+		{
+			input::mouse_move(mouse_angle_x, mouse_angle_y);
+		}
+	}
+	rcs_old_punch = vec_punch;
 }
 
 static void features::triggerbot(QWORD local_player)

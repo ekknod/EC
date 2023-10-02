@@ -41,6 +41,19 @@ namespace cs
 		DWORD get_health(QWORD player);
 		DWORD get_team_num(QWORD player);
 		DWORD get_crosshair_id(QWORD player);
+		DWORD get_shots_fired(QWORD player);
+		vec3  get_eye_angles(QWORD player);
+
+		float get_fov_multipler(QWORD player);
+		vec3  get_vec_punch(QWORD player);
+		
+		QWORD get_node(QWORD player);
+	}
+
+	namespace node
+	{
+		BOOLEAN  is_dormant(QWORD node);
+		BOOL     get_bone_position(QWORD node, int index, vec3 *data);
 	}
 
 	BOOL running(void);
