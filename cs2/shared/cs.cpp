@@ -60,9 +60,6 @@ static BOOL cs::initialize(void)
 	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
-#ifdef DEBUG
-		LOG("interfaces::resource not found\n");
-#endif
 	E1:
 		vm::close(game_handle);
 		game_handle = 0;
@@ -72,75 +69,26 @@ static BOOL cs::initialize(void)
 	interfaces::entity = vm::read_i64(game_handle, interfaces::resource + 0x58);
 	if (interfaces::entity == 0)
 	{
-#ifdef DEBUG
-		LOG("interfaces::entity not found\n");
-#endif
 		goto E1;
 	}
 
-	interfaces::cvar = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0");
-	if (interfaces::cvar == 0)
-	{
-#ifdef DEBUG
-		LOG("interfaces::cvar not found\n");
-#endif
-		goto E1;
-	}
-
+	interfaces::cvar  = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0");
 	interfaces::input = get_interface(vm::get_module(game_handle, "inputsystem.dll"), "InputSystemVersion0");
-	if (interfaces::input == 0)
-	{
-#ifdef DEBUG
-		LOG("interfaces::input not found\n");
-#endif
-		goto E1;
-	}
-
 	/*
 	optional code:
 	interfaces::player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
 	interfaces::player = vm::get_relative_address(game_handle, get_interface_function(interfaces::player, 120) + 0x16, 3, 7);
 	interfaces::player = vm::read_i64(game_handle, interfaces::player);
 	*/
-	interfaces::player = interfaces::entity + 0x10;
+	interfaces::player   = interfaces::entity + 0x10;
+
 	direct::local_player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
-	if (direct::local_player == 0)
-	{
-#ifdef DEBUG
-		LOG("direct::local_player not found\n");
-#endif
-		goto E1;
-	}
-
 	direct::local_player = get_interface_function(direct::local_player, 181);
-	if (direct::local_player == 0)
-	{
-#ifdef DEBUG
-		LOG("direct::local_player not found\n");
-#endif
-		goto E1;
-	}
-
 	direct::local_player = vm::get_relative_address(game_handle, direct::local_player + 0xF0, 3, 7);
 
-	direct::view_angles = get_interface(vm::get_module(game_handle, "client.dll"), "Source2Client0");
-	if (direct::view_angles == 0)
-	{
-#ifdef DEBUG
-		LOG("direct::view_angles not found\n");
-#endif
-		goto E1;
-	}
-
-	direct::view_angles = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
-	direct::view_angles = vm::read_i64(game_handle, direct::view_angles) + 0x4510;
-	if (direct::view_angles == 0)
-	{
-#ifdef DEBUG
-		LOG("direct::view_angles not found\n");
-#endif
-		goto E1;
-	}
+	direct::view_angles  = get_interface(vm::get_module(game_handle, "client.dll"), "Source2Client0");
+	direct::view_angles  = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
+	direct::view_angles  = vm::read_i64(game_handle, direct::view_angles) + 0x4510;
 
 
 	//
@@ -150,9 +98,6 @@ static BOOL cs::initialize(void)
 		vm::get_module(game_handle, "client.dll"), "\x48\x63\xc2\x48\x8d\x0d\x00\x00\x00\x00\x48\xc1", "xxxxxx????xx", 12);
 	if (direct::view_matrix == 0)
 	{
-#ifdef DEBUG
-		LOG("direct::view_matrix not found\n");
-#endif
 		goto E1;
 	}
 
@@ -161,22 +106,6 @@ static BOOL cs::initialize(void)
 	convars::sensitivity              = engine::get_convar("sensitivity");
 	convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies");
 	direct::button_state              = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
-
-	if (convars::sensitivity == 0)
-	{
-#ifdef DEBUG
-		LOG("convars::sensitivity not found\n");
-#endif
-		goto E1;
-	}
-
-	if (convars::mp_teammates_are_enemies == 0)
-	{
-#ifdef DEBUG
-		LOG("convars::mp_teammates_are_enemies not found\n");
-#endif
-		goto E1;
-	}
 
 	//
 	// to-do schemas
