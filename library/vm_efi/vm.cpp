@@ -7,6 +7,11 @@ extern "C" __declspec(dllimport) BOOLEAN PsGetProcessExitProcessCalled(PEPROCESS
 extern "C" __declspec(dllimport) PVOID PsGetProcessPeb(PEPROCESS);
 extern "C" __declspec(dllimport) PVOID PsGetProcessWow64Process(PEPROCESS);
 
+namespace km
+{
+	extern BOOL memcpy_impl(void *dest, const void *src, QWORD size);
+}
+
 static vm_handle get_process_by_name(PCSTR process_name)
 {
 	QWORD process;
@@ -81,16 +86,18 @@ BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
+	/*
 	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
 	if (physical_address == 0)
 	{
 		return 0;
 	}
+	*/
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
 	}
-	memcpy(buffer, (PVOID)address, length);
+	km::memcpy_impl(buffer, (PVOID)address, length);
 	return 1;
 }
 
@@ -108,16 +115,18 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
+	/*
 	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
 	if (physical_address == 0)
 	{
 		return 0;
 	}
+	*/
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
 	}
-	memcpy((void *)address, buffer, length);
+	km::memcpy_impl((void *)address, buffer, length);
 	return 1;
 }
 
