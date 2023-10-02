@@ -44,12 +44,6 @@ namespace input
 		mouse::move(0, 0, 0x02);
 	}
 
-	BOOL is_button_down(DWORD button)
-	{
-		UNREFERENCED_PARAMETER(button);
-		return 1;
-	}
-
 	WINDOW_INFO get_window_info(void)
 	{
 		WINDOW_INFO info;
@@ -60,6 +54,18 @@ namespace input
 		return info;
 	}
 }
+
+namespace config
+{
+	BOOL  rcs = 1;
+	DWORD aimbot_button = 314; // mouse left key
+	float aimbot_fov = 2.0f;
+	float aimbot_smooth = 20.0f;
+	BOOL  aimbot_visibility_check = 0;
+	DWORD triggerbot_button = 318; // mouse forward key
+	BOOL  visuals_enabled = 2;
+}
+
 
 namespace km
 {
@@ -81,17 +87,6 @@ namespace km
 		}
 		return 1;
 	}
-}
-
-namespace config
-{
-	BOOL  rcs = 1;
-	DWORD aimbot_button = 314; // mouse left key
-	float aimbot_fov = 2.0f;
-	float aimbot_smooth = 20.0f;
-	BOOL  aimbot_visibility_check = 0;
-	DWORD triggerbot_button = 318; // mouse forward key
-	BOOL  visuals_enabled = 2;
 }
 
 #pragma warning(disable : 4201)
