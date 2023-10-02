@@ -71,7 +71,7 @@ void features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 
-	if (input::is_button_down(config::triggerbot_button))
+	if (cs::input::is_button_down(config::triggerbot_button))
 	{
 		//
 		// accurate shots only

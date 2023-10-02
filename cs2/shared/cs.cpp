@@ -18,6 +18,7 @@ namespace cs
 		static QWORD local_player;
 		static QWORD view_angles;
 		static QWORD view_matrix;
+		static QWORD button_state;
 	}
 
 	namespace mouse
@@ -100,6 +101,8 @@ E0:
 
 	direct::view_matrix = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
 	mouse::sensitivity  = engine::get_convar("sensitivity");
+
+	direct::button_state = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
 
 	//
 	// to-do schemas
@@ -188,6 +191,12 @@ QWORD cs::entity::get_player(QWORD controller)
 float cs::mouse::get_sensitivity(void)
 {
 	return vm::read_float(game_handle, mouse::sensitivity + 0x40);
+}
+
+BOOL cs::input::is_button_down(DWORD button)
+{
+	DWORD v = vm::read_i32(game_handle, (QWORD)(interfaces::input + (((QWORD(button) >> 5) * 4) + direct::button_state)));
+	return (v >> (button & 31)) & 1;
 }
 
 DWORD cs::player::get_health(QWORD player)

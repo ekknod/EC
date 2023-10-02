@@ -36,6 +36,11 @@ namespace cs
 		float get_sensitivity(void);
 	}
 
+	namespace input
+	{
+		BOOL  is_button_down(DWORD button);
+	}
+
 	namespace player
 	{
 		DWORD get_health(QWORD player);
