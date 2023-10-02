@@ -18,7 +18,7 @@ namespace cs
 		static QWORD local_player;
 		static QWORD view_angles;
 		static QWORD view_matrix;
-		static QWORD button_state;
+		static DWORD button_state;
 	}
 
 	namespace convars
@@ -101,11 +101,12 @@ static BOOL cs::initialize(void)
 		goto E1;
 	}
 
-	direct::view_matrix = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
+	direct::view_matrix  = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
+	direct::button_state = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
 
 	convars::sensitivity              = engine::get_convar("sensitivity");
 	convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies");
-	direct::button_state              = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
+	
 
 	//
 	// to-do schemas
