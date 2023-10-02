@@ -21,9 +21,10 @@ namespace cs
 		static QWORD button_state;
 	}
 
-	namespace mouse
+	namespace convars
 	{
 		static QWORD sensitivity;
+		static QWORD mp_teammates_are_enemies;
 	}
 
 	static BOOL initialize(void);
@@ -50,7 +51,6 @@ static BOOL cs::initialize(void)
 	game_handle = vm::open_process_ex("cs2.exe", "client.dll");
 	if (!game_handle)
 	{
-E0:
 #ifdef DEBUG
 		LOG("CS2 process not found\n");
 #endif
@@ -60,20 +60,42 @@ E0:
 	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
+#ifdef DEBUG
+		LOG("interfaces::resource not found\n");
+#endif
 	E1:
 		vm::close(game_handle);
 		game_handle = 0;
-		goto E0;
+		return 0;
 	}
 
 	interfaces::entity = vm::read_i64(game_handle, interfaces::resource + 0x58);
 	if (interfaces::entity == 0)
 	{
+#ifdef DEBUG
+		LOG("interfaces::entity not found\n");
+#endif
 		goto E1;
 	}
 
 	interfaces::cvar = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0");
+	if (interfaces::cvar == 0)
+	{
+#ifdef DEBUG
+		LOG("interfaces::cvar not found\n");
+#endif
+		goto E1;
+	}
+
 	interfaces::input = get_interface(vm::get_module(game_handle, "inputsystem.dll"), "InputSystemVersion0");
+	if (interfaces::input == 0)
+	{
+#ifdef DEBUG
+		LOG("interfaces::input not found\n");
+#endif
+		goto E1;
+	}
+
 	/*
 	optional code:
 	interfaces::player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
@@ -82,11 +104,43 @@ E0:
 	*/
 	interfaces::player = interfaces::entity + 0x10;
 	direct::local_player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
-	direct::local_player = vm::get_relative_address(game_handle, get_interface_function(direct::local_player, 181) + 0xF0, 3, 7);
+	if (direct::local_player == 0)
+	{
+#ifdef DEBUG
+		LOG("direct::local_player not found\n");
+#endif
+		goto E1;
+	}
+
+	direct::local_player = get_interface_function(direct::local_player, 181);
+	if (direct::local_player == 0)
+	{
+#ifdef DEBUG
+		LOG("direct::local_player not found\n");
+#endif
+		goto E1;
+	}
+
+	direct::local_player = vm::get_relative_address(game_handle, direct::local_player + 0xF0, 3, 7);
 
 	direct::view_angles = get_interface(vm::get_module(game_handle, "client.dll"), "Source2Client0");
+	if (direct::view_angles == 0)
+	{
+#ifdef DEBUG
+		LOG("direct::view_angles not found\n");
+#endif
+		goto E1;
+	}
+
 	direct::view_angles = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
 	direct::view_angles = vm::read_i64(game_handle, direct::view_angles) + 0x4510;
+	if (direct::view_angles == 0)
+	{
+#ifdef DEBUG
+		LOG("direct::view_angles not found\n");
+#endif
+		goto E1;
+	}
 
 
 	//
@@ -96,13 +150,33 @@ E0:
 		vm::get_module(game_handle, "client.dll"), "\x48\x63\xc2\x48\x8d\x0d\x00\x00\x00\x00\x48\xc1", "xxxxxx????xx", 12);
 	if (direct::view_matrix == 0)
 	{
+#ifdef DEBUG
+		LOG("direct::view_matrix not found\n");
+#endif
 		goto E1;
 	}
 
 	direct::view_matrix = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
-	mouse::sensitivity  = engine::get_convar("sensitivity");
 
-	direct::button_state = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
+	convars::sensitivity              = engine::get_convar("sensitivity");
+	convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies");
+	direct::button_state              = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
+
+	if (convars::sensitivity == 0)
+	{
+#ifdef DEBUG
+		LOG("convars::sensitivity not found\n");
+#endif
+		goto E1;
+	}
+
+	if (convars::mp_teammates_are_enemies == 0)
+	{
+#ifdef DEBUG
+		LOG("convars::mp_teammates_are_enemies not found\n");
+#endif
+		goto E1;
+	}
 
 	//
 	// to-do schemas
@@ -154,6 +228,25 @@ DWORD cs::engine::get_current_tick(void)
 	return vm::read_i32(game_handle, interfaces::input + offset);
 }
 
+vec2 cs::engine::get_viewangles(void)
+{
+	vec2 va{};
+	if (!vm::read(game_handle, direct::view_angles, &va, sizeof(va)))
+	{
+		va = {};
+	}
+	return va;
+}
+
+view_matrix_t cs::engine::get_viewmatrix(void)
+{
+	view_matrix_t matrix{};
+
+	vm::read(game_handle, direct::view_matrix, &matrix, sizeof(matrix));
+
+	return matrix;
+}
+
 QWORD cs::entity::get_local_player_controller(void)
 {
 	return vm::read_i64(game_handle, direct::local_player);
@@ -166,6 +259,21 @@ QWORD cs::entity::get_client_entity(int index)
 		return 0;
 
 	return vm::read_i64(game_handle, (QWORD)(120i64 * (index & 0x1FF) + v2));
+}
+
+BOOL cs::entity::is_player(QWORD controller)
+{
+	QWORD vfunc = get_interface_function(controller, 144);
+	if (vfunc == 0)
+		return 0;
+
+	DWORD value = vm::read_i32(game_handle, vfunc);
+	//
+	// mov al, 0x1
+	// ret
+	// cc
+	//
+	return value == 0xCCC301B0;
 }
 
 QWORD cs::entity::get_player(QWORD controller)
@@ -190,7 +298,12 @@ QWORD cs::entity::get_player(QWORD controller)
 
 float cs::mouse::get_sensitivity(void)
 {
-	return vm::read_float(game_handle, mouse::sensitivity + 0x40);
+	return vm::read_float(game_handle, convars::sensitivity + 0x40);
+}
+
+BOOL cs::gamemode::is_ffa(void)
+{
+	return vm::read_i32(game_handle, convars::mp_teammates_are_enemies + 0x40) == 1;
 }
 
 BOOL cs::input::is_button_down(DWORD button)
@@ -209,6 +322,33 @@ DWORD cs::player::get_team_num(QWORD player)
 	return vm::read_i32(game_handle, player + 0x3bf);
 }
 
+int cs::player::get_life_state(QWORD player)
+{
+	return vm::read_i32(game_handle, player + 0x330);
+}
+
+vec3 cs::player::get_origin(QWORD player)
+{
+	vec3 value{};
+	if (!vm::read(game_handle, player + 0x1214, &value, sizeof(value)))
+	{
+		value = {};
+	}
+	return value;
+}
+
+float cs::player::get_vec_view(QWORD player)
+{
+	return vm::read_float(game_handle, player + 0xc48 + 8);
+}
+
+vec3 cs::player::get_eye_position(QWORD player)
+{
+	vec3 origin = get_origin(player);
+	origin.z += get_vec_view(player);
+	return origin;
+}
+
 DWORD cs::player::get_crosshair_id(QWORD player)
 {
 	return vm::read_i32(game_handle, player + 0x152c);
@@ -219,9 +359,9 @@ DWORD cs::player::get_shots_fired(QWORD player)
 	return vm::read_i32(game_handle, player + 0x1404);
 }
 
-vec3 cs::player::get_eye_angles(QWORD player)
+vec2 cs::player::get_eye_angles(QWORD player)
 {
-	vec3 value{};
+	vec2 value{};
 	if (!vm::read(game_handle, player + 0x1500, &value, sizeof(value)))
 	{
 		value = {};
@@ -234,9 +374,9 @@ float cs::player::get_fov_multipler(QWORD player)
 	return vm::read_float(game_handle, player + 0x120c);
 }
 
-vec3 cs::player::get_vec_punch(QWORD player)
+vec2 cs::player::get_vec_punch(QWORD player)
 {
-	vec3 data{};
+	vec2 data{};
 
 	QWORD aim_punch_cache[2]{};
 	if (!vm::read(game_handle, player + 0x1728, &aim_punch_cache, sizeof(aim_punch_cache)))
@@ -266,7 +406,34 @@ QWORD cs::player::get_node(QWORD player)
 	return vm::read_i64(game_handle, player + 0x310);
 }
 
-BOOLEAN cs::node::is_dormant(QWORD node)
+BOOL cs::player::is_valid(QWORD player, QWORD node)
+{
+	if (player == 0)
+	{
+		return 0;
+	}
+
+	DWORD player_health = get_health(player);
+	if (player_health < 1)
+	{
+		return 0;
+	}
+
+	if (player_health > 150)
+	{
+		return 0;
+	}
+
+	int player_lifestate = get_life_state(player);
+	if (player_lifestate != 256)
+	{
+		return 0;
+	}
+
+	return node::get_dormant(node) == 0;
+}
+
+BOOLEAN cs::node::get_dormant(QWORD node)
 {
 	return vm::read_i8( game_handle, node + 0xe7 );
 }
@@ -300,10 +467,21 @@ static QWORD cs::get_interface(QWORD base, PCSTR name)
 		return 0;
 	}
 
-	QWORD name_length = strlen(name);
+	QWORD name_length = strlen_imp(name);
+
+	int num_count = 4000;
 
 	while (1)
 	{
+		num_count--;
+		//
+		// break potential dead loop
+		//
+		if (num_count == 0)
+		{
+			break;
+		}
+
 		char interface_name[120]{};
 		vm::read(game_handle, 
 			vm::read_i64(game_handle, interface_entry + 8),
