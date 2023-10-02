@@ -469,19 +469,8 @@ static QWORD cs::get_interface(QWORD base, PCSTR name)
 
 	QWORD name_length = strlen_imp(name);
 
-	int num_count = 4000;
-
 	while (1)
 	{
-		num_count--;
-		//
-		// break potential dead loop
-		//
-		if (num_count == 0)
-		{
-			break;
-		}
-
 		char interface_name[120]{};
 		vm::read(game_handle, 
 			vm::read_i64(game_handle, interface_entry + 8),
