@@ -16,21 +16,16 @@ namespace input
 	{
 		mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 	}
-
-	BOOL is_button_down(DWORD button)
-	{
-		return GetAsyncKeyState(button);
-	}
 }
 
 namespace config
 {
 	BOOL  rcs = 1;
-	DWORD aimbot_button = 107;
+	DWORD aimbot_button = 0x13A; // mouse left key
 	float aimbot_fov = 2.0f;
 	float aimbot_smooth = 20.0f;
 	BOOL  aimbot_visibility_check = 0;
-	DWORD triggerbot_button = 6;
+	DWORD triggerbot_button = 318; // mouse forward key
 	BOOL  visuals_enabled = 1;
 }
 
