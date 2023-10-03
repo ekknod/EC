@@ -36,9 +36,9 @@ namespace features
 	}
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
-	static void get_best_target(QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
+	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
-	static void triggerbot(QWORD local_player);
+	static void triggerbot(BOOL ffa, QWORD local_player);
 
 #ifdef _KERNEL_MODE
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
@@ -85,6 +85,7 @@ void features::run(void)
 		goto NOT_INGAME;
 	}
 
+	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);
 	vec2  aim_punch   = cs::player::get_vec_punch(local_player);
 	float sensitivity = cs::mouse::get_sensitivity() * cs::player::get_fov_multipler(local_player);
@@ -102,7 +103,7 @@ void features::run(void)
 
 		if (aim_punch.x > -0.04f)
 		{
-			triggerbot(local_player);
+			triggerbot(ffa, local_player);
 		}
 	}
 
@@ -119,7 +120,7 @@ void features::run(void)
 	QWORD best_target = 0;
 	if (config::visuals_enabled == 2)
 	{
-		get_best_target(local_player_controller, local_player, num_shots, aim_punch, &best_target);
+		get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
 	}
 	else
 	{
@@ -128,7 +129,7 @@ void features::run(void)
 		//
 		if (!aimbot_key)
 		{
-			get_best_target(local_player_controller, local_player, num_shots, aim_punch, &best_target);
+			get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
 		}
 	}
 
@@ -147,7 +148,7 @@ void features::run(void)
 
 			if (aimbot_target == 0)
 			{
-				get_best_target(local_player_controller, local_player, num_shots, aim_punch, &aimbot_target);
+				get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &aimbot_target);
 			}
 		}
 	}
@@ -254,8 +255,7 @@ void features::run(void)
 
 static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch)
 {
-	QWORD local_node  = cs::player::get_node(local_player);
-	vec3 eye_position = cs::node::get_origin(local_node);
+	vec3 eye_position = cs::node::get_origin(cs::player::get_node(local_player));
 	eye_position.z    += cs::player::get_vec_view(local_player);
 	// vec3 eye_position = cs::player::get_eye_position(local_player);
 
@@ -280,10 +280,9 @@ static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD 
 	return angle;
 }
 
-static void features::get_best_target(QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target)
+static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target)
 {
 	vec2 va = cs::engine::get_viewangles();
-	BOOL ffa = cs::gamemode::is_ffa();
 
 	float best_fov = 360.0f;
 
@@ -374,7 +373,7 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 	rcs_old_punch = vec_punch;
 }
 
-static void features::triggerbot(QWORD local_player)
+static void features::triggerbot(BOOL ffa, QWORD local_player)
 {
 	if (mouse_down_tick)
 	{
@@ -393,8 +392,14 @@ static void features::triggerbot(QWORD local_player)
 	if (cs::player::get_health(crosshair_target) < 1)
 		return;
 
-	if (cs::player::get_team_num(local_player) == cs::player::get_team_num(crosshair_target))
-		return;
+	//
+	// if game mode is not free for all, skip teammates
+	//
+	if (!ffa)
+	{
+		if (cs::player::get_team_num(local_player) == cs::player::get_team_num(crosshair_target))
+			return;
+	}
 
 	DWORD current_tick = cs::engine::get_current_tick();
 	if (current_tick > mouse_up_tick)

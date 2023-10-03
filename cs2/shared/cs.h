@@ -10,7 +10,7 @@
 #define DEBUG
 #define LOG(...) printf("[EC] " __VA_ARGS__)
 #else
-#define DEBUG
+// #define DEBUG
 #define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, __VA_ARGS__)
 #endif
 

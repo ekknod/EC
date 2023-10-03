@@ -106,6 +106,10 @@ static BOOL cs::initialize(void)
 
 	convars::sensitivity              = engine::get_convar("sensitivity");
 	convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies");
+	if (convars::sensitivity == 0 || convars::mp_teammates_are_enemies == 0)
+	{
+		goto E1;
+	}
 	
 
 	//
