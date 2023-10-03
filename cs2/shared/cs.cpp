@@ -37,6 +37,13 @@ BOOL cs::running(void)
 	return cs::initialize();
 }
 
+/*
+optional code:
+interfaces::player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
+interfaces::player = vm::get_relative_address(game_handle, get_interface_function(interfaces::player, 120) + 0x16, 3, 7);
+interfaces::player = vm::read_i64(game_handle, interfaces::player);
+*/
+
 //
 // jmp on error
 //
@@ -72,22 +79,15 @@ static BOOL cs::initialize(void)
 		return 0;
 	}
 
-	QWORD client_dll = vm::get_module(game_handle, "client.dll");
-	if (client_dll == 0)
-		goto E1;
+	QWORD client_dll;
+	JOE(client_dll = vm::get_module(game_handle, "client.dll"), E1);
 
-	JOE(interfaces::entity = vm::read_i64(game_handle, interfaces::resource + 0x58), E1);
-	interfaces::player     = interfaces::entity + 0x10;
-	/*
-	optional code:
-	interfaces::player = get_interface(vm::get_module(game_handle, "client.dll"), "Source2ClientPrediction0");
-	interfaces::player = vm::get_relative_address(game_handle, get_interface_function(interfaces::player, 120) + 0x16, 3, 7);
-	interfaces::player = vm::read_i64(game_handle, interfaces::player);
-	*/
+	JOE(interfaces::entity   = vm::read_i64(game_handle, interfaces::resource + 0x58), E1);
+	interfaces::player       = interfaces::entity + 0x10;
 
-	JOE(interfaces::cvar  = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0"), E1);
-	JOE(interfaces::input = get_interface(vm::get_module(game_handle, "inputsystem.dll"), "InputSystemVersion0"), E1);
-
+	JOE(interfaces::cvar     = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0"), E1);
+	JOE(interfaces::input    = get_interface(vm::get_module(game_handle, "inputsystem.dll"), "InputSystemVersion0"), E1);
+	direct::button_state     = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
 
 	JOE(direct::local_player = get_interface(client_dll, "Source2ClientPrediction0"), E1);
 	JOE(direct::local_player = get_interface_function(direct::local_player, 181), E1);
@@ -98,25 +98,20 @@ static BOOL cs::initialize(void)
 	JOE(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles      += 0x4510;
 
-
 	//
 	// viewmatrix: 48 63 c2 48 8d 0d ? ? ? ? 48 c1
 	//
 	JOE(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x63\xc2\x48\x8d\x0d\x00\x00\x00\x00\x48\xc1", "xxxxxx????xx", 12), E1);
+	direct::view_matrix     = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
 
-	direct::view_matrix  = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
-	direct::button_state = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
+	JOE(convars::sensitivity              = engine::get_convar("sensitivity"), E1);
+	JOE(convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies"), E1);
 
-	convars::sensitivity              = engine::get_convar("sensitivity");
-	convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies");
-	if (convars::sensitivity == 0 || convars::mp_teammates_are_enemies == 0)
-	{
-		goto E1;
-	}
-	
+
 	//
 	// to-do schemas
 	//
+
 
 #ifdef DEBUG
 	LOG("interfaces::cvar       %llx\n", interfaces::cvar);
