@@ -25,6 +25,7 @@ namespace cs
 	{
 		static QWORD sensitivity;
 		static QWORD mp_teammates_are_enemies;
+		static QWORD cl_crosshairalpha;
 	}
 
 	static BOOL initialize(void);
@@ -106,7 +107,7 @@ static BOOL cs::initialize(void)
 
 	JOE(convars::sensitivity              = engine::get_convar("sensitivity"), E1);
 	JOE(convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies"), E1);
-
+	JOE(convars::cl_crosshairalpha        = engine::get_convar("cl_crosshairalpha"), E1);
 
 	//
 	// to-do schemas
@@ -225,6 +226,11 @@ QWORD cs::entity::get_player(QWORD controller)
 		return 0;
 	}
 	return vm::read_i64(game_handle, v2 + 120i64 * (v1 & 0x1FF));
+}
+
+int cs::get_crosshairalpha(void)
+{
+	return vm::read_i32(game_handle, convars::cl_crosshairalpha + 0x40);
 }
 
 float cs::mouse::get_sensitivity(void)

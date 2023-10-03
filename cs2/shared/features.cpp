@@ -50,6 +50,99 @@ inline DWORD random_number(DWORD min, DWORD max)
 	return min + cs::engine::get_current_tick() % (max + 1 - min);
 }
 
+inline void update_settings(void)
+{
+	int crosshair_alpha = cs::get_crosshairalpha();
+
+	switch (crosshair_alpha)
+	{
+	//
+	// mouse5 aimkey, mouse4 triggerkey
+	//
+	case 244:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 30.0f;
+		break;
+	case 245:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 25.0f;
+		break;
+	case 246:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 20.0f;
+		break;
+	case 247:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 5.0f;
+		config::aimbot_smooth     = 15.0f;
+		break;
+	case 248:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 6.0f;
+		config::aimbot_smooth     = 10.0f;
+		break;
+	case 249:
+		config::aimbot_button     = 318;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 7.0f;
+		config::aimbot_smooth     = 5.0f;
+		break;
+	//
+	// mouse1 aimkey, mouse5 triggerkey
+	//
+	case 250:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 30.0f;
+		break;
+	case 251:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 25.0f;
+		break;
+	case 252:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 20.0f;
+		break;
+	case 253:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 5.0f;
+		config::aimbot_smooth     = 15.0f;
+		break;
+	case 254:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 6.0f;
+		config::aimbot_smooth     = 10.0f;
+		break;
+	case 255:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 7.0f;
+		config::aimbot_smooth     = 5.0f;
+		break;
+	default:
+		config::aimbot_button     = 314;
+		config::triggerbot_button = 318;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 30.0f;
+		break;
+	}
+}
+
 void features::run(void)
 {
 	//
@@ -84,6 +177,12 @@ void features::run(void)
 	{
 		goto NOT_INGAME;
 	}
+
+	//
+	// update cheat settings
+	//
+	update_settings();
+
 
 	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);

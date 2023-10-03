@@ -32,6 +32,8 @@ namespace cs
 		QWORD get_player(QWORD controller);
 	}
 
+	int get_crosshairalpha(void);
+
 	namespace mouse
 	{
 		float get_sensitivity(void);
