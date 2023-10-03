@@ -368,6 +368,16 @@ BOOLEAN cs::node::get_dormant(QWORD node)
 	return vm::read_i8( game_handle, node + 0xe7 );
 }
 
+vec3 cs::node::get_origin(QWORD node)
+{
+	vec3 val{};
+	if (!vm::read(game_handle, node + 0x80, &val, sizeof(val)))
+	{
+		val = {};
+	}
+	return val;
+}
+
 BOOL cs::node::get_bone_position(QWORD node, int index, vec3 *data)
 {
 	// get skeleton 

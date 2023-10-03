@@ -144,6 +144,11 @@ void features::run(void)
 		if (!cs::player::is_valid(aimbot_target, cs::player::get_node(aimbot_target)))
 		{
 			aimbot_target = best_target;
+
+			if (aimbot_target == 0)
+			{
+				get_best_target(local_player_controller, local_player, num_shots, aim_punch, &aimbot_target);
+			}
 		}
 	}
 
@@ -249,7 +254,12 @@ void features::run(void)
 
 static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch)
 {
-	vec3 eye_position = cs::player::get_eye_position(local_player);
+	QWORD local_node  = cs::player::get_node(local_player);
+	vec3 eye_position = cs::node::get_origin(local_node);
+	eye_position.z    += cs::player::get_vec_view(local_player);
+	// vec3 eye_position = cs::player::get_eye_position(local_player);
+
+
 	vec3 angle = position;
 
 	angle.x = position.x - eye_position.x;

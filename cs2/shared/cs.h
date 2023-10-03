@@ -67,6 +67,7 @@ namespace cs
 	namespace node
 	{
 		BOOLEAN  get_dormant(QWORD node);
+		vec3     get_origin(QWORD node);
 		BOOL     get_bone_position(QWORD node, int index, vec3 *data);
 	}
 
