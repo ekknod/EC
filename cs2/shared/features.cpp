@@ -199,10 +199,18 @@ void features::run(void)
 	angles.z = 0;
 	math::vec_clamp(&angles);
 
+	if(qabs(angles.x) > 90.000000 || qabs(angles.y) > 180.0f)
+	{
+		return;
+	}
+
+	/*
 	if (qabs(angles.x) > 25.00f || qabs(angles.y) > 25.00f)
 	{
 		return;
 	}
+	*/
+
 
 	float x = angles.y;
 	float y = angles.x;
@@ -236,12 +244,6 @@ void features::run(void)
 		sx = x;
 		sy = y;
 	}
-
-	if (qabs((int)sx) > 127)
-		return;
-
-	if (qabs((int)sy) > 127)
-		return;
 
 	aimbot_active = 1;
 
