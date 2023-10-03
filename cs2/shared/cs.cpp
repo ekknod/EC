@@ -370,11 +370,21 @@ BOOLEAN cs::node::get_dormant(QWORD node)
 
 BOOL cs::node::get_bone_position(QWORD node, int index, vec3 *data)
 {
-	QWORD bone_array = vm::read_i64(game_handle, node + 0x1E0);
-	if (bone_array == 0)
+	// get skeleton 
+	// QWORD fun = get_interface_function(node, 8);
+	//
+	// get skeleton:
+	// mov rax, rcx
+	// ret
+	//
+	QWORD skeleton    = node;
+	QWORD model_state = skeleton + 0x160;
+	QWORD bone_data   = vm::read_i64(game_handle, model_state + 0x80);
+
+	if (bone_data == 0)
 		return 0;
 
-	return vm::read( game_handle, bone_array + (index * 32), data, sizeof(vec3));
+	return vm::read(game_handle, bone_data + (index * 32), data, sizeof(vec3));
 }
 
 static QWORD cs::get_interface(QWORD base, PCSTR name)

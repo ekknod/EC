@@ -274,7 +274,6 @@ static void features::get_best_target(QWORD local_controller, QWORD local_player
 {
 	vec2 va = cs::engine::get_viewangles();
 	BOOL ffa = cs::gamemode::is_ffa();
-	vec3 eye_position = cs::player::get_eye_position(local_player);
 
 	float best_fov = 360.0f;
 
@@ -336,6 +335,7 @@ static void features::get_best_target(QWORD local_controller, QWORD local_player
 #endif
 
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
+
 		float fov = math::get_fov(va, *(vec3*)&best_angle);
 
 		if (fov < best_fov)
