@@ -120,7 +120,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	// save our new EFI address information
 	//
 	EfiBaseAddress  = (QWORD)rwx;
-	EfiBaseSize     = (QWORD)current_image->ImageSize;
+	EfiBaseSize     = (QWORD)EFI_PAGES_TO_SIZE(page_count);
 
 
 	//
