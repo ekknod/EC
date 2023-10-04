@@ -102,7 +102,7 @@ static BOOL cs::initialize(void)
 	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
 
 	JZ(direct::local_player = get_interface(client_dll, "Source2ClientPrediction0"), E1);
-	JZ(direct::local_player = get_interface_function(direct::local_player, 181), E1);
+	JZ(direct::local_player = get_interface_function(direct::local_player, 180), E1);
 	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player + 0xF0, 3, 7);
 
 	JZ(direct::view_angles  = get_interface(client_dll, "Source2Client0"), E1);

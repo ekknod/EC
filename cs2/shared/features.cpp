@@ -199,7 +199,6 @@ void features::run(void)
 		//
 		// accurate shots only
 		//
-
 		if (aim_punch.x > -0.04f)
 		{
 			triggerbot(ffa, local_player);
@@ -292,65 +291,58 @@ void features::run(void)
 		return;
 	}
 
+	//
+	// no shake. better to do it with distance fov in future
+	//
+	if (fov < 0.1f)
+	{
+		return;
+	}
+
+	aimbot_active = 1;
+
 	vec3 angles{};
 	angles.x = va.x - aimbot_angle.x;
 	angles.y = va.y - aimbot_angle.y;
 	angles.z = 0;
 	math::vec_clamp(&angles);
 
-	if(qabs(angles.x) > 90.000000 || qabs(angles.y) > 180.0f)
-	{
-		return;
-	}
-
-	/*
-	if (qabs(angles.x) > 25.00f || qabs(angles.y) > 25.00f)
-	{
-		return;
-	}
-	*/
-
-
-	float x = angles.y;
-	float y = angles.x;
-
-	x = (x / sensitivity) / 0.022f;
-	y = (y / sensitivity) / -0.022f;
-
-	float sx = 0.0f, sy = 0.0f;
-	float smooth = config::aimbot_smooth;
+	float x = (angles.y / sensitivity) / 0.022f;
+	float y = (angles.x / sensitivity) / -0.022f;
+	
+	float smooth_x = 0.00f;
+	float smooth_y = 0.00f;
 
 	DWORD aim_ticks = 0;
-	if (smooth >= 1.0f)
+	if (config::aimbot_smooth >= 1.0f)
 	{
-		if (sx < x)
-			sx = sx + 1.0f + (x / smooth);
-		else if (sx > x)
-			sx = sx - 1.0f + (x / smooth);
+		if (smooth_x < x)
+			smooth_x = smooth_x + 1.0f + (x / config::aimbot_smooth);
+		else if (smooth_x > x)
+			smooth_x = smooth_x - 1.0f + (x / config::aimbot_smooth);
 		else
-			sx = x;
+			smooth_x = x;
 
-		if (sy < y)
-			sy = sy + 1.0f + (y / smooth);
-		else if (sy > y)
-			sy = sy - 1.0f + (y / smooth);
+		if (smooth_y < y)
+			smooth_y = smooth_y + 1.0f + (y / config::aimbot_smooth);
+		else if (smooth_y > y)
+			smooth_y = smooth_y - 1.0f + (y / config::aimbot_smooth);
 		else
-			sy = y;
-		aim_ticks = (DWORD)(smooth / 100.0f);
+			smooth_y = y;
+
+		aim_ticks = (DWORD)(config::aimbot_smooth / 100.0f);
 	}
 	else
 	{
-		sx = x;
-		sy = y;
+		smooth_x = x;
+		smooth_y = y;
 	}
-
-	aimbot_active = 1;
 
 	DWORD current_tick = cs::engine::get_current_tick();
 	if (current_tick - aimbot_tick > aim_ticks)
 	{
 		aimbot_tick = current_tick;
-		input::mouse_move((int)sx, (int)sy);
+		input::mouse_move((int)smooth_x, (int)smooth_y);
 	}
 }
 
@@ -360,9 +352,7 @@ static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD 
 	eye_position.z    += cs::player::get_vec_view(local_player);
 	// vec3 eye_position = cs::player::get_eye_position(local_player);
 
-
-	vec3 angle = position;
-
+	vec3 angle{};
 	angle.x = position.x - eye_position.x;
 	angle.y = position.y - eye_position.y;
 	angle.z = position.z - eye_position.z;
@@ -386,7 +376,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 	vec2 va = cs::engine::get_viewangles();
 
 	float best_fov = 360.0f;
-
+	
 	for (int i = 1; i < 32; i++)
 	{
 		QWORD ent = cs::entity::get_client_entity(i);
@@ -447,7 +437,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
 		float fov = math::get_fov(va, *(vec3*)&best_angle);
-
+		
 		if (fov < best_fov)
 		{
 			best_fov = fov;

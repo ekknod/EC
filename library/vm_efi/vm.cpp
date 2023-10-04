@@ -95,8 +95,7 @@ BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	km::memcpy_impl(buffer, (PVOID)address, length);
-	return 1;
+	return km::memcpy_impl(buffer, (PVOID)address, length);
 }
 
 BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
@@ -122,8 +121,7 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	km::memcpy_impl((void *)address, buffer, length);
-	return 1;
+	return km::memcpy_impl((void *)address, buffer, length);
 }
 
 QWORD vm::get_peb(vm_handle process)

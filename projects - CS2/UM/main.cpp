@@ -33,7 +33,6 @@ int main(void)
 {
 	while (1)
 	{
-		Sleep(1);
 		cs2::run();
 	}
 	return 0;

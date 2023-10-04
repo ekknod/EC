@@ -80,11 +80,8 @@ namespace km
 		data call_data{};
 		call_data.dst_addr = (QWORD)dest;
 		call_data._0xffffffff = 0xffffffff;
-		if (memcpy_safe(&call_data, (void *)src, (DWORD)size) != STATUS_SUCCESS)
-		{
-			return 0;
-		}
-		return 1;
+		memcpy_safe(&call_data, (void *)src, (DWORD)size);
+		return call_data.error == 0;
 	}
 }
 
