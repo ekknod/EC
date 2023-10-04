@@ -82,6 +82,9 @@ static BOOL cs::initialize(void)
 		return 0;
 	}
 
+	QWORD client_dll;
+	JZ(client_dll = vm::get_module(game_handle, "client.dll"), E1);
+
 	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
@@ -90,9 +93,6 @@ static BOOL cs::initialize(void)
 		game_handle = 0;
 		return 0;
 	}
-
-	QWORD client_dll;
-	JZ(client_dll = vm::get_module(game_handle, "client.dll"), E1);
 
 	JZ(interfaces::entity   = vm::read_i64(game_handle, interfaces::resource + 0x58), E1);
 	interfaces::player      = interfaces::entity + 0x10;

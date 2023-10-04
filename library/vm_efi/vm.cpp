@@ -86,13 +86,11 @@ BOOL vm::read(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	/*
 	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
 	if (physical_address == 0)
 	{
 		return 0;
 	}
-	*/
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
@@ -115,13 +113,11 @@ BOOL vm::write(vm_handle process, QWORD address, PVOID buffer, QWORD length)
 	{
 		return 0;
 	}
-	/*
 	QWORD physical_address = (QWORD)PAGE_ALIGN(MmGetPhysicalAddress((PVOID)address).QuadPart);
 	if (physical_address == 0)
 	{
 		return 0;
 	}
-	*/
 	if (!MmIsAddressValid((PVOID)address))
 	{
 		return 0;
