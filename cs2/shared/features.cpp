@@ -291,14 +291,6 @@ void features::run(void)
 		return;
 	}
 
-	//
-	// no shake. better to do it with distance fov in future
-	//
-	if (fov < 0.1f)
-	{
-		return;
-	}
-
 	aimbot_active = 1;
 
 	vec3 angles{};
@@ -316,20 +308,33 @@ void features::run(void)
 	DWORD aim_ticks = 0;
 	if (config::aimbot_smooth >= 1.0f)
 	{
-		if (smooth_x < x)
-			smooth_x = smooth_x + 1.0f + (x / config::aimbot_smooth);
-		else if (smooth_x > x)
-			smooth_x = smooth_x - 1.0f + (x / config::aimbot_smooth);
+		if (qabs(x) > 1.0f)
+		{
+			if (smooth_x < x)
+				smooth_x = smooth_x + 1.0f + (x / config::aimbot_smooth);
+			else if (smooth_x > x)
+				smooth_x = smooth_x - 1.0f + (x / config::aimbot_smooth);
+			else
+				smooth_x = x;
+		}
 		else
+		{
 			smooth_x = x;
+		}
 
-		if (smooth_y < y)
-			smooth_y = smooth_y + 1.0f + (y / config::aimbot_smooth);
-		else if (smooth_y > y)
-			smooth_y = smooth_y - 1.0f + (y / config::aimbot_smooth);
+		if (qabs(y) > 1.0f)
+		{
+			if (smooth_y < y)
+				smooth_y = smooth_y + 1.0f + (y / config::aimbot_smooth);
+			else if (smooth_y > y)
+				smooth_y = smooth_y - 1.0f + (y / config::aimbot_smooth);
+			else
+				smooth_y = y;
+		}
 		else
+		{
 			smooth_y = y;
-
+		}
 		aim_ticks = (DWORD)(config::aimbot_smooth / 100.0f);
 	}
 	else
