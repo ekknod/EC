@@ -143,6 +143,8 @@ QWORD cs::engine::get_convar(const char *name)
 {
 	QWORD objs = vm::read_i64(game_handle, interfaces::cvar + 64);
 
+	QWORD convar_length = strlen_imp(name);
+
 	for (DWORD i = 0; i < vm::read_i32(game_handle, interfaces::cvar + 160); i++)
 	{
 		QWORD entry = vm::read_i64(game_handle, objs + 16 * i);
@@ -152,12 +154,13 @@ QWORD cs::engine::get_convar(const char *name)
 		}
 		
 		char convar_name[120]{};
-		vm::read(game_handle, vm::read_i64(game_handle, entry + 0x00), convar_name, 120);
+		vm::read(game_handle, vm::read_i64(game_handle, entry + 0x00), convar_name, convar_length);
+		convar_name[convar_length] = 0;
 
 		if (!strcmpi_imp(convar_name, name))
 		{
 #ifdef DEBUG
-			LOG("get_convar [%s %llx]\n", name, entry);
+			LOG("get_convar [%s %llx]\n", convar_name, entry);
 #endif
 			return entry;
 		}
@@ -445,6 +448,8 @@ static QWORD cs::get_interface(QWORD base, PCSTR name)
 			interface_name,
 			name_length
 			);
+
+		interface_name[name_length] = 0;
 		
 		if (!strcmpi_imp(interface_name, name))
 		{
