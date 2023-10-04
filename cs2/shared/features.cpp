@@ -280,13 +280,10 @@ void features::run(void)
 		return;
 	}
 
-	vec2 va = cs::engine::get_viewangles();
-
+	vec2 view_angle   = cs::engine::get_viewangles();
 	vec3 aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
-	float fov = math::get_fov(va, aimbot_angle);
-
-	if (fov > config::aimbot_fov)
+	if (math::get_fov(view_angle, aimbot_angle) > config::aimbot_fov)
 	{
 		return;
 	}
@@ -294,8 +291,8 @@ void features::run(void)
 	aimbot_active = 1;
 
 	vec3 angles{};
-	angles.x = va.x - aimbot_angle.x;
-	angles.y = va.y - aimbot_angle.y;
+	angles.x = view_angle.x - aimbot_angle.x;
+	angles.y = view_angle.y - aimbot_angle.y;
 	angles.z = 0;
 	math::vec_clamp(&angles);
 
@@ -391,7 +388,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		}
 
 		//
-		// can be removed. it's cool as long its up to date.
+		// is controller
 		//
 		if (!cs::entity::is_player(ent))
 		{
@@ -404,9 +401,6 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			continue;
 		}
 
-		//
-		// if game mode is not free for all, skip teammates
-		//
 		if (ffa == 0)
 		{
 			if (cs::player::get_team_num(player) == cs::player::get_team_num(local_player))
@@ -488,9 +482,6 @@ static void features::triggerbot(BOOL ffa, QWORD local_player)
 	if (cs::player::get_health(crosshair_target) < 1)
 		return;
 
-	//
-	// if game mode is not free for all, skip teammates
-	//
 	if (!ffa)
 	{
 		if (cs::player::get_team_num(local_player) == cs::player::get_team_num(crosshair_target))
