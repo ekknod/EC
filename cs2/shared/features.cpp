@@ -520,7 +520,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 
 	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
 
-	/*
+	
 	float view = cs::player::get_vec_view(local_player) - 10.0f;
 	
 	vec3 bottom;
@@ -592,8 +592,8 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	
 
 	gdi::DrawFillRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
-	*/
-
+	
+	/*
 	
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(head);
@@ -652,6 +652,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		}
 	}
 	gdi::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	*/
 }
 
 #endif
