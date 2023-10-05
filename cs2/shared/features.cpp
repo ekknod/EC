@@ -553,16 +553,48 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	int box_height = (int)height;
 	int box_width  = (int)width;
 
-	int box_x = (int)screen_top.x;
-	int box_y = (int)screen_top.y;
+	int x = (int)screen_top.x;
+	int y = (int)screen_top.y;
 
-	box_x += (int)window.x;
-	box_y += (int)window.y;
+	x += (int)window.x;
+	y += (int)window.y;
+
+
+	//if (screen_pos.x != 0)
+	{
+		if (x > (LONG)(window.x + screen_size.x - (box_width)))
+		{
+			return;
+		}
+		else if (x < window.x)
+		{
+			return;
+		}
+	}
+
+	//if (screen_pos.y != 0)
+	{
+		if (y > (LONG)(screen_size.y + window.y - (box_height)))
+		{
+			return;
+		}
+		else if (y < window.y)
+		{
+			return;
+		}
+	}
+
+
+	float target_health = ((float)cs::player::get_health(target_player) / 100.0f) * 255.0f;
+	float r = 255.0f - target_health;
+	float g = target_health;
+	float b = 0.00f;
 	
 
-	gdi::DrawFillRect(GetActiveWindow(), box_x, box_y, box_width, box_height, 255, 0, 0);
+	gdi::DrawFillRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 	*/
 
+	
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(head);
 
