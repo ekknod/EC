@@ -533,57 +533,46 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	top.y = bottom.y;
 	top.z = bottom.z + view;
 	
-	vec3 screen_bottom, screen_top;
+
 	view_matrix_t view_matrix = cs::engine::get_viewmatrix();
+
 
 	vec2 screen_size;
 	screen_size.x = window.w;
 	screen_size.y = window.h;
 
+
+	vec3 screen_bottom, screen_top;
 	if (!math::world_to_screen(screen_size, bottom, screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top, screen_top, view_matrix))
 	{
 		return;
 	}
 
+	float height  = (screen_bottom.y - screen_top.y) / 8.f;
+	float width   = (screen_bottom.y - screen_top.y) / 14.f;
 
-	float fheight = (screen_bottom.y - screen_top.y);
-	float height = fheight / 8.f;
-	float width = fheight / 14.f;
-
-	int box_height = (int)height;
-	int box_width  = (int)width;
-
-	int x = (int)screen_top.x;
-	int y = (int)screen_top.y;
-
-	x += (int)window.x;
-	y += (int)window.y;
-
-
-	//if (screen_pos.x != 0)
+	int x = (int)((screen_top.x - (width  / 2.0f)) + window.x);
+	int y = (int)((screen_top.y - (height / 2.0f)) + window.y);
+	int w = (int)width;
+	int h = (int)height;
+	
+	if (x > (LONG)(window.x + screen_size.x - (w)))
 	{
-		if (x > (LONG)(window.x + screen_size.x - (box_width)))
-		{
-			return;
-		}
-		else if (x < window.x)
-		{
-			return;
-		}
+		return;
+	}
+	else if (x < window.x)
+	{
+		return;
 	}
 
-	//if (screen_pos.y != 0)
+	if (y > (LONG)(screen_size.y + window.y - (h)))
 	{
-		if (y > (LONG)(screen_size.y + window.y - (box_height)))
-		{
-			return;
-		}
-		else if (y < window.y)
-		{
-			return;
-		}
+		return;
 	}
-
+	else if (y < window.y)
+	{
+		return;
+	}
 
 	float target_health = ((float)cs::player::get_health(target_player) / 100.0f) * 255.0f;
 	float r = 255.0f - target_health;
@@ -591,7 +580,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	float b = 0.00f;
 	
 
-	gdi::DrawFillRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	gdi::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 	
 	/*
 	
@@ -628,29 +617,24 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	LONG x = (LONG)window.x + (LONG)(screen_top.x - box_width / 2);
 	LONG y = (LONG)window.y + (LONG)(screen_top.y);
 
-	//if (screen_pos.x != 0)
+	if (x > (LONG)(window.x + screen_size.x - (box_width)))
 	{
-		if (x > (LONG)(window.x + screen_size.x - (box_width)))
-		{
-			return;
-		}
-		else if (x < window.x)
-		{
-			return;
-		}
+		return;
+	}
+	else if (x < window.x)
+	{
+		return;
 	}
 
-	//if (screen_pos.y != 0)
+	if (y > (LONG)(screen_size.y + window.y - (box_height)))
 	{
-		if (y > (LONG)(screen_size.y + window.y - (box_height)))
-		{
-			return;
-		}
-		else if (y < window.y)
-		{
-			return;
-		}
+		return;
 	}
+	else if (y < window.y)
+	{
+		return;
+	}
+
 	gdi::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 	*/
 }
