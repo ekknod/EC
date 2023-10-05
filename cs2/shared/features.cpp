@@ -183,7 +183,6 @@ void features::run(void)
 	//
 	update_settings();
 
-
 	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);
 	vec2  aim_punch   = cs::player::get_vec_punch(local_player);
@@ -507,7 +506,19 @@ namespace gdi
 
 static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 {
-	input::WINDOW_INFO window = input::get_window_info();
+	QWORD sdl_window = cs::sdl::get_window();
+	if (sdl_window == 0)
+		return;
+
+	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
+
+	cs::WINDOW_INFO window{};
+	if (!cs::sdl::get_window_info(sdl_window, &window))
+		return;
+
+	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
 
 	/*
 	float view = cs::player::get_vec_view(local_player) - 10.0f;
@@ -608,7 +619,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 			return;
 		}
 	}
-	gdi::DrawRect((void *)0x10010, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	gdi::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 }
 
 #endif

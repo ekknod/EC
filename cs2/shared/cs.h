@@ -16,6 +16,24 @@
 
 namespace cs
 {
+	typedef struct
+	{
+		float x, y, w, h;
+	} WINDOW_INFO ;
+
+	namespace sdl
+	{
+		QWORD get_window(void);
+		BOOL  get_window_info(QWORD window, WINDOW_INFO *info);
+		QWORD get_window_data(QWORD window);
+		QWORD get_hwnd(QWORD window_data);
+		QWORD get_hdc(QWORD window_data);
+
+
+		QWORD get_mouse(void);
+		BOOL  get_mouse_button(QWORD sdl_mouse);
+	}
+
 	namespace engine
 	{
 		QWORD get_convar(const char *name);

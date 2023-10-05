@@ -43,16 +43,6 @@ namespace input
 	{
 		mouse::move(0, 0, 0x02);
 	}
-
-	WINDOW_INFO get_window_info(void)
-	{
-		WINDOW_INFO info;
-		info.x = (float)0.00f;
-		info.y = (float)0.00f;
-		info.w = (float)(2560.0f);
-		info.h = (float)(1440.0f);
-		return info;
-	}
 }
 
 namespace config
@@ -63,7 +53,7 @@ namespace config
 	float aimbot_smooth = 30.0f;
 	BOOL  aimbot_visibility_check = 0;
 	DWORD triggerbot_button = 318; // mouse forward key
-	BOOL  visuals_enabled = 1;
+	BOOL  visuals_enabled = 2;
 }
 
 namespace km

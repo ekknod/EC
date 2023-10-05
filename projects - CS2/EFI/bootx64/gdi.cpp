@@ -247,7 +247,7 @@ void gdi::DrawRect(
 		return;
 	}
 
-	if (NtUserGetForegroundWindow() == (HWND)hwnd)
+	if (NtUserGetForegroundWindow() != (HWND)hwnd)
 	{
 		return;
 	}

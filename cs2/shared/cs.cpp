@@ -4,6 +4,12 @@ namespace cs
 {
 	static vm_handle game_handle = 0;
 
+	namespace sdl
+	{
+		static QWORD sdl_window;
+		static QWORD sdl_mouse;
+	}
+
 	namespace interfaces
 	{
 		static QWORD resource;
@@ -85,6 +91,9 @@ static BOOL cs::initialize(void)
 	QWORD client_dll;
 	JZ(client_dll = vm::get_module(game_handle, "client.dll"), E1);
 
+	QWORD sdl;
+	JZ(sdl = vm::get_module(game_handle, "SDL3.dll"), E1);
+
 	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
@@ -93,6 +102,17 @@ static BOOL cs::initialize(void)
 		game_handle = 0;
 		return 0;
 	}
+
+	JZ(sdl::sdl_window   = vm::get_module_export(game_handle, sdl, "SDL_GetKeyboardFocus"), E1);
+	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 3, 7);
+	JZ(sdl::sdl_window   = vm::read_i64(game_handle, sdl::sdl_window), E1);
+	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 3, 7);
+
+	JZ(sdl::sdl_mouse     = vm::get_module_export(game_handle, sdl, "SDL_GetMouseState"), E1);
+	sdl::sdl_mouse        = vm::get_relative_address(game_handle, sdl::sdl_mouse, 3, 7);
+	JZ(sdl::sdl_mouse     = vm::read_i64(game_handle, sdl::sdl_mouse), E1);
+	sdl::sdl_mouse        = vm::get_relative_address(game_handle, sdl::sdl_mouse + 0x10, 1, 5);
+	sdl::sdl_mouse        = vm::get_relative_address(game_handle, sdl::sdl_mouse + 0x00, 3, 7);
 
 	JZ(interfaces::entity   = vm::read_i64(game_handle, interfaces::resource + 0x58), E1);
 	interfaces::player      = interfaces::entity + 0x10;
@@ -120,6 +140,8 @@ static BOOL cs::initialize(void)
 	JZ(convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies"), E1);
 	JZ(convars::cl_crosshairalpha        = engine::get_convar("cl_crosshairalpha"), E1);
 
+
+
 	//
 	// to-do schemas
 	//
@@ -137,6 +159,83 @@ static BOOL cs::initialize(void)
 	LOG("game is running\n");
 #endif
 	return 1;
+}
+
+QWORD cs::sdl::get_window(void)
+{
+	return vm::read_i64(game_handle, sdl::sdl_window);
+}
+
+BOOL cs::sdl::get_window_info(QWORD window, WINDOW_INFO *info)
+{
+	typedef struct 
+	{
+		int x,y,w,h;
+	} wvec4 ;
+
+	wvec4 buffer{};
+	if (!vm::read(game_handle, window + 0x20, &buffer, sizeof(buffer)))
+		return 0;
+
+	info->x = (float)buffer.x;
+	info->y = (float)buffer.y;
+	info->w = (float)buffer.w;
+	info->h = (float)buffer.h;
+
+	return 1;
+}
+
+QWORD cs::sdl::get_window_data(QWORD window)
+{
+	return vm::read_i64(game_handle, window + 0x110);
+}
+
+QWORD cs::sdl::get_hwnd(QWORD window_data)
+{
+	return vm::read_i64(game_handle, window_data + 0x08);
+}
+
+QWORD cs::sdl::get_hdc(QWORD window_data)
+{
+	return vm::read_i64(game_handle, window_data + 0x10);
+}
+
+QWORD cs::sdl::get_mouse(void)
+{
+	/*
+	    0x60 float x;
+	    0x64 float y;
+	    0x68 float xdelta;
+	    0x6C float ydelta;
+	    0x70 float last_x, last_y;
+	    0x78 SDL_bool has_position;
+	    0x79 SDL_bool relative_mode;
+	    0x7A SDL_bool relative_mode_warp;
+	    0x7B SDL_bool relative_mode_warp_motion;
+	    0x7C SDL_bool enable_normal_speed_scale;
+	*/
+	return sdl::sdl_mouse;
+}
+
+BOOL cs::sdl::get_mouse_button(QWORD mouse)
+{
+	DWORD i;
+	DWORD buttonstate = 0;
+	
+	DWORD num_sources = vm::read_i32(game_handle, mouse + 0xD0);
+	QWORD sources     = mouse + 0xD8;
+
+	for (i = 0; i < num_sources; ++i)
+	{
+		QWORD mouse_source = vm::read_i64(game_handle, (sources + (i * 8)));
+		DWORD mouse_id     = vm::read_i32(game_handle, mouse_source + 0x00);
+		DWORD button_state = vm::read_i32(game_handle, mouse_source + 0x04);
+				
+		if (mouse_id != (DWORD)-1) {
+			buttonstate |= button_state;
+		}
+	}
+	return buttonstate;
 }
 
 QWORD cs::engine::get_convar(const char *name)

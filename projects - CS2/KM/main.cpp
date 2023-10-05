@@ -85,19 +85,6 @@ namespace input
 	{
 		mouse::move(0, 0, 0x02);
 	}
-
-	//
-	// temporary
-	//
-	WINDOW_INFO get_window_info(void)
-	{
-		WINDOW_INFO w;
-		w.x = 0;
-		w.y = 0;
-		w.w = 1920.0f;
-		w.h = 1080.0f;
-		return w;
-	}
 }
 
 namespace config
