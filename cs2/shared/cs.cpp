@@ -372,6 +372,15 @@ DWORD cs::player::get_team_num(QWORD player)
 	return vm::read_i32(game_handle, player + 0x3bf);
 }
 
+DWORD cs::player::visible_check(QWORD player)
+{
+	return vm::read_i32(game_handle, player + 0x1620 + 0xC);
+
+}
+
+
+
+
 int cs::player::get_life_state(QWORD player)
 {
 	return vm::read_i32(game_handle, player + 0x330);
