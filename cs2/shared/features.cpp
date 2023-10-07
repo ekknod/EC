@@ -263,7 +263,6 @@ void features::run(void)
 		vec3 head{};
 		if (cs::node::get_bone_position(cs::player::get_node(aimbot_target), 6, &head))
 		{
-			// Check if the target is visible to the local player
 			bool is_visible = cs::player::visible_check(aimbot_target);
 			if (!is_visible)
 			{
