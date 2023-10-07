@@ -267,13 +267,13 @@ void features::run(void)
 			bool is_visible = cs::player::visible_check(aimbot_target);
 			if (!is_visible)
 			{
-				aimbot_target = 0;  // Reset the target if not visible
+				aimbot_target = 0;
 				return;
 			}
 		}
 		else
 		{
-			aimbot_target = 0;  // Reset the target if bone position retrieval fails
+			aimbot_target = 0;
 			return;
 		}
 	}
@@ -384,11 +384,9 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 {
 	if (num_shots > 1)
 	{
-		// Generate random values between -1.0 and 1.0
 		float random_factor_x = static_cast<float>(rand()) / RAND_MAX * 4.0f - 2.0f;
 		float random_factor_y = static_cast<float>(rand()) / RAND_MAX * 4.0f - 2.0f;
 
-		// Apply random factors to vec_punch
 		vec_punch.x += random_factor_x;
 		vec_punch.y += random_factor_y;
 
