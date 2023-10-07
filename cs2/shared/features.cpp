@@ -52,95 +52,7 @@ inline DWORD random_number(DWORD min, DWORD max)
 
 inline void update_settings(void)
 {
-	int crosshair_alpha = cs::get_crosshairalpha();
 
-	switch (crosshair_alpha)
-	{
-	//
-	// mouse5 aimkey, mouse4 triggerkey
-	//
-	case 244:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
-		break;
-	case 245:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 25.0f;
-		break;
-	case 246:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 20.0f;
-		break;
-	case 247:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 5.0f;
-		config::aimbot_smooth     = 15.0f;
-		break;
-	case 248:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 6.0f;
-		config::aimbot_smooth     = 10.0f;
-		break;
-	case 249:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 7.0f;
-		config::aimbot_smooth     = 5.0f;
-		break;
-	//
-	// mouse1 aimkey, mouse5 triggerkey
-	//
-	case 250:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
-		break;
-	case 251:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 25.0f;
-		break;
-	case 252:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 20.0f;
-		break;
-	case 253:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 5.0f;
-		config::aimbot_smooth     = 15.0f;
-		break;
-	case 254:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 6.0f;
-		config::aimbot_smooth     = 10.0f;
-		break;
-	case 255:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 7.0f;
-		config::aimbot_smooth     = 5.0f;
-		break;
-	default:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
-		break;
-	}
 }
 
 void features::run(void)
@@ -345,6 +257,26 @@ void features::run(void)
 		aimbot_tick = current_tick;
 		input::mouse_move((int)smooth_x, (int)smooth_y);
 	}
+
+	if (aimbot_target != 0)
+	{
+		vec3 head{};
+		if (cs::node::get_bone_position(cs::player::get_node(aimbot_target), 6, &head))
+		{
+			// Check if the target is visible to the local player
+			bool is_visible = cs::player::visible_check(aimbot_target);
+			if (!is_visible)
+			{
+				aimbot_target = 0;  // Reset the target if not visible
+				return;
+			}
+		}
+		else
+		{
+			aimbot_target = 0;  // Reset the target if bone position retrieval fails
+			return;
+		}
+	}
 }
 
 static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch)
@@ -400,6 +332,10 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			continue;
 		}
 
+		bool is_visible = cs::player::visible_check(player);
+		if (!is_visible)
+			continue;
+
 		if (ffa == 0)
 		{
 			if (cs::player::get_team_num(player) == cs::player::get_team_num(local_player))
@@ -448,9 +384,17 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 {
 	if (num_shots > 1)
 	{
+		// Generate random values between -1.0 and 1.0
+		float random_factor_x = static_cast<float>(rand()) / RAND_MAX * 4.0f - 2.0f;
+		float random_factor_y = static_cast<float>(rand()) / RAND_MAX * 4.0f - 2.0f;
+
+		// Apply random factors to vec_punch
+		vec_punch.x += random_factor_x;
+		vec_punch.y += random_factor_y;
+
 		float x = (vec_punch.x - rcs_old_punch.x) * -1.0f;
 		float y = (vec_punch.y - rcs_old_punch.y) * -1.0f;
-		
+
 		int mouse_angle_x = (int)(((y * 2.0f) / sensitivity) / -0.022f);
 		int mouse_angle_y = (int)(((x * 2.0f) / sensitivity) / 0.022f);
 
@@ -492,7 +436,7 @@ static void features::triggerbot(BOOL ffa, QWORD local_player)
 	{
 		input::mouse1_down();
 		mouse_up_tick   = 0;
-		mouse_down_tick = random_number(30, 50) + current_tick;
+		mouse_down_tick = random_number(5, 10) + current_tick;
 	}
 }
 
