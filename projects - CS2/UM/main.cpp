@@ -18,12 +18,13 @@ namespace input
 	}
 }
 
+
 namespace config
 {
 	BOOL  rcs = 0;
 	DWORD aimbot_button = 314; // mouse left key
-	float aimbot_fov = 2.0f;
-	float aimbot_smooth = 5.0f;
+	float aimbot_fov = 20.0f;
+	float aimbot_smooth = 15.0f;
 	BOOL  aimbot_visibility_check = 0;
 	DWORD triggerbot_button = 318; // mouse forward key
 	BOOL  visuals_enabled = 1;
