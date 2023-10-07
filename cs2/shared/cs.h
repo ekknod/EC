@@ -71,6 +71,7 @@ namespace cs
 	{
 		DWORD get_health(QWORD player);
 		DWORD get_team_num(QWORD player);
+		DWORD visible_check(QWORD player);
 		int   get_life_state(QWORD player);
 		vec3  get_origin(QWORD player);
 		float get_vec_view(QWORD player);
