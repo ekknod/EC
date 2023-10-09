@@ -183,22 +183,3 @@ QWORD vm::get_wow64_process(vm_handle process)
 	return info.win.vaPEB32;
 }
 
-QWORD vm::scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length)
-{
-	if (base == 0)
-	{
-		return 0;
-	}
-	
-	PVOID dumped_module = vm::dump_module(process, base, VM_MODULE_TYPE::CodeSectionsOnly);
-	if (dumped_module == 0)
-	{
-		return 0;
-	}
-
-	QWORD patt = vm::scan_pattern(dumped_module, pattern, mask, length);
-
-	vm::free_module(dumped_module);
-	return patt;
-}
-
