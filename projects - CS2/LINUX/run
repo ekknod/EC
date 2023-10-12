@@ -1,0 +1,2 @@
+g++ main.cpp ../../cs2/shared/cs.cpp ../../cs2/shared/features.cpp ../../library/vm_linux/vm.cpp -o tux
+sudo ./tux

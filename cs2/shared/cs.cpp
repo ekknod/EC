@@ -51,6 +51,30 @@ interfaces::player = vm::get_relative_address(game_handle, get_interface_functio
 interfaces::player = vm::read_i64(game_handle, interfaces::player);
 */
 
+#ifdef __linux__
+	#define PROCESS_NAME "cs2"
+	#define CLIENT_DLL "libclient.so"
+	#define ENGINE_DLL "libengine2.so"
+	#define SDL3_DLL "libSDL3.so.0"
+	#define TIER0_DLL "libtier0.so"
+	#define INPUTSYSTEM_DLL "libinputsystem.so"
+
+	#define ENTITY_OFF 0x50
+	#define BUTTON_STATE_OFF 0x11
+	#define VIEWANGLES_OFF 0x4520
+#else
+	#define PROCESS_NAME "cs2.exe"
+	#define CLIENT_DLL "client.dll"
+	#define ENGINE_DLL "engine2.dll"
+	#define SDL3_DLL "SDL3.dll"
+	#define TIER0_DLL "tier0.dll"
+	#define INPUTSYSTEM_DLL "inputsystem.dll"
+
+	#define ENTITY_OFF 0x58
+	#define BUTTON_STATE_OFF 0xE
+	#define VIEWANGLES_OFF 0x4510
+#endif
+
 
 #ifdef DEBUG
 
@@ -79,7 +103,7 @@ static BOOL cs::initialize(void)
 		game_handle = 0;
 	}
 
-	game_handle = vm::open_process_ex("cs2.exe", "client.dll");
+	game_handle = vm::open_process_ex(PROCESS_NAME, CLIENT_DLL);
 	if (!game_handle)
 	{
 #ifdef DEBUG
@@ -89,12 +113,12 @@ static BOOL cs::initialize(void)
 	}
 
 	QWORD client_dll;
-	JZ(client_dll = vm::get_module(game_handle, "client.dll"), E1);
+	JZ(client_dll = vm::get_module(game_handle, CLIENT_DLL), E1);
 
 	QWORD sdl;
-	JZ(sdl = vm::get_module(game_handle, "SDL3.dll"), E1);
+	JZ(sdl = vm::get_module(game_handle, SDL3_DLL), E1);
 
-	interfaces::resource = get_interface(vm::get_module(game_handle, "engine2.dll"), "GameResourceServiceClientV0");
+	interfaces::resource = get_interface(vm::get_module(game_handle, ENGINE_DLL), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
 	E1:
@@ -102,7 +126,8 @@ static BOOL cs::initialize(void)
 		game_handle = 0;
 		return 0;
 	}
-
+	
+#ifndef __linux__
 	JZ(sdl::sdl_window   = vm::get_module_export(game_handle, sdl, "SDL_GetKeyboardFocus"), E1);
 	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 3, 7);
 	JZ(sdl::sdl_window   = vm::read_i64(game_handle, sdl::sdl_window), E1);
@@ -113,49 +138,55 @@ static BOOL cs::initialize(void)
 	JZ(sdl::sdl_mouse     = vm::read_i64(game_handle, sdl::sdl_mouse), E1);
 	sdl::sdl_mouse        = vm::get_relative_address(game_handle, sdl::sdl_mouse + 0x10, 1, 5);
 	sdl::sdl_mouse        = vm::get_relative_address(game_handle, sdl::sdl_mouse + 0x00, 3, 7);
+#endif	
 
-	JZ(interfaces::entity   = vm::read_i64(game_handle, interfaces::resource + 0x58), E1);
+	JZ(interfaces::entity   = vm::read_i64(game_handle, interfaces::resource + ENTITY_OFF), E1);
 	interfaces::player      = interfaces::entity + 0x10;
 
-	JZ(interfaces::cvar     = get_interface(vm::get_module(game_handle, "tier0.dll"), "VEngineCvar0"), E1);
-	JZ(interfaces::input    = get_interface(vm::get_module(game_handle, "inputsystem.dll"), "InputSystemVersion0"), E1);
-	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + 0xE + 3);
+	JZ(interfaces::cvar     = get_interface(vm::get_module(game_handle, TIER0_DLL), "VEngineCvar0"), E1);
+	JZ(interfaces::input    = get_interface(vm::get_module(game_handle, INPUTSYSTEM_DLL), "InputSystemVersion0"), E1);
+	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + BUTTON_STATE_OFF + 3);
 
+
+#ifdef __linux__
+	//
+	// ??????????????
+	//
+#else
 	JZ(direct::local_player = get_interface(client_dll, "Source2ClientPrediction0"), E1);
 	JZ(direct::local_player = get_interface_function(direct::local_player, 180), E1);
 	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player + 0xF0, 3, 7);
-
+#endif
 	JZ(direct::view_angles  = get_interface(client_dll, "Source2Client0"), E1);
 	direct::view_angles     = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
-	direct::view_angles     += 0x4510;
+	direct::view_angles     += VIEWANGLES_OFF;
 
 	//
 	// viewmatrix: 48 63 c2 48 8d 0d ? ? ? ? 48 c1
 	//
+	#ifndef __linux__
 	JZ(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x63\xc2\x48\x8d\x0d\x00\x00\x00\x00\x48\xc1", "xxxxxx????xx", 12), E1);
 	direct::view_matrix    = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
+	#endif
 
 	JZ(convars::sensitivity              = engine::get_convar("sensitivity"), E1);
 	JZ(convars::mp_teammates_are_enemies = engine::get_convar("mp_teammates_are_enemies"), E1);
 	JZ(convars::cl_crosshairalpha        = engine::get_convar("cl_crosshairalpha"), E1);
 
-
-
 	//
 	// to-do schemas
 	//
 
-
 #ifdef DEBUG
-	LOG("interfaces::cvar       %llx\n", interfaces::cvar);
-	LOG("interfaces::input      %llx\n", interfaces::input);
-	LOG("interfaces::resource   %llx\n", interfaces::resource);
-	LOG("interfaces::entity     %llx\n", interfaces::entity);
-	LOG("interfaces::player     %llx\n", interfaces::player);
-	LOG("direct::local_player   %llx\n", direct::local_player);
-	LOG("direct::view_angles    %llx\n", direct::view_angles);
-	LOG("direct::view_matrix    %llx\n", direct::view_matrix);
+	LOG("interfaces::cvar       %p\n", (void *)interfaces::cvar);
+	LOG("interfaces::input      %p\n", (void *)interfaces::input);
+	LOG("interfaces::resource   %p\n", (void *)interfaces::resource);
+	LOG("interfaces::entity     %p\n", (void *)interfaces::entity);
+	LOG("interfaces::player     %p\n", (void *)interfaces::player);
+	LOG("direct::local_player   %p\n", (void *)direct::local_player);
+	LOG("direct::view_angles    %p\n", (void *)direct::view_angles);
+	LOG("direct::view_matrix    %p\n", (void *)direct::view_matrix);
 	LOG("game is running\n");
 #endif
 	return 1;
@@ -259,7 +290,7 @@ QWORD cs::engine::get_convar(const char *name)
 		if (!strcmpi_imp(convar_name, name))
 		{
 #ifdef DEBUG
-			LOG("get_convar [%s %llx]\n", convar_name, entry);
+			LOG("get_convar [%s %p]\n", convar_name, (void *)entry);
 #endif
 			return entry;
 		}
@@ -299,11 +330,11 @@ QWORD cs::entity::get_local_player_controller(void)
 
 QWORD cs::entity::get_client_entity(int index)
 {
-	QWORD v2 = vm::read_i64(game_handle, interfaces::entity + 8i64 * (index >> 9) + 16);
+	QWORD v2 = vm::read_i64(game_handle, interfaces::entity + 8 * (index >> 9) + 16);
 	if (v2 == 0)
 		return 0;
 
-	return vm::read_i64(game_handle, (QWORD)(120i64 * (index & 0x1FF) + v2));
+	return vm::read_i64(game_handle, (QWORD)(120 * (index & 0x1FF) + v2));
 }
 
 BOOL cs::entity::is_player(QWORD controller)
@@ -333,12 +364,12 @@ QWORD cs::entity::get_player(QWORD controller)
 		return 0;
 	}
 
-	QWORD v2 = vm::read_i64(game_handle, interfaces::player + 8 * ((unsigned __int64)(v1 & 0x7FFF) >> 9));
+	QWORD v2 = vm::read_i64(game_handle, interfaces::player + 8 * ((QWORD)(v1 & 0x7FFF) >> 9));
 	if (v2 == 0)
 	{
 		return 0;
 	}
-	return vm::read_i64(game_handle, v2 + 120i64 * (v1 & 0x1FF));
+	return vm::read_i64(game_handle, v2 + 120 * (v1 & 0x1FF));
 }
 
 int cs::get_crosshairalpha(void)
@@ -530,6 +561,10 @@ static QWORD cs::get_interface(QWORD base, PCSTR name)
 		return 0;
 	}
 
+	#ifdef __linux__
+	export_address = vm::get_relative_address(game_handle, export_address, 1, 5);
+	export_address += 0x10;
+	#endif
 	
 	QWORD interface_entry = vm::read_i64(game_handle, (export_address + 7) + vm::read_i32(game_handle, export_address + 3));
 	if (interface_entry == 0)
@@ -563,7 +598,6 @@ static QWORD cs::get_interface(QWORD base, PCSTR name)
 			// emulate vfunc call
 			//
 			QWORD addr = (vfunc + 7) + vm::read_i32(game_handle, vfunc + 3);
-
 			return addr;
 		}
 

@@ -58,6 +58,7 @@ extern QWORD g_memory_range_high;
 
 #ifdef __linux__
 
+
 #include <inttypes.h>
 #include <malloc.h>
 typedef unsigned char  BYTE;
@@ -66,8 +67,11 @@ typedef unsigned int DWORD;
 typedef unsigned long QWORD;
 typedef void *PVOID;
 typedef int BOOL;
+typedef char BOOLEAN;
 typedef int INT32;
 typedef const char *PCSTR;
+
+extern QWORD get_module_base(int process_id, const char *module_name);
 
 #else
 
@@ -99,11 +103,13 @@ namespace vm
 	BOOL      read(vm_handle process, QWORD address, PVOID buffer, QWORD length);
 	BOOL      write(vm_handle process, QWORD address, PVOID buffer, QWORD length);
 
+	#ifndef __linux__
 	QWORD     get_peb(vm_handle process);
 	QWORD     get_wow64_process(vm_handle process);
 
 	inline PVOID dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
 	inline void  free_module(PVOID dumped_module);
+	#endif
 
 	inline BYTE  read_i8(vm_handle process, QWORD address);
 	inline WORD  read_i16(vm_handle process, QWORD address);
@@ -121,7 +127,7 @@ namespace vm
 	inline QWORD get_module(vm_handle process, PCSTR dll_name);
 	inline QWORD get_module_export(vm_handle process, QWORD base, PCSTR export_name);
 
-	
+	#ifndef __linux__
 	inline QWORD scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length);
 	inline QWORD scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length);
 
@@ -132,8 +138,10 @@ namespace vm
 		inline DWORD FindSectionOffset(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
 		inline QWORD FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
 	}
+	#endif
 }
 
+#ifndef __linux__
 inline PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
 {
 	QWORD nt_header;
@@ -207,6 +215,8 @@ inline void vm::free_module(PVOID dumped_module)
 	free((void*)a0);
 #endif
 }
+
+#endif /* ifndef linux */
 
 inline BYTE vm::read_i8(vm_handle process, QWORD address)
 {
@@ -289,16 +299,12 @@ inline QWORD vm::get_relative_address(vm_handle process, QWORD instruction, DWOR
 	return (QWORD)(instruction + instruction_size + rip_address);
 }
 
-//
-// this function is very old, because back in that time i used short variable names it's quite difficult
-// to remember how exactly this works :D
-// it's mimimal port of Windows GetModuleHandleA to external. structure offsets are just fixed for both x86/x64.
-//
-
 QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 {
 	#ifdef __linux__
-	return (QWORD)0x140000000;
+
+	return get_module_base(((int*)&process)[1], dll_name);
+
 	#else
 
 	QWORD peb = get_wow64_process(process);
@@ -367,11 +373,127 @@ QWORD vm::get_module(vm_handle process, PCSTR dll_name)
 	#endif
 }
 
-//
-// this function is very old, because back in that time i used short variable names it's quite difficult
-// to remember how exactly this works :D
-// it's mimimal port of Windows GetProcAddress to external. structure offsets are just fixed for both x86/x64.
-//
+#ifdef __linux__
+
+inline QWORD get_elf_address(vm_handle process, QWORD base, int tag)
+{
+	BOOL wow64 = (vm::read_i16(process, base + 0x12) == 62) ? 0 : 1;
+	
+	int pht_count;
+	int pht_file_offset;
+	int pht_size;
+
+	if (wow64)
+	{
+		pht_count = 0x2C;
+		pht_file_offset = 0x1C;
+		pht_size = 32;
+	}
+	else
+	{
+		pht_count = 0x38;
+		pht_file_offset = 0x20;
+		pht_size = 56;
+	}
+
+	QWORD a0 = vm::read_i32(process, base + pht_file_offset) + base;
+
+	for (WORD i = 0; i < vm::read_i16(process, base + pht_count); i++)
+	{
+		QWORD a2 = pht_size * i + a0;
+		if (vm::read_i32(process, a2) == tag)
+		{
+			return a2;
+		}
+	}
+	return 0;
+}
+
+inline QWORD get_dyn_address(vm_handle process, QWORD base, QWORD tag)
+{
+	QWORD dyn = get_elf_address(process, base, 2);
+	if (dyn == 0)
+	{
+		return 0;
+	}
+
+	BOOL wow64 = (vm::read_i16(process, base + 0x12) == 62) ? 0 : 1;
+
+	int reg_size;
+	if (wow64)
+	{
+		reg_size = 4;
+	}
+	else
+	{
+		reg_size = 8;
+	}
+	
+	vm::read(process, dyn + (2*reg_size), &dyn, reg_size);
+
+	dyn += base;
+	
+	while (1)
+	{
+		QWORD dyn_tag = 0;
+		vm::read(process, dyn, &dyn_tag, reg_size);
+
+		if (dyn_tag == 0)
+		{
+			break;
+		}
+
+		if (dyn_tag == tag)
+		{
+			QWORD address = 0;
+			vm::read(process, dyn + reg_size, &address, reg_size);
+			return address;
+		}
+
+		dyn += (2*reg_size);
+	}
+	return 0;
+}
+
+QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
+{
+	int offset, add, length;
+
+	BOOL wow64 = (vm::read_i16(process, base + 0x12) == 62) ? 0 : 1;
+	if (wow64)
+	{
+		offset = 0x20, add = 0x10, length = 0x04;
+	}
+	else
+	{
+		offset = 0x40, add = 0x18, length = 0x08;
+	}
+
+	QWORD str_tab = get_dyn_address(process, base, 5);
+	QWORD sym_tab = get_dyn_address(process, base, 6);
+
+	sym_tab += add;
+
+	uint32_t st_name = 1;
+	do
+	{
+		char sym_name[120]{};
+		if (vm::read(process, str_tab + st_name, &sym_name, sizeof(sym_name)) == -1)
+			break;
+		
+		if (strcmpi_imp(sym_name, export_name) == 0)
+		{
+			vm::read(process, sym_tab + length, &sym_tab, length);
+			return sym_tab + base;
+		}
+		sym_tab += add;
+	} while (vm::read(process, sym_tab, &st_name, sizeof(st_name)) != -1);
+
+	return 0;
+}
+
+#else
+
 QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 {
 	QWORD a0;
@@ -417,6 +539,9 @@ QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 	return 0;
 }
 
+#endif
+
+#ifndef __linux__
 inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length)
 {
 	QWORD ret = 0;
@@ -506,6 +631,7 @@ inline QWORD vm::utils::FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask,
 
 	return 0;
 }
+#endif /* ifndef linux */
 
 #endif /* VM_H */
 

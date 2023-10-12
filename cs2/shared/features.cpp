@@ -42,7 +42,7 @@ namespace features
 
 #ifdef _KERNEL_MODE
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
-#endif _KERNEL_MODE
+#endif
 }
 
 inline DWORD random_number(DWORD min, DWORD max)
