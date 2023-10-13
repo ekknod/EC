@@ -34,6 +34,25 @@ namespace cs
 		static QWORD cl_crosshairalpha;
 	}
 
+	namespace netvars
+	{
+		static int m_flFOVSensitivityAdjust = 0;
+		static int m_pGameSceneNode = 0;
+		static int m_iHealth = 0;
+		static int m_lifeState = 0;
+		static int m_iTeamNum = 0;
+		static int m_vecViewOffset = 0;
+		static int m_vecOrigin = 0;
+		static int m_bDormant = 0;
+		static int m_hPawn = 0;
+		static int m_modelState = 0;
+		static int m_aimPunchCache = 0;
+		static int m_iShotsFired = 0;
+		static int m_angEyeAngles = 0;
+		static int m_iIDEntIndex = 0;
+		static int m_vOldOrigin = 0;
+	}
+
 	static BOOL initialize(void);
 	static QWORD get_interface(QWORD base, PCSTR name);
 	QWORD get_interface_function(QWORD interface_address, DWORD index);
@@ -149,9 +168,8 @@ static BOOL cs::initialize(void)
 
 
 #ifdef __linux__
-	//
-	// ??????????????
-	//
+	JZ(direct::local_player = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x83\x3D\x00\x00\x00\x00\x00\x0F\x95\xC0\xC3", "xxx????xxxxx", 12), E1);
+	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player, 3, 8);
 #else
 	JZ(direct::local_player = get_interface(client_dll, "Source2ClientPrediction0"), E1);
 	JZ(direct::local_player = get_interface_function(direct::local_player, 180), E1);
@@ -189,6 +207,159 @@ static BOOL cs::initialize(void)
 	LOG("direct::view_matrix    %p\n", (void *)direct::view_matrix);
 	LOG("game is running\n");
 #endif
+
+	#ifdef __linux__
+	PVOID dump_client = vm::dump_module(game_handle, client_dll, VM_MODULE_TYPE::Full);
+	if (dump_client == 0)
+	{
+		return 0;
+	}
+
+	QWORD base = *(QWORD*)((QWORD)dump_client - 16);
+	QWORD size = *(QWORD*)((QWORD)dump_client - 8);
+	for (QWORD i = size - sizeof(QWORD); i--;)
+	{
+		QWORD entry    = ((QWORD)dump_client + i);
+		
+		BOOL network_enable = 0;
+		{
+			QWORD ptr_to_name = *(QWORD*)(entry);
+			if (ptr_to_name >= base && ptr_to_name <= (base + size))
+			{
+				ptr_to_name = *(QWORD*)((ptr_to_name - base) + (QWORD)dump_client);
+				if (ptr_to_name >= base && ptr_to_name <= (base + size))
+				{
+					if (!strcmpi_imp((const char*)(ptr_to_name - base) + (QWORD)dump_client, "MNetworkEnable"))
+					{
+						network_enable = 1;
+					}
+				}
+			}
+		}
+
+		QWORD name_ptr;
+		if (network_enable == 0)
+		{
+			name_ptr = *(QWORD*)(entry);
+			if (name_ptr < base)
+			{
+				continue;
+			}
+			if (name_ptr > (base + size))
+			{
+				continue;
+			}
+		}
+		else
+		{
+			name_ptr = *(QWORD*)(entry + 0x08);
+			if (name_ptr < base)
+			{
+				continue;
+			}
+			if (name_ptr > (base + size))
+			{
+				continue;
+			}
+		}
+
+		PCSTR netvar_name = (PCSTR)((name_ptr - base) + (QWORD)dump_client);
+
+		if (!netvars::m_iHealth && !strcmpi_imp(netvar_name, "m_iHealth") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_iHealth = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_iTeamNum = *(int*)(entry + 0x08);
+		}
+		else if (!netvars::m_hPawn && !strcmpi_imp(netvar_name, "m_hPawn") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_hPawn = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_lifeState && !strcmpi_imp(netvar_name, "m_lifeState") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_lifeState = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_vecViewOffset && !strcmpi_imp(netvar_name, "m_vecViewOffset") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_vecViewOffset = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_aimPunchCache && !strcmpi_imp(netvar_name, "m_aimPunchCache") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_aimPunchCache = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_iShotsFired && !strcmpi_imp(netvar_name, "m_iShotsFired") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_iShotsFired = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_angEyeAngles && !strcmpi_imp(netvar_name, "m_angEyeAngles") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_angEyeAngles = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_flFOVSensitivityAdjust && !strcmpi_imp(netvar_name, "m_flFOVSensitivityAdjust"))
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			netvars::m_flFOVSensitivityAdjust = *(int*)(entry + 0x08);
+		}
+		else if (!netvars::m_pGameSceneNode && !strcmpi_imp(netvar_name, "m_pGameSceneNode"))
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(WORD*)(entry + 0x10));
+			netvars::m_pGameSceneNode = *(WORD*)(entry + 0x10);
+		}
+		else if (!netvars::m_bDormant && !strcmpi_imp(netvar_name, "m_bDormant"))
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			netvars::m_bDormant = *(int*)(entry + 0x08);
+		}
+		else if (!netvars::m_modelState && !strcmpi_imp(netvar_name, "m_modelState"))
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			netvars::m_modelState = *(int*)(entry + 0x08);
+		}
+		else if (!netvars::m_vecOrigin && !strcmpi_imp(netvar_name, "m_vecOrigin") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_vecOrigin = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_iIDEntIndex && !strcmpi_imp(netvar_name, "m_iIDEntIndex") && network_enable)
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			netvars::m_iIDEntIndex = *(int*)(entry + 0x08 + 0x10);
+		}
+		else if (!netvars::m_vOldOrigin && !strcmpi_imp(netvar_name, "m_vOldOrigin"))
+		{
+			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x10));
+			netvars::m_vOldOrigin = *(int*)(entry + 0x10);
+		}
+	}
+	vm::free_module(dump_client);
+	#else
+		netvars::m_flFOVSensitivityAdjust = 0x120c;
+		netvars::m_pGameSceneNode = 0x310;
+		netvars::m_iHealth = 0x32c;
+		netvars::m_lifeState = 0x330;
+		netvars::m_iTeamNum = 0x3bf;
+		netvars::m_vecViewOffset = 0xc48;
+		netvars::m_vecOrigin = 0x80;
+		netvars::m_bDormant = 0xe7;
+		netvars::m_hPawn = 0x5dc;
+		netvars::m_modelState = 0x160;
+		netvars::m_aimPunchCache = 0x1728;
+		netvars::m_iShotsFired = 0x1404;
+		netvars::m_angEyeAngles = 0x1500;
+		netvars::m_iIDEntIndex = 0x152c;
+		netvars::m_vOldOrigin = 0x1214;
+	#endif
+
 	return 1;
 }
 
@@ -339,6 +510,9 @@ QWORD cs::entity::get_client_entity(int index)
 
 BOOL cs::entity::is_player(QWORD controller)
 {
+#ifdef __linux__
+	return 1;
+#else
 	QWORD vfunc = get_interface_function(controller, 144);
 	if (vfunc == 0)
 		return 0;
@@ -350,6 +524,7 @@ BOOL cs::entity::is_player(QWORD controller)
 	// cc
 	//
 	return value == 0xCCC301B0;
+#endif
 }
 
 QWORD cs::entity::get_player(QWORD controller)
@@ -358,7 +533,7 @@ QWORD cs::entity::get_player(QWORD controller)
 	// 5DC offset might be changing in time
 	// 8B 91 ? 05 00 00 83
 	//
-	DWORD v1 = vm::read_i32(game_handle, controller + 0x5DC);
+	DWORD v1 = vm::read_i32(game_handle, controller + netvars::m_hPawn);
 	if (v1 == (DWORD)(-1))
 	{
 		return 0;
@@ -395,23 +570,23 @@ BOOL cs::input::is_button_down(DWORD button)
 
 DWORD cs::player::get_health(QWORD player)
 {
-	return vm::read_i32(game_handle, player + 0x32c);
+	return vm::read_i32(game_handle, player + netvars::m_iHealth);
 }
 
 DWORD cs::player::get_team_num(QWORD player)
 {
-	return vm::read_i32(game_handle, player + 0x3bf);
+	return vm::read_i32(game_handle, player + netvars::m_iTeamNum);
 }
 
 int cs::player::get_life_state(QWORD player)
 {
-	return vm::read_i32(game_handle, player + 0x330);
+	return vm::read_i32(game_handle, player + netvars::m_lifeState);
 }
 
 vec3 cs::player::get_origin(QWORD player)
 {
 	vec3 value{};
-	if (!vm::read(game_handle, player + 0x1214, &value, sizeof(value)))
+	if (!vm::read(game_handle, player + netvars::m_vOldOrigin, &value, sizeof(value)))
 	{
 		value = {};
 	}
@@ -420,7 +595,7 @@ vec3 cs::player::get_origin(QWORD player)
 
 float cs::player::get_vec_view(QWORD player)
 {
-	return vm::read_float(game_handle, player + 0xc48 + 8);
+	return vm::read_float(game_handle, player + netvars::m_vecViewOffset + 8);
 }
 
 vec3 cs::player::get_eye_position(QWORD player)
@@ -432,18 +607,18 @@ vec3 cs::player::get_eye_position(QWORD player)
 
 DWORD cs::player::get_crosshair_id(QWORD player)
 {
-	return vm::read_i32(game_handle, player + 0x152c);
+	return vm::read_i32(game_handle, player + netvars::m_iIDEntIndex);
 }
 
 DWORD cs::player::get_shots_fired(QWORD player)
 {
-	return vm::read_i32(game_handle, player + 0x1404);
+	return vm::read_i32(game_handle, player + netvars::m_iShotsFired);
 }
 
 vec2 cs::player::get_eye_angles(QWORD player)
 {
 	vec2 value{};
-	if (!vm::read(game_handle, player + 0x1500, &value, sizeof(value)))
+	if (!vm::read(game_handle, player + netvars::m_angEyeAngles, &value, sizeof(value)))
 	{
 		value = {};
 	}
@@ -452,7 +627,7 @@ vec2 cs::player::get_eye_angles(QWORD player)
 
 float cs::player::get_fov_multipler(QWORD player)
 {
-	return vm::read_float(game_handle, player + 0x120c);
+	return vm::read_float(game_handle, player + netvars::m_flFOVSensitivityAdjust);
 }
 
 vec2 cs::player::get_vec_punch(QWORD player)
@@ -460,7 +635,7 @@ vec2 cs::player::get_vec_punch(QWORD player)
 	vec2 data{};
 
 	QWORD aim_punch_cache[2]{};
-	if (!vm::read(game_handle, player + 0x1728, &aim_punch_cache, sizeof(aim_punch_cache)))
+	if (!vm::read(game_handle, player + netvars::m_aimPunchCache, &aim_punch_cache, sizeof(aim_punch_cache)))
 	{
 		return data;
 	}
@@ -484,7 +659,7 @@ vec2 cs::player::get_vec_punch(QWORD player)
 
 QWORD cs::player::get_node(QWORD player)
 {
-	return vm::read_i64(game_handle, player + 0x310);
+	return vm::read_i64(game_handle, player + netvars::m_pGameSceneNode);
 }
 
 BOOL cs::player::is_valid(QWORD player, QWORD node)
@@ -516,13 +691,13 @@ BOOL cs::player::is_valid(QWORD player, QWORD node)
 
 BOOLEAN cs::node::get_dormant(QWORD node)
 {
-	return vm::read_i8( game_handle, node + 0xe7 );
+	return vm::read_i8( game_handle, node + netvars::m_bDormant );
 }
 
 vec3 cs::node::get_origin(QWORD node)
 {
 	vec3 val{};
-	if (!vm::read(game_handle, node + 0x80, &val, sizeof(val)))
+	if (!vm::read(game_handle, node + netvars::m_vecOrigin, &val, sizeof(val)))
 	{
 		val = {};
 	}
@@ -539,7 +714,7 @@ BOOL cs::node::get_bone_position(QWORD node, int index, vec3 *data)
 	// ret
 	//
 	QWORD skeleton    = node;
-	QWORD model_state = skeleton + 0x160;
+	QWORD model_state = skeleton + netvars::m_modelState;
 	QWORD bone_data   = vm::read_i64(game_handle, model_state + 0x80);
 
 	if (bone_data == 0)

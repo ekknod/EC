@@ -106,9 +106,6 @@ namespace vm
 	#ifndef __linux__
 	QWORD     get_peb(vm_handle process);
 	QWORD     get_wow64_process(vm_handle process);
-
-	inline PVOID dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
-	inline void  free_module(PVOID dumped_module);
 	#endif
 
 	inline BYTE  read_i8(vm_handle process, QWORD address);
@@ -127,96 +124,18 @@ namespace vm
 	inline QWORD get_module(vm_handle process, PCSTR dll_name);
 	inline QWORD get_module_export(vm_handle process, QWORD base, PCSTR export_name);
 
-	#ifndef __linux__
+	inline PVOID dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type);
+	inline void  free_module(PVOID dumped_module);
+	
 	inline QWORD scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length);
 	inline QWORD scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length);
-
-
 	namespace utils
 	{
 		inline BOOL  bDataCompare(const BYTE* pData, const BYTE* bMask, const char* szMask);
 		inline DWORD FindSectionOffset(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
 		inline QWORD FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask, char* szMask);
 	}
-	#endif
 }
-
-#ifndef __linux__
-inline PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
-{
-	QWORD nt_header;
-	DWORD image_size;
-	BYTE* ret;
-
-	if (base == 0)
-	{
-		return 0;
-	}
-
-	nt_header = (QWORD)read_i32(process, base + 0x03C) + base;
-	if (nt_header == base)
-	{
-		return 0;
-	}
-
-	image_size = read_i32(process, nt_header + 0x050);
-	if (image_size == 0)
-	{
-		return 0;
-	}
-
-#ifdef _KERNEL_MODE
-	ret = (BYTE*)ExAllocatePool2(POOL_FLAG_NON_PAGED, (QWORD)(image_size + 16), 'ofnI');
-#else
-	ret = (BYTE*)malloc((QWORD)image_size + 16);
-#endif
-	if (ret == 0)
-		return 0;
-
-	*(QWORD*)(ret + 0) = base;
-	*(QWORD*)(ret + 8) = image_size;
-	ret += 16;
-
-	DWORD headers_size = read_i32(process, nt_header + 0x54);
-	read(process, base, ret, headers_size);
-
-	WORD machine = read_i16(process, nt_header + 0x4);
-	QWORD section_header = machine == 0x8664 ?
-		nt_header + 0x0108 :
-		nt_header + 0x00F8;
-
-
-	for (WORD i = 0; i < read_i16(process, nt_header + 0x06); i++) {
-		QWORD section = section_header + ((QWORD)i * 40);
-		if (module_type == VM_MODULE_TYPE::CodeSectionsOnly)
-		{
-			DWORD section_characteristics = read_i32(process, section + 0x24);
-			if (!(section_characteristics & 0x00000020))
-				continue;
-		}
-
-		QWORD target_address = (QWORD)ret + (QWORD)read_i32(process, section + ((module_type == VM_MODULE_TYPE::Raw) ? 0x14 : 0x0C));
-		QWORD virtual_address = base + (QWORD)read_i32(process, section + 0x0C);
-		DWORD virtual_size = read_i32(process, section + 0x08);
-		read(process, virtual_address, (PVOID)target_address, virtual_size);
-	}
-
-	return (PVOID)ret;
-}
-
-inline void vm::free_module(PVOID dumped_module)
-{
-	QWORD a0 = (QWORD)dumped_module;
-
-	a0 -= 16;
-#ifdef _KERNEL_MODE
-	ExFreePoolWithTag((void*)a0, 'ofnI');
-#else
-	free((void*)a0);
-#endif
-}
-
-#endif /* ifndef linux */
 
 inline BYTE vm::read_i8(vm_handle process, QWORD address)
 {
@@ -385,15 +304,11 @@ inline QWORD get_elf_address(vm_handle process, QWORD base, int tag)
 
 	if (wow64)
 	{
-		pht_count = 0x2C;
-		pht_file_offset = 0x1C;
-		pht_size = 32;
+		pht_count = 0x2C, pht_file_offset = 0x1C, pht_size = 32;
 	}
 	else
 	{
-		pht_count = 0x38;
-		pht_file_offset = 0x20;
-		pht_size = 56;
+		pht_count = 0x38, pht_file_offset = 0x20, pht_size = 56;
 	}
 
 	QWORD a0 = vm::read_i32(process, base + pht_file_offset) + base;
@@ -419,15 +334,7 @@ inline QWORD get_dyn_address(vm_handle process, QWORD base, QWORD tag)
 
 	BOOL wow64 = (vm::read_i16(process, base + 0x12) == 62) ? 0 : 1;
 
-	int reg_size;
-	if (wow64)
-	{
-		reg_size = 4;
-	}
-	else
-	{
-		reg_size = 8;
-	}
+	int reg_size = wow64 ? 4 : 8;
 	
 	vm::read(process, dyn + (2*reg_size), &dyn, reg_size);
 
@@ -541,7 +448,138 @@ QWORD vm::get_module_export(vm_handle process, QWORD base, PCSTR export_name)
 
 #endif
 
-#ifndef __linux__
+#ifdef __linux__
+
+#include <elf.h>
+#include <byteswap.h>
+
+
+
+
+inline PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
+{
+	Elf64_Ehdr ehdr;
+	vm::read(process, base, &ehdr, sizeof(ehdr));
+	QWORD module_size = (ehdr.e_shoff + (ehdr.e_shentsize * ehdr.e_shnum));
+
+	if (module_size == 0)
+	{
+		return 0;
+	}
+
+	QWORD dump = (QWORD)malloc(module_size + 16);
+
+	if (dump == 0)
+	{
+		return 0;
+	}
+
+	*(QWORD*)(dump + 0x00) = base;
+	*(QWORD*)(dump + 0x08) = module_size;
+
+	dump += 16;
+
+	if (!vm::read(process, base, (PVOID)dump, module_size))
+	{
+		dump -= 16;
+
+		free((PVOID)dump);
+		return 0;
+	}
+
+	return (PVOID)dump;
+}
+
+#else
+inline PVOID vm::dump_module(vm_handle process, QWORD base, VM_MODULE_TYPE module_type)
+{
+	QWORD nt_header;
+	DWORD image_size;
+	BYTE* ret;
+
+	if (base == 0)
+	{
+		return 0;
+	}
+
+	nt_header = (QWORD)read_i32(process, base + 0x03C) + base;
+	if (nt_header == base)
+	{
+		return 0;
+	}
+
+	image_size = read_i32(process, nt_header + 0x050);
+	if (image_size == 0)
+	{
+		return 0;
+	}
+
+#ifdef _KERNEL_MODE
+	ret = (BYTE*)ExAllocatePool2(POOL_FLAG_NON_PAGED, (QWORD)(image_size + 16), 'ofnI');
+#else
+	ret = (BYTE*)malloc((QWORD)image_size + 16);
+#endif
+	if (ret == 0)
+		return 0;
+
+	*(QWORD*)(ret + 0) = base;
+	*(QWORD*)(ret + 8) = image_size;
+	ret += 16;
+
+	DWORD headers_size = read_i32(process, nt_header + 0x54);
+	read(process, base, ret, headers_size);
+
+	WORD machine = read_i16(process, nt_header + 0x4);
+	QWORD section_header = machine == 0x8664 ?
+		nt_header + 0x0108 :
+		nt_header + 0x00F8;
+
+
+	for (WORD i = 0; i < read_i16(process, nt_header + 0x06); i++) {
+		QWORD section = section_header + ((QWORD)i * 40);
+		if (module_type == VM_MODULE_TYPE::CodeSectionsOnly)
+		{
+			DWORD section_characteristics = read_i32(process, section + 0x24);
+			if (!(section_characteristics & 0x00000020))
+				continue;
+		}
+
+		QWORD target_address = (QWORD)ret + (QWORD)read_i32(process, section + ((module_type == VM_MODULE_TYPE::Raw) ? 0x14 : 0x0C));
+		QWORD virtual_address = base + (QWORD)read_i32(process, section + 0x0C);
+		DWORD virtual_size = read_i32(process, section + 0x08);
+		read(process, virtual_address, (PVOID)target_address, virtual_size);
+	}
+
+	return (PVOID)ret;
+}
+#endif
+
+inline void vm::free_module(PVOID dumped_module)
+{
+	QWORD a0 = (QWORD)dumped_module;
+
+	a0 -= 16;
+#ifdef _KERNEL_MODE
+	ExFreePoolWithTag((void*)a0, 'ofnI');
+#else
+	free((void*)a0);
+#endif
+}
+
+#ifdef __linux__
+inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length)
+{
+	QWORD base    = *(QWORD*)((QWORD)dumped_module - 16);
+	QWORD size    = *(QWORD*)((QWORD)dumped_module - 8);
+	QWORD address = utils::FindPatternEx((QWORD)dumped_module, size - length, (BYTE*)pattern, (char*)mask);
+	if (address)
+	{
+		return (address - (QWORD)dumped_module) + base;
+	}
+	return 0;
+}
+#else
+
 inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QWORD length)
 {
 	QWORD ret = 0;
@@ -578,6 +616,8 @@ inline QWORD vm::scan_pattern(PVOID dumped_module, PCSTR pattern, PCSTR mask, QW
 	}
 	return ret;
 }
+
+#endif
 
 QWORD vm::scan_pattern_direct(vm_handle process, QWORD base, PCSTR pattern, PCSTR mask, DWORD length)
 {
@@ -631,7 +671,6 @@ inline QWORD vm::utils::FindPatternEx(QWORD dwAddress, QWORD dwLen, BYTE* bMask,
 
 	return 0;
 }
-#endif /* ifndef linux */
 
 #endif /* VM_H */
 
