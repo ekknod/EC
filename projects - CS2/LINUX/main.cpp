@@ -89,13 +89,6 @@ namespace config
 	BOOL  visuals_enabled = 1;
 }
 
-//
-// 12.10
-// linux is missing:
-// 	- direct localplayer address
-// 	- netvars need to be adjusted for linux
-//
-
 int main(void)
 {
 	fd = open_device("event-mouse", 11);
