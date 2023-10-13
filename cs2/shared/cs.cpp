@@ -212,7 +212,7 @@ static BOOL cs::initialize(void)
 	PVOID dump_client = vm::dump_module(game_handle, client_dll, VM_MODULE_TYPE::Full);
 	if (dump_client == 0)
 	{
-		return 0;
+		goto E1;
 	}
 
 	QWORD base = *(QWORD*)((QWORD)dump_client - 16);
@@ -267,98 +267,256 @@ static BOOL cs::initialize(void)
 
 		if (!netvars::m_iHealth && !strcmpi_imp(netvar_name, "m_iHealth") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_iHealth = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_iTeamNum = *(int*)(entry + 0x08);
 		}
 		else if (!netvars::m_hPawn && !strcmpi_imp(netvar_name, "m_hPawn") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_hPawn = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_lifeState && !strcmpi_imp(netvar_name, "m_lifeState") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_lifeState = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_vecViewOffset && !strcmpi_imp(netvar_name, "m_vecViewOffset") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_vecViewOffset = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_aimPunchCache && !strcmpi_imp(netvar_name, "m_aimPunchCache") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_aimPunchCache = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_iShotsFired && !strcmpi_imp(netvar_name, "m_iShotsFired") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_iShotsFired = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_angEyeAngles && !strcmpi_imp(netvar_name, "m_angEyeAngles") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_angEyeAngles = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_flFOVSensitivityAdjust && !strcmpi_imp(netvar_name, "m_flFOVSensitivityAdjust"))
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
 			netvars::m_flFOVSensitivityAdjust = *(int*)(entry + 0x08);
 		}
 		else if (!netvars::m_pGameSceneNode && !strcmpi_imp(netvar_name, "m_pGameSceneNode"))
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(WORD*)(entry + 0x10));
+			LOG("%s, %x\n", netvar_name, *(WORD*)(entry + 0x10));
 			netvars::m_pGameSceneNode = *(WORD*)(entry + 0x10);
 		}
 		else if (!netvars::m_bDormant && !strcmpi_imp(netvar_name, "m_bDormant"))
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
 			netvars::m_bDormant = *(int*)(entry + 0x08);
 		}
 		else if (!netvars::m_modelState && !strcmpi_imp(netvar_name, "m_modelState"))
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
 			netvars::m_modelState = *(int*)(entry + 0x08);
 		}
 		else if (!netvars::m_vecOrigin && !strcmpi_imp(netvar_name, "m_vecOrigin") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_vecOrigin = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_iIDEntIndex && !strcmpi_imp(netvar_name, "m_iIDEntIndex") && network_enable)
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 			netvars::m_iIDEntIndex = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_vOldOrigin && !strcmpi_imp(netvar_name, "m_vOldOrigin"))
 		{
-			LOG("offset: %s, %x\n", netvar_name, *(int*)(entry + 0x10));
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
 			netvars::m_vOldOrigin = *(int*)(entry + 0x10);
 		}
 	}
 	vm::free_module(dump_client);
 	#else
-		netvars::m_flFOVSensitivityAdjust = 0x120c;
-		netvars::m_pGameSceneNode = 0x310;
-		netvars::m_iHealth = 0x32c;
-		netvars::m_lifeState = 0x330;
-		netvars::m_iTeamNum = 0x3bf;
-		netvars::m_vecViewOffset = 0xc48;
-		netvars::m_vecOrigin = 0x80;
-		netvars::m_bDormant = 0xe7;
-		netvars::m_hPawn = 0x5dc;
-		netvars::m_modelState = 0x160;
-		netvars::m_aimPunchCache = 0x1728;
-		netvars::m_iShotsFired = 0x1404;
-		netvars::m_angEyeAngles = 0x1500;
-		netvars::m_iIDEntIndex = 0x152c;
-		netvars::m_vOldOrigin = 0x1214;
+
+
+	PVOID dump_client = vm::dump_module(game_handle, client_dll, VM_MODULE_TYPE::Full);
+	if (dump_client == 0)
+	{
+		goto E1;
+	}
+
+	{
+		QWORD dos_header = (QWORD)dump_client;
+		QWORD nt_header = (QWORD) * (DWORD*)(dos_header + 0x03C) + dos_header;
+		WORD  machine = *(WORD*)(nt_header + 0x4);
+
+		QWORD section_header = machine == 0x8664 ?
+			nt_header + 0x0108 :
+			nt_header + 0x00F8;
+
+		for (WORD i = 0; i < *(WORD*)(nt_header + 0x06); i++) {
+			QWORD section = section_header + ((QWORD)i * 40);
+			DWORD section_characteristics = *(DWORD*)(section + 0x24);
+			PCSTR name = (PCSTR)section;
+
+			if (strcmpi_imp(name, ".data"))
+			{
+				continue;
+			}
+			
+			DWORD section_size = *(DWORD*)(section + 0x08);
+			DWORD section_addr = *(DWORD*)(section + 0x0C);
+
+			for (DWORD j = section_addr; j < section_addr + section_size; j++)
+			{
+				BOOL network_enable = 0;
+				{
+					QWORD ptr_to_name = *(QWORD*)(dos_header + j);
+					if (ptr_to_name >= client_dll && ptr_to_name <= (client_dll + *(QWORD*)(dos_header - 8)))
+					{
+						ptr_to_name = *(QWORD*)((ptr_to_name - client_dll) + dos_header);
+						if (ptr_to_name >= client_dll && ptr_to_name <= (client_dll + *(QWORD*)(dos_header - 8)))
+						{
+							if (!strcmpi_imp((const char*)(ptr_to_name - client_dll) + dos_header, "MNetworkEnable"))
+							{
+								network_enable = 1;
+							}
+						}
+					}
+				}
+
+				QWORD ptr_to_name;
+				if (network_enable == 0)
+				{
+					ptr_to_name = *(QWORD*)(dos_header + j + 0x00);
+					if (ptr_to_name < client_dll)
+					{
+						continue;
+					}	
+					if (ptr_to_name > (client_dll + *(QWORD*)(dos_header - 8)))
+					{
+						continue;
+					}
+				}
+				else
+				{
+					ptr_to_name = *(QWORD*)(dos_header + j + 0x08);
+					if (ptr_to_name < client_dll)
+					{
+						continue;
+					}	
+					if (ptr_to_name > (client_dll + *(QWORD*)(dos_header - 8)))
+					{
+						continue;
+					}
+				}
+
+
+				PCSTR netvar_name = (PCSTR)((ptr_to_name - client_dll) + dos_header);
+
+				if (!netvars::m_iHealth && !strcmpi_imp(netvar_name, "m_iHealth") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_iHealth = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_iTeamNum = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_hPawn && !strcmpi_imp(netvar_name, "m_hPawn") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_hPawn = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_lifeState && !strcmpi_imp(netvar_name, "m_lifeState") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_lifeState = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_vecViewOffset && !strcmpi_imp(netvar_name, "m_vecViewOffset") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_vecViewOffset = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_aimPunchCache && !strcmpi_imp(netvar_name, "m_aimPunchCache") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_aimPunchCache = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_iShotsFired && !strcmpi_imp(netvar_name, "m_iShotsFired") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_iShotsFired = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_angEyeAngles && !strcmpi_imp(netvar_name, "m_angEyeAngles") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_angEyeAngles = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_flFOVSensitivityAdjust && !strcmpi_imp(netvar_name, "m_flFOVSensitivityAdjust"))
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_flFOVSensitivityAdjust = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_pGameSceneNode && !strcmpi_imp(netvar_name, "m_pGameSceneNode"))
+				{
+					LOG("%s, %lx\n", netvar_name, *(WORD*)(dos_header + j + 0x10));
+					netvars::m_pGameSceneNode = *(WORD*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_bDormant && !strcmpi_imp(netvar_name, "m_bDormant"))
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_bDormant = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_modelState && !strcmpi_imp(netvar_name, "m_modelState"))
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_modelState = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_vecOrigin && !strcmpi_imp(netvar_name, "m_vecOrigin") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_vecOrigin = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_iIDEntIndex && !strcmpi_imp(netvar_name, "m_iIDEntIndex") && network_enable)
+				{
+					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_iIDEntIndex = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+				else if (!netvars::m_vOldOrigin && !strcmpi_imp(netvar_name, "m_vOldOrigin"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_vOldOrigin = *(int*)(dos_header + j + 0x10);
+				}
+			}
+		}
+		vm::free_module(dump_client);
+	}
+
 	#endif
+
+	JZ(netvars::m_flFOVSensitivityAdjust, E1);
+	JZ(netvars::m_pGameSceneNode, E1);
+	JZ(netvars::m_iHealth, E1);
+	JZ(netvars::m_lifeState, E1);
+	JZ(netvars::m_iTeamNum, E1);
+	JZ(netvars::m_vecViewOffset, E1);
+	JZ(netvars::m_vecOrigin, E1);
+	JZ(netvars::m_bDormant, E1);
+	JZ(netvars::m_hPawn, E1);
+	JZ(netvars::m_modelState, E1);
+	JZ(netvars::m_aimPunchCache, E1);
+	JZ(netvars::m_iShotsFired, E1);
+	JZ(netvars::m_angEyeAngles, E1);
+	JZ(netvars::m_iIDEntIndex, E1);
+	JZ(netvars::m_vOldOrigin, E1);
 
 	return 1;
 }
