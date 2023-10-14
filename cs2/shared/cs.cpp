@@ -364,7 +364,6 @@ static BOOL cs::initialize(void)
 
 		for (WORD i = 0; i < *(WORD*)(nt_header + 0x06); i++) {
 			QWORD section = section_header + ((QWORD)i * 40);
-			DWORD section_characteristics = *(DWORD*)(section + 0x24);
 			PCSTR name = (PCSTR)section;
 
 			if (strcmpi_imp(name, ".data"))
