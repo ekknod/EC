@@ -4,6 +4,7 @@ namespace input
 {
 	void mouse_move(int x, int y)
 	{
+		cs::input::move(x, y);
 		// kmbox_mouse_move();
 	}
 
@@ -33,7 +34,6 @@ int main(void)
 {
 	while (1)
 	{
-		Sleep(1);
 		cs2::run();
 	}
 	return 0;

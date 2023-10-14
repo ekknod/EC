@@ -25,6 +25,7 @@ namespace cs
 		static QWORD view_angles;
 		static QWORD view_matrix;
 		static DWORD button_state;
+		static QWORD previous_xy;
 	}
 
 	namespace convars
@@ -131,11 +132,12 @@ static BOOL cs::initialize(void)
 		return 0;
 	}
 
-	QWORD client_dll;
+	QWORD client_dll, sdl, inputsystem;
 	JZ(client_dll = vm::get_module(game_handle, CLIENT_DLL), E1);
-
-	QWORD sdl;
 	JZ(sdl = vm::get_module(game_handle, SDL3_DLL), E1);
+	JZ(inputsystem = vm::get_module(game_handle, INPUTSYSTEM_DLL), E1);
+
+	direct::previous_xy = inputsystem + 0x3C770;
 
 	interfaces::resource = get_interface(vm::get_module(game_handle, ENGINE_DLL), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
@@ -163,7 +165,7 @@ static BOOL cs::initialize(void)
 	interfaces::player      = interfaces::entity + 0x10;
 
 	JZ(interfaces::cvar     = get_interface(vm::get_module(game_handle, TIER0_DLL), "VEngineCvar0"), E1);
-	JZ(interfaces::input    = get_interface(vm::get_module(game_handle, INPUTSYSTEM_DLL), "InputSystemVersion0"), E1);
+	JZ(interfaces::input    = get_interface(inputsystem, "InputSystemVersion0"), E1);
 	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + BUTTON_STATE_OFF + 3);
 
 
@@ -724,6 +726,19 @@ BOOL cs::input::is_button_down(DWORD button)
 {
 	DWORD v = vm::read_i32(game_handle, (QWORD)(interfaces::input + (((QWORD(button) >> 5) * 4) + direct::button_state)));
 	return (v >> (button & 31)) & 1;
+}
+
+void cs::input::move(int x, int y)
+{
+	typedef struct 
+	{
+		float y, x;
+	} DATA; 
+
+	DATA data{};
+	data.x = (float)x;
+	data.y = (float)y;
+	vm::write(game_handle, direct::previous_xy, &data, sizeof(data));
 }
 
 DWORD cs::player::get_health(QWORD player)
