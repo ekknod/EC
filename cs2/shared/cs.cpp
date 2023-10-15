@@ -52,6 +52,7 @@ namespace cs
 		static int m_angEyeAngles = 0;
 		static int m_iIDEntIndex = 0;
 		static int m_vOldOrigin = 0;
+		static int m_pClippingWeapon = 0;
 	}
 
 	static BOOL initialize(void);
@@ -342,6 +343,11 @@ static BOOL cs::initialize(void)
 			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
 			netvars::m_vOldOrigin = *(int*)(entry + 0x10);
 		}
+		else if (!netvars::m_pClippingWeapon && !strcmpi_imp(netvar_name, "m_pClippingWeapon"))
+		{
+			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
+			netvars::m_pClippingWeapon = *(int*)(entry + 0x10);
+		}
 	}
 	vm::free_module(dump_client);
 	#else
@@ -495,6 +501,11 @@ static BOOL cs::initialize(void)
 				{
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::m_vOldOrigin = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_pClippingWeapon && !strcmpi_imp(netvar_name, "m_pClippingWeapon"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_pClippingWeapon = *(int*)(dos_header + j + 0x10);
 				}
 			}
 		}
@@ -827,6 +838,114 @@ vec2 cs::player::get_vec_punch(QWORD player)
 	}
 
 	return data;
+}
+
+cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
+{
+	QWORD weapon = vm::read_i64(game_handle, player + netvars::m_pClippingWeapon);
+
+	if (weapon == 0)
+	{
+		return cs::WEAPON_CLASS::Invalid;
+	}
+
+	weapon = vm::read_i64(game_handle, weapon + 0x10);
+	if (weapon == 0)
+	{
+		return cs::WEAPON_CLASS::Invalid;
+	}
+
+	weapon = vm::read_i64(game_handle, weapon + 0x20);
+	if (weapon == 0)
+	{
+		return cs::WEAPON_CLASS::Invalid;
+	}
+
+	char weapon_buffer[260];
+	if (!vm::read(game_handle, weapon, weapon_buffer, sizeof(weapon_buffer)))
+	{
+		return cs::WEAPON_CLASS::Invalid;
+	}
+
+	char *index = (char *)weapon_buffer + 7;
+	typedef struct {
+		const char *weapon_name;
+	} COMPARISON ;
+
+	/* knife */
+	{
+		COMPARISON data[] = {
+			{"knife"},
+			{"knife_t"},
+			{"knifegg"},
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		{
+			if (!strcmpi_imp(index, data[i].weapon_name))
+			{
+				return cs::WEAPON_CLASS::Knife;
+			}
+		}
+	}
+
+	/* grenade */
+	{
+		COMPARISON data[] = {
+			{"hegrenade"},
+			{"flashbang"},
+			{"smokegrenade"},
+			{"decoy"},
+			{"molotov"},
+			{"incgrenade"},
+			{"c4"},
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		{
+			if (!strcmpi_imp(index, data[i].weapon_name))
+			{
+				return cs::WEAPON_CLASS::Grenade;
+			}
+		}
+	}
+
+	/* pistol */
+	{
+		COMPARISON data[] = {
+			{"ssg08"}, // scout and deagle, in my opinion definitely belongs to same category
+			{"hkp2000"},
+			{"deagle"},
+			{"p250"},
+			{"elite"},
+			{"fiveseven"},
+			{"glock"},
+			{"tec9"},
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		{
+			if (!strcmpi_imp(index, data[i].weapon_name))
+			{
+				return cs::WEAPON_CLASS::Pistol;
+			}
+		}
+	}
+
+	/* sniper */
+	{
+		COMPARISON data[] = {
+			{"awp"},
+			{"scar20"},
+			{"g3sg1"},
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		{
+			if (!strcmpi_imp(index, data[i].weapon_name))
+			{
+				return cs::WEAPON_CLASS::Sniper;
+			}
+		}
+	}
+
+	return cs::WEAPON_CLASS::Rifle;
 }
 
 QWORD cs::player::get_node(QWORD player)

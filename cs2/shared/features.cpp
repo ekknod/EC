@@ -7,6 +7,13 @@
 namespace features
 {
 	//
+	// weapon class information
+	// shared variable, can be used at any features.cpp function
+	//
+	cs::WEAPON_CLASS weapon_class;
+
+
+	//
 	// triggerbot
 	//
 	static DWORD mouse_down_tick;
@@ -183,6 +190,43 @@ void features::run(void)
 	//
 	update_settings();
 
+
+	//
+	// get current weapon information
+	//
+	BOOL  b_can_aimbot = 0;
+	float accurate_shots_fl = -0.08f;
+
+	weapon_class = cs::player::get_weapon_class(local_player);
+	if (weapon_class == cs::WEAPON_CLASS::Knife)
+	{
+		b_can_aimbot = 0;
+	}
+	else if (weapon_class == cs::WEAPON_CLASS::Grenade)
+	{
+		b_can_aimbot = 0;
+	}
+	else if (weapon_class == cs::WEAPON_CLASS::Pistol)
+	{
+		accurate_shots_fl = -0.04f;
+		b_can_aimbot = 1;
+	}
+	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
+	{
+		b_can_aimbot = 1;
+	}
+	else if (weapon_class == cs::WEAPON_CLASS::Rifle)
+	{
+		b_can_aimbot = 1;
+	}
+	else
+	{
+		//
+		// invalid weapon class
+		//
+		return;
+	}
+
 	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);
 	vec2  aim_punch   = cs::player::get_vec_punch(local_player);
@@ -193,12 +237,12 @@ void features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (cs::input::is_button_down(config::triggerbot_button))
+	if (cs::input::is_button_down(config::triggerbot_button) && b_can_aimbot)
 	{
 		//
 		// accurate shots only
 		//
-		if (aim_punch.x > -0.04f)
+		if (aim_punch.x > accurate_shots_fl)
 		{
 			triggerbot(ffa, local_player);
 		}
@@ -258,6 +302,11 @@ void features::run(void)
 	// no valid target found
 	//
 	if (aimbot_target == 0)
+	{
+		return;
+	}
+
+	if (!b_can_aimbot)
 	{
 		return;
 	}
@@ -363,9 +412,20 @@ static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD 
 
 	if (num_shots > 0)
 	{
+		if (weapon_class == cs::WEAPON_CLASS::Sniper)
+			goto skip_recoil;
+
+		if (weapon_class == cs::WEAPON_CLASS::Pistol)
+		{
+			if (num_shots < 2)
+			{
+				goto skip_recoil;
+			}
+		}
 		angle.x -= aim_punch.x * 2.0f;
 		angle.y -= aim_punch.y * 2.0f;
 	}
+skip_recoil:
 
 	math::vec_clamp(&angle);
 

@@ -16,6 +16,15 @@
 
 namespace cs
 {
+	enum class WEAPON_CLASS {
+		Invalid = 0,
+		Knife = 1,
+		Grenade = 2,
+		Pistol = 3,
+		Sniper = 4,
+		Rifle = 5,
+	} ;
+
 	typedef struct
 	{
 		float x, y, w, h;
@@ -81,6 +90,7 @@ namespace cs
 		vec2  get_eye_angles(QWORD player);
 		float get_fov_multipler(QWORD player);
 		vec2  get_vec_punch(QWORD player);
+		WEAPON_CLASS get_weapon_class(QWORD player);
 		QWORD get_node(QWORD player);
 		BOOL  is_valid(QWORD player, QWORD node);
 	}
