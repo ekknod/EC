@@ -26,21 +26,6 @@ namespace input
 	extern void mouse1_up(void);
 }
 
-
-//
-// implemented by application/driver
-//
-namespace config
-{
-	extern BOOL  rcs;
-	extern DWORD aimbot_button;
-	extern float aimbot_fov;
-	extern float aimbot_smooth;
-	extern BOOL  aimbot_visibility_check;
-	extern DWORD triggerbot_button;
-	extern BOOL  visuals_enabled;
-}
-
 namespace cs2
 {
 	inline void run(void)

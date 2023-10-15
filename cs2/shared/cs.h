@@ -4,15 +4,41 @@
 #include "../../library/vm.h"
 #include "../../library/math.h"
 
+
+//
+// enables global debug messages
+//
+#define DEBUG
+
+
+
+
+
+
+
+
+
+
 #ifndef _KERNEL_MODE
-#define DEBUG
 #include <stdio.h>
-#define DEBUG
+
+#ifdef DEBUG
 #define LOG(...) printf("[EC] " __VA_ARGS__)
 #else
-#define DEBUG
-#define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[EC] " __VA_ARGS__)
+#define LOG(...) // __VA_ARGS__
 #endif
+
+
+#else
+
+#ifdef DEBUG
+#define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[EC] " __VA_ARGS__)
+#else
+#define LOG(...) // __VA_ARGS__
+#endif
+
+#endif
+
 
 namespace cs
 {

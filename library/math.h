@@ -252,6 +252,15 @@ namespace math
 		return r;
 	}
 
+	inline vec3 vec_add(vec3 p0, vec3 p1)
+	{
+		vec3 r;
+		r.x = p0.x + p1.x;
+		r.y = p0.y + p1.y;
+		r.z = p0.z + p1.z;
+		return r;
+	}
+
 	inline float vec_distance(vec3 p0, vec3 p1)
 	{
 		return vec_length_sqrt(vec_sub(p0, p1));

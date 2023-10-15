@@ -42,6 +42,7 @@ namespace features
 		aimbot_tick      = 0;
 	}
 
+	inline void update_settings(void);
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
@@ -52,14 +53,48 @@ namespace features
 #endif
 }
 
+namespace config
+{
+	static BOOL  rcs;
+	static BOOL  aimbot_enabled;
+	static DWORD aimbot_button;
+	static float aimbot_fov;
+	static float aimbot_smooth;
+	static BOOL  aimbot_multibone;
+	static DWORD triggerbot_button;
+	static BOOL  visuals_enabled;
+}
+
 inline DWORD random_number(DWORD min, DWORD max)
 {
 	return min + cs::engine::get_current_tick() % (max + 1 - min);
 }
 
-inline void update_settings(void)
+inline void features::update_settings(void)
 {
 	int crosshair_alpha = cs::get_crosshairalpha();
+
+
+	//
+	// default global settings
+	//
+	config::rcs = 0;
+	config::aimbot_enabled = 1;
+	config::aimbot_multibone = 1;
+	config::visuals_enabled = 2;
+
+
+	switch (weapon_class)
+	{
+	case cs::WEAPON_CLASS::Knife:
+	case cs::WEAPON_CLASS::Grenade:
+		config::aimbot_enabled = 0;
+		break;
+	case cs::WEAPON_CLASS::Pistol:
+		config::aimbot_multibone = 0;
+		break;
+	}
+
 
 	switch (crosshair_alpha)
 	{
@@ -185,47 +220,18 @@ void features::run(void)
 		goto NOT_INGAME;
 	}
 
+	weapon_class = cs::player::get_weapon_class(local_player);
+	if (weapon_class == cs::WEAPON_CLASS::Invalid)
+	{
+		return;
+	}
+
+
 	//
 	// update cheat settings
 	//
 	update_settings();
 
-
-	//
-	// get current weapon information
-	//
-	BOOL  b_can_aimbot = 0;
-	float accurate_shots_fl = -0.08f;
-
-	weapon_class = cs::player::get_weapon_class(local_player);
-	if (weapon_class == cs::WEAPON_CLASS::Knife)
-	{
-		b_can_aimbot = 0;
-	}
-	else if (weapon_class == cs::WEAPON_CLASS::Grenade)
-	{
-		b_can_aimbot = 0;
-	}
-	else if (weapon_class == cs::WEAPON_CLASS::Pistol)
-	{
-		accurate_shots_fl = -0.04f;
-		b_can_aimbot = 1;
-	}
-	else if (weapon_class == cs::WEAPON_CLASS::Sniper)
-	{
-		b_can_aimbot = 1;
-	}
-	else if (weapon_class == cs::WEAPON_CLASS::Rifle)
-	{
-		b_can_aimbot = 1;
-	}
-	else
-	{
-		//
-		// invalid weapon class
-		//
-		return;
-	}
 
 	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);
@@ -237,8 +243,14 @@ void features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (cs::input::is_button_down(config::triggerbot_button) && b_can_aimbot)
+	if (cs::input::is_button_down(config::triggerbot_button) && config::aimbot_enabled)
 	{
+		float accurate_shots_fl = -0.08f;
+		if (weapon_class == cs::WEAPON_CLASS::Pistol)
+		{
+			accurate_shots_fl = -0.04f;
+		}
+
 		//
 		// accurate shots only
 		//
@@ -298,15 +310,16 @@ void features::run(void)
 	aimbot_active = 0;
 
 
-	//
-	// no valid target found
-	//
-	if (aimbot_target == 0)
+	if (!config::aimbot_enabled)
 	{
 		return;
 	}
 
-	if (!b_can_aimbot)
+
+	//
+	// no valid target found
+	//
+	if (aimbot_target == 0)
 	{
 		return;
 	}
@@ -322,16 +335,45 @@ void features::run(void)
 		return;
 	}
 
-	vec3 head{};
-	if (!cs::node::get_bone_position(node, 6, &head))
+
+	vec2 view_angle = cs::engine::get_viewangles();
+	
+
+	vec3  aimbot_angle{};
+	float aimbot_fov = 360.0f;
+
+	if (config::aimbot_multibone)
 	{
-		return;
+		for (DWORD i = 2; i < 7; i++)
+		{
+			vec3 pos{};
+			if (!cs::node::get_bone_position(node, i, &pos))
+			{
+				continue;
+			}
+
+			vec3  angle = get_target_angle(local_player, pos, num_shots, aim_punch);
+			float fov   = math::get_fov(view_angle, angle);
+
+			if (fov < aimbot_fov)
+			{
+				aimbot_fov   = fov;
+				aimbot_angle = angle;
+			}
+		}
+	}
+	else
+	{
+		vec3 head{};
+		if (!cs::node::get_bone_position(node, 6, &head))
+		{
+			return;
+		}
+		aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
+		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
 	}
 
-	vec2 view_angle   = cs::engine::get_viewangles();
-	vec3 aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
-
-	if (math::get_fov(view_angle, aimbot_angle) > config::aimbot_fov)
+	if (aimbot_fov > config::aimbot_fov)
 	{
 		return;
 	}
@@ -400,6 +442,10 @@ static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD 
 {
 	vec3 eye_position = cs::node::get_origin(cs::player::get_node(local_player));
 	eye_position.z    += cs::player::get_vec_view(local_player);
+
+	//
+	// which one is better???
+	//
 	// vec3 eye_position = cs::player::get_eye_position(local_player);
 
 	vec3 angle{};
@@ -491,6 +537,14 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			esp(local_player, player, head);
 		}
 #endif
+
+		//
+		// if aimbot is disabled, we can skip rest of the code
+		//
+		if (!config::aimbot_enabled)
+		{
+			continue;
+		}
 
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 

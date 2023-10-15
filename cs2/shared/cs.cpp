@@ -127,9 +127,7 @@ static BOOL cs::initialize(void)
 	game_handle = vm::open_process_ex(PROCESS_NAME, CLIENT_DLL);
 	if (!game_handle)
 	{
-#ifdef DEBUG
 		LOG("CS2 process not found\n");
-#endif
 		return 0;
 	}
 
@@ -198,8 +196,6 @@ static BOOL cs::initialize(void)
 	//
 	// to-do schemas
 	//
-
-#ifdef DEBUG
 	LOG("interfaces::cvar       %p\n", (void *)interfaces::cvar);
 	LOG("interfaces::input      %p\n", (void *)interfaces::input);
 	LOG("interfaces::resource   %p\n", (void *)interfaces::resource);
@@ -209,7 +205,6 @@ static BOOL cs::initialize(void)
 	LOG("direct::view_angles    %p\n", (void *)direct::view_angles);
 	LOG("direct::view_matrix    %p\n", (void *)direct::view_matrix);
 	LOG("game is running\n");
-#endif
 
 	#ifdef __linux__
 	PVOID dump_client = vm::dump_module(game_handle, client_dll, VM_MODULE_TYPE::Full);
@@ -630,9 +625,7 @@ QWORD cs::engine::get_convar(const char *name)
 
 		if (!strcmpi_imp(convar_name, name))
 		{
-#ifdef DEBUG
 			LOG("get_convar [%s %p]\n", convar_name, (void *)entry);
-#endif
 			return entry;
 		}
 	}
