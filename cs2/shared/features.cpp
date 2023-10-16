@@ -52,7 +52,7 @@ namespace features
 	inline void update_settings(void);
 
 	
-	static void infov_event(QWORD local_player, QWORD target_player);
+	static void infov_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle);
 
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
@@ -205,20 +205,24 @@ inline void features::update_settings(void)
 
 //
 // this event is going to be triggered
-// when target FOV is less than 5
+// when we have active target
 //
-static void features::infov_event(QWORD local_player, QWORD target_player)
+static void features::infov_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle)
 {
 #ifdef _KERNEL_MODE
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(target_player);
+	UNREFERENCED_PARAMETER(aimbot_angle);
 #endif
 
 	if (config::visuals_enabled)
 	{
-		//
-		// net_graph( r, g , b ) 
-		//
+		if (fov < 5.0f)
+		{
+			//
+			// net_graph( r, g , b ) 
+			//
+		}
 	}
 }
 
@@ -422,9 +426,9 @@ void features::run(void)
 
 	if (event_state == 0)
 	{
-		if (aimbot_fov < 5.0f)
+		if (aimbot_fov != 360.0f)
 		{
-			features::infov_event(local_player, aimbot_target);
+			features::infov_event(local_player, aimbot_target, aimbot_fov, aimbot_angle);
 			event_state = 1;
 		}
 	}
@@ -538,6 +542,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 {
 	vec2 va = cs::engine::get_viewangles();
 	float best_fov = 360.0f;
+	vec3  angle{};
 	
 	for (int i = 1; i < 32; i++)
 	{
@@ -601,12 +606,13 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		{
 			best_fov = fov;
 			*target = player;
+			angle = best_angle;
 		}
 	}
 	
-	if (best_fov < 5.0f)
+	if (best_fov != 360.0f)
 	{
-		features::infov_event(local_player, *target);
+		features::infov_event(local_player, *target, best_fov, angle);
 		event_state = 1;
 	}
 }
