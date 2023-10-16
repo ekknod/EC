@@ -7,10 +7,12 @@
 namespace features
 {
 	//
-	// weapon class information
-	// shared variable, can be used at any features.cpp function
+	// global shared variables
+	// can be used at any features.cpp function
 	//
 	cs::WEAPON_CLASS weapon_class;
+	BOOL             b_aimbot_button;
+	BOOL             b_triggerbot_button;
 
 
 	//
@@ -31,6 +33,11 @@ namespace features
 	static QWORD aimbot_target;
 	static DWORD aimbot_tick;
 
+	//
+	// infov event state
+	//
+	static BOOL event_state;
+
 
 	void reset(void)
 	{
@@ -43,6 +50,11 @@ namespace features
 	}
 
 	inline void update_settings(void);
+
+	
+	static void infov_event(QWORD local_player, QWORD target_player);
+
+
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
@@ -81,7 +93,13 @@ inline void features::update_settings(void)
 	config::rcs = 0;
 	config::aimbot_enabled = 1;
 	config::aimbot_multibone = 1;
+
+
+#ifdef _KERNEL_MODE
 	config::visuals_enabled = 2;
+#else
+	config::visuals_enabled = 1;
+#endif
 
 
 	switch (weapon_class)
@@ -185,6 +203,25 @@ inline void features::update_settings(void)
 	}
 }
 
+//
+// this event is going to be triggered
+// when target FOV is less than 5
+//
+static void features::infov_event(QWORD local_player, QWORD target_player)
+{
+#ifdef _KERNEL_MODE
+	UNREFERENCED_PARAMETER(local_player);
+	UNREFERENCED_PARAMETER(target_player);
+#endif
+
+	if (config::visuals_enabled)
+	{
+		//
+		// net_graph( r, g , b ) 
+		//
+	}
+}
+
 void features::run(void)
 {
 	//
@@ -233,6 +270,17 @@ void features::run(void)
 	update_settings();
 
 
+
+	//
+	// update buttons
+	//
+	b_triggerbot_button = cs::input::is_button_down(config::triggerbot_button);
+	b_aimbot_button     = cs::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
+	
+
+
+
+
 	BOOL  ffa         = cs::gamemode::is_ffa();
 	DWORD num_shots   = cs::player::get_shots_fired(local_player);
 	vec2  aim_punch   = cs::player::get_vec_punch(local_player);
@@ -243,7 +291,7 @@ void features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (cs::input::is_button_down(config::triggerbot_button) && config::aimbot_enabled)
+	if (b_triggerbot_button && config::aimbot_enabled)
 	{
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs::WEAPON_CLASS::Pistol)
@@ -260,15 +308,15 @@ void features::run(void)
 		}
 	}
 
-	BOOL aimbot_key = cs::input::is_button_down(config::aimbot_button);
-
-	if (!aimbot_key)
+	if (!b_aimbot_button)
 	{
 		//
 		// reset target
 		//
 		aimbot_target = 0;
 	}
+
+	event_state = 0;
 
 	QWORD best_target = 0;
 	if (config::visuals_enabled == 2)
@@ -280,7 +328,7 @@ void features::run(void)
 		//
 		// optimize: find target only when button not pressed
 		//
-		if (!aimbot_key)
+		if (!b_aimbot_button)
 		{
 			get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
 		}
@@ -324,7 +372,7 @@ void features::run(void)
 		return;
 	}
 
-	if (!aimbot_key)
+	if (!b_aimbot_button)
 	{
 		return;
 	}
@@ -338,7 +386,6 @@ void features::run(void)
 
 	vec2 view_angle = cs::engine::get_viewangles();
 	
-
 	vec3  aimbot_angle{};
 	float aimbot_fov = 360.0f;
 
@@ -371,6 +418,15 @@ void features::run(void)
 		}
 		aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
+	}
+
+	if (event_state == 0)
+	{
+		if (aimbot_fov < 5.0f)
+		{
+			features::infov_event(local_player, aimbot_target);
+			event_state = 1;
+		}
 	}
 
 	if (aimbot_fov > config::aimbot_fov)
@@ -481,7 +537,6 @@ skip_recoil:
 static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target)
 {
 	vec2 va = cs::engine::get_viewangles();
-
 	float best_fov = 360.0f;
 	
 	for (int i = 1; i < 32; i++)
@@ -538,14 +593,6 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		}
 #endif
 
-		//
-		// if aimbot is disabled, we can skip rest of the code
-		//
-		if (!config::aimbot_enabled)
-		{
-			continue;
-		}
-
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
 		float fov = math::get_fov(va, *(vec3*)&best_angle);
@@ -555,6 +602,12 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			best_fov = fov;
 			*target = player;
 		}
+	}
+	
+	if (best_fov < 5.0f)
+	{
+		features::infov_event(local_player, *target);
+		event_state = 1;
 	}
 }
 
