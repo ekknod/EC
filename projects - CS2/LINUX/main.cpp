@@ -59,7 +59,7 @@ static int open_device(const char *name, size_t length)
 	return fd;
 }
 
-namespace input
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
@@ -75,6 +75,14 @@ namespace input
 	void mouse1_up(void)
 	{
 		send_input(fd, EV_KEY, 0x110, 0);
+	}
+
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+	}
+
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
 	}
 }
 

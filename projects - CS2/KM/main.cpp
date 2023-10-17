@@ -69,7 +69,7 @@ namespace mouse
 	void move(long x, long y, unsigned short button_flags);
 }
 
-namespace input
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
@@ -84,6 +84,31 @@ namespace input
 	void mouse1_up(void)
 	{
 		mouse::move(0, 0, 0x02);
+	}
+
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+	
+		UNREFERENCED_PARAMETER(hwnd);
+		UNREFERENCED_PARAMETER(x);
+		UNREFERENCED_PARAMETER(y);
+		UNREFERENCED_PARAMETER(w);
+		UNREFERENCED_PARAMETER(h);
+		UNREFERENCED_PARAMETER(r);
+		UNREFERENCED_PARAMETER(g);
+		UNREFERENCED_PARAMETER(b);
+	}
+
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+		UNREFERENCED_PARAMETER(hwnd);
+		UNREFERENCED_PARAMETER(x);
+		UNREFERENCED_PARAMETER(y);
+		UNREFERENCED_PARAMETER(w);
+		UNREFERENCED_PARAMETER(h);
+		UNREFERENCED_PARAMETER(r);
+		UNREFERENCED_PARAMETER(g);
+		UNREFERENCED_PARAMETER(b);
 	}
 }
 
@@ -126,38 +151,6 @@ DriverUnload(
 
 	DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[+] EC-CS2.sys is closed\n");
 }
-
-//
-// supported only in EFI mode
-//
-namespace gdi
-{
-	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
-	{
-	
-		UNREFERENCED_PARAMETER(hwnd);
-		UNREFERENCED_PARAMETER(x);
-		UNREFERENCED_PARAMETER(y);
-		UNREFERENCED_PARAMETER(w);
-		UNREFERENCED_PARAMETER(h);
-		UNREFERENCED_PARAMETER(r);
-		UNREFERENCED_PARAMETER(g);
-		UNREFERENCED_PARAMETER(b);
-	}
-
-	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
-	{
-		UNREFERENCED_PARAMETER(hwnd);
-		UNREFERENCED_PARAMETER(x);
-		UNREFERENCED_PARAMETER(y);
-		UNREFERENCED_PARAMETER(w);
-		UNREFERENCED_PARAMETER(h);
-		UNREFERENCED_PARAMETER(r);
-		UNREFERENCED_PARAMETER(g);
-		UNREFERENCED_PARAMETER(b);
-	}
-}
-
 
 extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {

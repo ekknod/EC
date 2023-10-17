@@ -61,10 +61,7 @@ namespace features
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
 	static void triggerbot(BOOL ffa, QWORD local_player);
-
-#ifdef _KERNEL_MODE
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
-#endif
 }
 
 namespace config
@@ -238,7 +235,7 @@ void features::run(void)
 		DWORD current_tick = cs::engine::get_current_tick();
 		if (current_tick > mouse_down_tick)
 		{
-			input::mouse1_up();
+			client::mouse1_up();
 			mouse_down_tick = 0;
 			mouse_up_tick   = random_number(30, 50) + current_tick;
 		}
@@ -250,7 +247,7 @@ void features::run(void)
 	NOT_INGAME:
 		if (mouse_down_tick)
 		{
-			input::mouse1_up();
+			client::mouse1_up();
 		}
 		reset();
 		return;
@@ -515,7 +512,7 @@ void features::run(void)
 	if (current_tick - aimbot_tick > aim_ticks)
 	{
 		aimbot_tick = current_tick;
-		input::mouse_move((int)smooth_x, (int)smooth_y);
+		client::mouse_move((int)smooth_x, (int)smooth_y);
 	}
 }
 
@@ -612,12 +609,10 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			continue;
 		}
 		
-#ifdef _KERNEL_MODE
 		if (config::visuals_enabled == 2)
 		{
 			esp(local_player, player, head);
 		}
-#endif
 
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
@@ -650,7 +645,7 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 
 		if (!aimbot_active)
 		{
-			input::mouse_move(mouse_angle_x, mouse_angle_y);
+			client::mouse_move(mouse_angle_x, mouse_angle_y);
 		}
 	}
 	rcs_old_punch = vec_punch;
@@ -684,18 +679,10 @@ static void features::triggerbot(BOOL ffa, QWORD local_player)
 	DWORD current_tick = cs::engine::get_current_tick();
 	if (current_tick > mouse_up_tick)
 	{
-		input::mouse1_down();
+		client::mouse1_down();
 		mouse_up_tick   = 0;
 		mouse_down_tick = random_number(30, 50) + current_tick;
 	}
-}
-
-#ifdef _KERNEL_MODE
-
-namespace gdi
-{
-	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
-	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
 }
 
 static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
@@ -774,7 +761,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	float b = 0.00f;
 	
 
-	gdi::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 	
 	/*
 	
@@ -829,9 +816,8 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		return;
 	}
 
-	gdi::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 	*/
 }
 
-#endif
 

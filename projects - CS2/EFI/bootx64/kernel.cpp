@@ -27,7 +27,13 @@ namespace mouse
 	static BOOL open(void);
 }
 
-namespace input
+namespace gdi
+{
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
+}
+
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
@@ -42,6 +48,16 @@ namespace input
 	void mouse1_up(void)
 	{
 		mouse::move(0, 0, 0x02);
+	}
+
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+		gdi::DrawRect(hwnd, x, y, w, h, r, g, b);
+	}
+
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	{
+		gdi::DrawFillRect(hwnd, x, y, w, h, r, g, b);
 	}
 }
 
