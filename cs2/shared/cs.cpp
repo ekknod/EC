@@ -271,7 +271,7 @@ static BOOL cs::initialize(void)
 		else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
 		{
 			LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
-			netvars::m_iTeamNum = *(int*)(entry + 0x08);
+			netvars::m_iTeamNum = *(int*)(entry + 0x08 + 0x10);
 		}
 		else if (!netvars::m_hPawn && !strcmpi_imp(netvar_name, "m_hPawn") && network_enable)
 		{
