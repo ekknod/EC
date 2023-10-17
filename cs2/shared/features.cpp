@@ -31,6 +31,7 @@ namespace features
 	//
 	static BOOL  aimbot_active;
 	static QWORD aimbot_target;
+	static int   aimbot_bone;
 	static DWORD aimbot_tick;
 
 	//
@@ -46,13 +47,14 @@ namespace features
 		rcs_old_punch    = {};
 		aimbot_active    = 0;
 		aimbot_target    = 0;
+		aimbot_bone      = 0;
 		aimbot_tick      = 0;
 	}
 
 	inline void update_settings(void);
 
 	
-	static void infov_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle);
+	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle);
 
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
@@ -204,10 +206,10 @@ inline void features::update_settings(void)
 }
 
 //
-// this event is going to be triggered
+// this event is called from get best target/aimbot,
 // when we have active target
 //
-static void features::infov_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle)
+static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle)
 {
 #ifdef _KERNEL_MODE
 	UNREFERENCED_PARAMETER(local_player);
@@ -318,6 +320,7 @@ void features::run(void)
 		// reset target
 		//
 		aimbot_target = 0;
+		aimbot_bone   = 0;
 	}
 
 	event_state = 0;
@@ -343,6 +346,7 @@ void features::run(void)
 	//
 	if (aimbot_target == 0)
 	{
+		aimbot_bone   = 0;
 		aimbot_target = best_target;
 	}
 	else
@@ -353,6 +357,7 @@ void features::run(void)
 
 			if (aimbot_target == 0)
 			{
+				aimbot_bone = 0;
 				get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &aimbot_target);
 			}
 		}
@@ -387,7 +392,6 @@ void features::run(void)
 		return;
 	}
 
-
 	vec2 view_angle = cs::engine::get_viewangles();
 	
 	vec3  aimbot_angle{};
@@ -395,21 +399,38 @@ void features::run(void)
 
 	if (config::aimbot_multibone)
 	{
-		for (DWORD i = 2; i < 7; i++)
+		//
+		// use cached information for saving resources
+		//
+		if (aimbot_bone != 0)
 		{
 			vec3 pos{};
-			if (!cs::node::get_bone_position(node, i, &pos))
+			if (!cs::node::get_bone_position(node, aimbot_bone, &pos))
 			{
-				continue;
+				return;
 			}
-
-			vec3  angle = get_target_angle(local_player, pos, num_shots, aim_punch);
-			float fov   = math::get_fov(view_angle, angle);
-
-			if (fov < aimbot_fov)
+			aimbot_angle = get_target_angle(local_player, pos, num_shots, aim_punch);
+			aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
+		}
+		else
+		{
+			for (DWORD i = 2; i < 7; i++)
 			{
-				aimbot_fov   = fov;
-				aimbot_angle = angle;
+				vec3 pos{};
+				if (!cs::node::get_bone_position(node, i, &pos))
+				{
+					continue;
+				}
+
+				vec3  angle = get_target_angle(local_player, pos, num_shots, aim_punch);
+				float fov   = math::get_fov(view_angle, angle);
+
+				if (fov < aimbot_fov)
+				{
+					aimbot_fov   = fov;
+					aimbot_angle = angle;
+					aimbot_bone  = i;
+				}
 			}
 		}
 	}
@@ -428,7 +449,7 @@ void features::run(void)
 	{
 		if (aimbot_fov != 360.0f)
 		{
-			features::infov_event(local_player, aimbot_target, aimbot_fov, aimbot_angle);
+			features::has_target_event(local_player, aimbot_target, aimbot_fov, aimbot_angle);
 			event_state = 1;
 		}
 	}
@@ -612,7 +633,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 	
 	if (best_fov != 360.0f)
 	{
-		features::infov_event(local_player, *target, best_fov, angle);
+		features::has_target_event(local_player, *target, best_fov, angle);
 		event_state = 1;
 	}
 }
