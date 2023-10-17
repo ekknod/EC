@@ -609,7 +609,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 			continue;
 		}
 		
-		if (config::visuals_enabled == 2)
+		if (config::visuals_enabled)
 		{
 			esp(local_player, player, head);
 		}
