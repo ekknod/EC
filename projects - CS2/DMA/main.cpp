@@ -1,6 +1,6 @@
 #include "../../cs2/shared/shared.h"
 
-namespace input
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
