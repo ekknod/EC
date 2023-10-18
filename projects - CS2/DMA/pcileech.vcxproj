@@ -151,6 +151,12 @@
     <ClInclude Include="..\..\cs2\shared\shared.h" />
     <ClInclude Include="..\..\library\math.h" />
     <ClInclude Include="..\..\library\vm.h" />
+    <ClInclude Include="..\..\library\vm_pcileech\pcileech\leechcore.h" />
+    <ClInclude Include="..\..\library\vm_pcileech\pcileech\vmmdll.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\..\library\vm_pcileech\pcileech\leechcore.lib" />
+    <Library Include="..\..\library\vm_pcileech\pcileech\vmm.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
