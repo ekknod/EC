@@ -172,9 +172,13 @@ static BOOL cs::initialize(void)
 	JZ(direct::local_player = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x83\x3D\x00\x00\x00\x00\x00\x0F\x95\xC0\xC3", "xxx????xxxxx", 12), E1);
 	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player, 3, 8);
 #else
+	/*
 	JZ(direct::local_player = get_interface(client_dll, "Source2ClientPrediction0"), E1);
-	JZ(direct::local_player = get_interface_function(direct::local_player, 181), E1);
+	JZ(direct::local_player = get_interface_function(direct::local_player, 180), E1);
 	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player + 0xF0, 3, 7);
+	*/
+	JZ(direct::local_player = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x83\x3D\x00\x00\x00\x00\x00\x0F\x95\xC0\xC3", "xxx????xxxxx", 12), E1);
+	direct::local_player    = vm::get_relative_address(game_handle, direct::local_player, 3, 8);
 #endif
 	JZ(direct::view_angles  = get_interface(client_dll, "Source2Client0"), E1);
 	direct::view_angles     = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
