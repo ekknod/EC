@@ -86,7 +86,7 @@ namespace client
 		mouse::move(0, 0, 0x02);
 	}
 
-	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
 	{
 	
 		UNREFERENCED_PARAMETER(hwnd);
@@ -99,7 +99,7 @@ namespace client
 		UNREFERENCED_PARAMETER(b);
 	}
 
-	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
 	{
 		UNREFERENCED_PARAMETER(hwnd);
 		UNREFERENCED_PARAMETER(x);
