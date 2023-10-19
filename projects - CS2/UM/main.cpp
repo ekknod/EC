@@ -117,6 +117,7 @@ int main(void)
 		cs2::run();
 
 		glfwSwapBuffers(window);
+		glfwPollEvents();
 	}
 	glfwDestroyWindow(window);
 

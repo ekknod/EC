@@ -54,7 +54,7 @@ namespace features
 	inline void update_settings(void);
 
 	
-	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle);
+	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle, vec3 bone);
 
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
@@ -95,7 +95,7 @@ inline void features::update_settings(void)
 
 
 #ifdef _KERNEL_MODE
-	config::visuals_enabled = 2;
+	config::visuals_enabled = 1;
 #else
 	config::visuals_enabled = 1;
 #endif
@@ -206,12 +206,13 @@ inline void features::update_settings(void)
 // this event is called from get best target/aimbot,
 // when we have active target
 //
-static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle)
+static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle, vec3 bone)
 {
 #ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(target_player);
 	UNREFERENCED_PARAMETER(aimbot_angle);
+	UNREFERENCED_PARAMETER(bone);
 #endif
 
 	if (config::visuals_enabled)
@@ -222,6 +223,14 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 			// net_graph( r, g , b ) 
 			//
 		}
+	}
+
+	//
+	// update ESP
+	//
+	if (event_state == 0)
+	{
+		esp(local_player, target_player, bone);
 	}
 }
 
@@ -392,6 +401,7 @@ void features::run(void)
 	vec2 view_angle = cs::engine::get_viewangles();
 	
 	vec3  aimbot_angle{};
+	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
 
 	if (config::aimbot_multibone)
@@ -406,6 +416,7 @@ void features::run(void)
 			{
 				return;
 			}
+			aimbot_pos   = pos;
 			aimbot_angle = get_target_angle(local_player, pos, num_shots, aim_punch);
 			aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
 		}
@@ -425,6 +436,7 @@ void features::run(void)
 				if (fov < aimbot_fov)
 				{
 					aimbot_fov   = fov;
+					aimbot_pos   = pos;
 					aimbot_angle = angle;
 					aimbot_bone  = i;
 				}
@@ -438,6 +450,7 @@ void features::run(void)
 		{
 			return;
 		}
+		aimbot_pos   = head;
 		aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
 	}
@@ -446,7 +459,7 @@ void features::run(void)
 	{
 		if (aimbot_fov != 360.0f)
 		{
-			features::has_target_event(local_player, aimbot_target, aimbot_fov, aimbot_angle);
+			features::has_target_event(local_player, aimbot_target, aimbot_fov, aimbot_angle, aimbot_pos);
 			event_state = 1;
 		}
 	}
@@ -563,6 +576,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 	vec2 va = cs::engine::get_viewangles();
 	float best_fov = 360.0f;
 	vec3  angle{};
+	vec3  aimpos{};
 	
 	for (int i = 1; i < 32; i++)
 	{
@@ -623,14 +637,15 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		if (fov < best_fov)
 		{
 			best_fov = fov;
-			*target = player;
-			angle = best_angle;
+			*target  = player;
+			aimpos   = head;
+			angle    = best_angle;
 		}
 	}
 	
 	if (best_fov != 360.0f)
 	{
-		features::has_target_event(local_player, *target, best_fov, angle);
+		features::has_target_event(local_player, *target, best_fov, angle, aimpos);
 		event_state = 1;
 	}
 }
@@ -682,8 +697,8 @@ static void features::triggerbot(BOOL ffa, QWORD local_player)
 	if (current_ms > mouse_up_ms)
 	{
 		client::mouse1_down();
-		mouse_up_ms     = 0;
-		mouse_down_ms   = random_number(30, 50) + current_ms;
+		mouse_up_ms   = 0;
+		mouse_down_ms = random_number(30, 50) + current_ms;
 	}
 }
 
@@ -697,15 +712,6 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	cs::WINDOW_INFO window{};
 	if (!cs::sdl::get_window_info(sdl_window, &window))
 		return;
-
-	#ifndef __linux__
-	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
-	if (sdl_window_data == 0)
-		return;
-
-	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
-	#endif
-
 
 	/*
 	float view = cs::player::get_vec_view(local_player) - 10.0f;
@@ -770,6 +776,10 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 #ifdef __linux__
 	client::DrawFillRect((void *)0, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #else
+	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
+	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
 	client::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #endif
 	*/
@@ -832,6 +842,10 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 #ifdef __linux__
 	client::DrawRect((void *)0, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #else
+	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
+	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
 	client::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #endif
 }
