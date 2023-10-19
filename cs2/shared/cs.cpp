@@ -185,10 +185,17 @@ static BOOL cs::initialize(void)
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles     += VIEWANGLES_OFF;
 
+	#ifdef __linux__
+	//
+	// viewmatrix: 48 63 c6 48 c1 E0 06 48 03 05 ? ? ? ? C3 90
+	//
+	JZ(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x63\xc6\x48\xc1\xE0\x06\x48\x03\x05", "xxxxxxxxxx", 10), E1);
+	direct::view_matrix    = vm::get_relative_address(game_handle, direct::view_matrix + 0x07, 3, 7);
+	JZ(direct::view_matrix = vm::read_i64(game_handle, direct::view_matrix), E1);
+	#else
 	//
 	// viewmatrix: 48 63 c2 48 8d 0d ? ? ? ? 48 c1
 	//
-	#ifndef __linux__
 	JZ(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x63\xc2\x48\x8d\x0d\x00\x00\x00\x00\x48\xc1", "xxxxxx????xx", 12), E1);
 	direct::view_matrix    = vm::get_relative_address(game_handle, direct::view_matrix + 0x03, 3, 7);
 	#endif
