@@ -737,7 +737,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	int w = (int)width;
 	int h = (int)height;
 	
-	if (x > (LONG)(window.x + screen_size.x - (w)))
+	if (x > (int)(window.x + screen_size.x - (w)))
 	{
 		return;
 	}
@@ -746,7 +746,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		return;
 	}
 
-	if (y > (LONG)(screen_size.y + window.y - (h)))
+	if (y > (int)(screen_size.y + window.y - (h)))
 	{
 		return;
 	}
