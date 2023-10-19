@@ -460,7 +460,6 @@ void features::run(void)
 		if (aimbot_fov != 360.0f)
 		{
 			features::has_target_event(local_player, aimbot_target, aimbot_fov, aimbot_angle, aimbot_pos);
-			event_state = 1;
 		}
 	}
 
@@ -645,8 +644,8 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 	
 	if (best_fov != 360.0f)
 	{
-		features::has_target_event(local_player, *target, best_fov, angle, aimpos);
 		event_state = 1;
+		features::has_target_event(local_player, *target, best_fov, angle, aimpos);
 	}
 }
 
