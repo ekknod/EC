@@ -691,18 +691,21 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	if (sdl_window == 0)
 		return;
 
-	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
-	if (sdl_window_data == 0)
-		return;
 
 	cs::WINDOW_INFO window{};
 	if (!cs::sdl::get_window_info(sdl_window, &window))
 		return;
 
-	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
+	#ifndef __linux__
+	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
 
-	
+	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
+	#endif
+
 	float view = cs::player::get_vec_view(local_player) - 10.0f;
+
 	
 	vec3 bottom;
 	bottom.x = head.x;
@@ -760,13 +763,18 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	float g = target_health;
 	float b = 0.00f;
 	
-
+#ifdef __linux__
+	client::DrawFillRect((void *)0, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#else
 	client::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#endif
 	
 	/*
 	
+#ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(head);
+#endif
 
 	vec3 origin = cs::player::get_origin(target_player);
 	vec3 top_origin = origin;
@@ -795,10 +803,10 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	int box_height = (int)(screen_bottom.y - screen_top.y);
 	int box_width = box_height / 2;
 
-	LONG x = (LONG)window.x + (LONG)(screen_top.x - box_width / 2);
-	LONG y = (LONG)window.y + (LONG)(screen_top.y);
+	int x = (int)window.x + (int)(screen_top.x - box_width / 2);
+	int y = (int)window.y + (int)(screen_top.y);
 
-	if (x > (LONG)(window.x + screen_size.x - (box_width)))
+	if (x > (int)(window.x + screen_size.x - (box_width)))
 	{
 		return;
 	}
@@ -807,7 +815,7 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		return;
 	}
 
-	if (y > (LONG)(screen_size.y + window.y - (box_height)))
+	if (y > (int)(screen_size.y + window.y - (box_height)))
 	{
 		return;
 	}
@@ -816,7 +824,11 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		return;
 	}
 
+#ifdef __linux__
+	client::DrawRect((void *)0, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#else
 	client::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#endif
 	*/
 }
 

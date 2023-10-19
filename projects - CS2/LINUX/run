@@ -1,2 +1,2 @@
-g++ main.cpp ../../cs2/shared/cs.cpp ../../cs2/shared/features.cpp ../../library/vm_linux/vm.cpp -o tux
+g++ -o tux main.cpp ../../cs2/shared/cs.cpp ../../cs2/shared/features.cpp ../../library/vm_linux/vm.cpp   -L../../library/glfw/lib      -lGL -lglfw3
 sudo ./tux

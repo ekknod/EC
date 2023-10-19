@@ -147,7 +147,12 @@ static BOOL cs::initialize(void)
 		return 0;
 	}
 	
-#ifndef __linux__
+#ifdef __linux__
+	JZ(sdl::sdl_window   = vm::get_module_export(game_handle, sdl, "SDL_GetKeyboardFocus"), E1);
+	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 2, 6);
+	JZ(sdl::sdl_window   = vm::read_i64(game_handle, sdl::sdl_window), E1);
+	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 3, 7);
+#else
 	JZ(sdl::sdl_window   = vm::get_module_export(game_handle, sdl, "SDL_GetKeyboardFocus"), E1);
 	sdl::sdl_window      = vm::get_relative_address(game_handle, sdl::sdl_window, 3, 7);
 	JZ(sdl::sdl_window   = vm::read_i64(game_handle, sdl::sdl_window), E1);
@@ -535,6 +540,7 @@ static BOOL cs::initialize(void)
 	JZ(netvars::m_angEyeAngles, E1);
 	JZ(netvars::m_iIDEntIndex, E1);
 	JZ(netvars::m_vOldOrigin, E1);
+
 
 	return 1;
 }
