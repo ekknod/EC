@@ -72,7 +72,7 @@ namespace cs
 	namespace engine
 	{
 		QWORD get_convar(const char *name);
-		DWORD get_current_tick(void);
+		DWORD get_current_ms(void);
 		vec2  get_viewangles(void);
 		view_matrix_t get_viewmatrix(void);
 	}

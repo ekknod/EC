@@ -18,8 +18,8 @@ namespace features
 	//
 	// triggerbot
 	//
-	static DWORD mouse_down_tick;
-	static DWORD mouse_up_tick;
+	static DWORD mouse_down_ms;
+	static DWORD mouse_up_ms;
 
 	//
 	// rcs
@@ -32,7 +32,7 @@ namespace features
 	static BOOL  aimbot_active;
 	static QWORD aimbot_target;
 	static int   aimbot_bone;
-	static DWORD aimbot_tick;
+	static DWORD aimbot_ms;
 
 	//
 	// infov event state
@@ -42,13 +42,13 @@ namespace features
 
 	void reset(void)
 	{
-		mouse_down_tick  = 0;
-		mouse_up_tick    = 0;
+		mouse_down_ms    = 0;
+		mouse_up_ms      = 0;
 		rcs_old_punch    = {};
 		aimbot_active    = 0;
 		aimbot_target    = 0;
 		aimbot_bone      = 0;
-		aimbot_tick      = 0;
+		aimbot_ms        = 0;
 	}
 
 	inline void update_settings(void);
@@ -78,7 +78,7 @@ namespace config
 
 inline DWORD random_number(DWORD min, DWORD max)
 {
-	return min + cs::engine::get_current_tick() % (max + 1 - min);
+	return min + cs::engine::get_current_ms() % (max + 1 - min);
 }
 
 inline void features::update_settings(void)
@@ -122,37 +122,37 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
+		config::aimbot_smooth     = 10.0f;
 		break;
 	case 245:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 25.0f;
+		config::aimbot_fov        = 2.5f;
+		config::aimbot_smooth     = 8.5f;
 		break;
 	case 246:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 20.0f;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 7.0f;
 		break;
 	case 247:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 5.0f;
-		config::aimbot_smooth     = 15.0f;
+		config::aimbot_fov        = 3.5f;
+		config::aimbot_smooth     = 5.5f;
 		break;
 	case 248:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 6.0f;
-		config::aimbot_smooth     = 10.0f;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 4.0f;
 		break;
 	case 249:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 7.0f;
-		config::aimbot_smooth     = 5.0f;
+		config::aimbot_fov        = 4.5f;
+		config::aimbot_smooth     = 2.5f;
 		break;
 	//
 	// mouse1 aimkey, mouse5 triggerkey
@@ -161,43 +161,43 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
+		config::aimbot_smooth     = 10.0f;
 		break;
 	case 251:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
-		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 25.0f;
+		config::aimbot_fov        = 2.5f;
+		config::aimbot_smooth     = 8.5f;
 		break;
 	case 252:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
-		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 20.0f;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 7.0f;
 		break;
 	case 253:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
-		config::aimbot_fov        = 5.0f;
-		config::aimbot_smooth     = 15.0f;
+		config::aimbot_fov        = 3.5f;
+		config::aimbot_smooth     = 5.5f;
 		break;
 	case 254:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
-		config::aimbot_fov        = 6.0f;
-		config::aimbot_smooth     = 10.0f;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 4.0f;
 		break;
 	case 255:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
-		config::aimbot_fov        = 7.0f;
-		config::aimbot_smooth     = 5.0f;
+		config::aimbot_fov        = 4.5f;
+		config::aimbot_smooth     = 2.5f;
 		break;
 	default:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 30.0f;
+		config::aimbot_smooth     = 8.5f;
 		break;
 	}
 }
@@ -230,14 +230,14 @@ void features::run(void)
 	//
 	// reset triggerbot input
 	//
-	if (mouse_down_tick)
+	if (mouse_down_ms)
 	{
-		DWORD current_tick = cs::engine::get_current_tick();
-		if (current_tick > mouse_down_tick)
+		DWORD current_ms = cs::engine::get_current_ms();
+		if (current_ms > mouse_down_ms)
 		{
 			client::mouse1_up();
-			mouse_down_tick = 0;
-			mouse_up_tick   = random_number(30, 50) + current_tick;
+			mouse_down_ms   = 0;
+			mouse_up_ms     = random_number(30, 50) + current_ms;
 		}
 	}
 
@@ -245,7 +245,7 @@ void features::run(void)
 	if (local_player_controller == 0)
 	{
 	NOT_INGAME:
-		if (mouse_down_tick)
+		if (mouse_down_ms)
 		{
 			client::mouse1_up();
 		}
@@ -470,7 +470,7 @@ void features::run(void)
 	float smooth_x = 0.00f;
 	float smooth_y = 0.00f;
 
-	DWORD aim_ticks = 0;
+	DWORD ms = 0;
 	if (config::aimbot_smooth >= 1.0f)
 	{
 		if (qabs(x) > 1.0f)
@@ -500,18 +500,20 @@ void features::run(void)
 		{
 			smooth_y = y;
 		}
-		aim_ticks = (DWORD)(config::aimbot_smooth / 100.0f);
+		ms = (DWORD)(config::aimbot_smooth / 100.0f) + 1;
+		ms = ms * 16;
 	}
 	else
 	{
-		smooth_x = x;
-		smooth_y = y;
+		smooth_x  = x;
+		smooth_y  = y;
+		ms        = 16;
 	}
 
-	DWORD current_tick = cs::engine::get_current_tick();
-	if (current_tick - aimbot_tick > aim_ticks)
+	DWORD current_ms = cs::engine::get_current_ms();
+	if (current_ms - aimbot_ms > ms)
 	{
-		aimbot_tick = current_tick;
+		aimbot_ms = current_ms;
 		client::mouse_move((int)smooth_x, (int)smooth_y);
 	}
 }
@@ -653,7 +655,7 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 
 static void features::triggerbot(BOOL ffa, QWORD local_player)
 {
-	if (mouse_down_tick)
+	if (mouse_down_ms)
 	{
 		return;
 	}
@@ -676,12 +678,12 @@ static void features::triggerbot(BOOL ffa, QWORD local_player)
 			return;
 	}
 
-	DWORD current_tick = cs::engine::get_current_tick();
-	if (current_tick > mouse_up_tick)
+	DWORD current_ms = cs::engine::get_current_ms();
+	if (current_ms > mouse_up_ms)
 	{
 		client::mouse1_down();
-		mouse_up_tick   = 0;
-		mouse_down_tick = random_number(30, 50) + current_tick;
+		mouse_up_ms     = 0;
+		mouse_down_ms   = random_number(30, 50) + current_ms;
 	}
 }
 
@@ -704,6 +706,8 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
 	#endif
 
+
+	/*
 	float view = cs::player::get_vec_view(local_player) - 10.0f;
 
 	
@@ -768,8 +772,9 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 #else
 	client::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #endif
+	*/
 	
-	/*
+	
 	
 #ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
@@ -829,7 +834,5 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 #else
 	client::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #endif
-	*/
 }
-
 

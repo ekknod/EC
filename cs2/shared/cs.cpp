@@ -649,7 +649,7 @@ QWORD cs::engine::get_convar(const char *name)
 	return 0;
 }
 
-DWORD cs::engine::get_current_tick(void)
+DWORD cs::engine::get_current_ms(void)
 {
 	static DWORD offset = vm::read_i32(game_handle, get_interface_function(interfaces::input, 16) + 2);
 	return vm::read_i32(game_handle, interfaces::input + offset);
