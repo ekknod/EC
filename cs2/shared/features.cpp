@@ -223,14 +223,14 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 			// net_graph( r, g , b ) 
 			//
 		}
-	}
 
-	//
-	// update ESP
-	//
-	if (event_state == 0)
-	{
-		esp(local_player, target_player, bone);
+		//
+		// update ESP
+		//
+		if (event_state == 0)
+		{
+			esp(local_player, target_player, bone);
+		}
 	}
 }
 
