@@ -208,7 +208,7 @@ inline void features::update_settings(void)
 //
 static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle)
 {
-#ifdef _KERNEL_MODE
+#ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(target_player);
 	UNREFERENCED_PARAMETER(aimbot_angle);
