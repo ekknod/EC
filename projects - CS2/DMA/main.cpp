@@ -68,26 +68,13 @@ int main(void)
 		return 0;
 	}
 
-	int w = 1920, h = 1080;
-	for (int i = 0; i < 10; i++)
-	{
-		const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(i);
-		if (disp)
-		{
-			w = disp->w;
-			h = disp->h;
-			break;
-		}
-	}
-
-	SDL_Window *window = SDL_CreateWindow("EC", w, h, SDL_WINDOW_FULLSCREEN);
+	SDL_Window *window = SDL_CreateWindow("EC", 640, 480, SDL_WINDOW_BORDERLESS);
 	if (window == NULL)
 	{
 		return 0;
 	}
 
 	SDL_DisplayID id = SDL_GetDisplayForWindow(window);
-
 	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
 	SDL_SetWindowSize(window, disp->w, disp->h);
 	SDL_SetWindowPosition(window, 0, 0);

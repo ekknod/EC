@@ -29,6 +29,7 @@ namespace client
 		rect.y = (int)y;
 		rect.w = (int)w;
 		rect.h = (int)h;
+
 		SDL_FillSurfaceRect(sdl_surface, &rect, SDL_MapRGB(sdl_surface->format, r, g, b));
 	}
 
@@ -64,7 +65,7 @@ int main(void)
 	SDL_SetWindowAlwaysOnTop(window, SDL_TRUE);
 	SDL_SetWindowOpacity(window, 0.20f);
 	sdl_surface = SDL_GetWindowSurface(window);
-			
+
 	BOOL quit = 0;
 	while (!quit)
 	{
