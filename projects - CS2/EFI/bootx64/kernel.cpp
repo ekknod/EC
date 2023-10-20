@@ -29,8 +29,8 @@ namespace mouse
 
 namespace gdi
 {
-	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
-	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 }
 
 namespace client
@@ -50,12 +50,12 @@ namespace client
 		mouse::move(0, 0, 0x02);
 	}
 
-	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		gdi::DrawRect(hwnd, x, y, w, h, r, g, b);
 	}
 
-	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		gdi::DrawFillRect(hwnd, x, y, w, h, r, g, b);
 	}

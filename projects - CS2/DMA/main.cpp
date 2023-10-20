@@ -1,36 +1,9 @@
 #include "../../cs2/shared/shared.h"
-#include <gl/GL.h>
-#include <GLFW/glfw3.h>
-#pragma comment(lib, "glfw3.lib")
-#pragma comment(lib, "opengl32.lib")
-static const GLFWvidmode *mode;
 
-namespace gl
-{
-	void DrawFillRect(float x, float y, float width, float height, int r, int g, int b)
-	{
-		glBegin(GL_QUADS);
-		glColor4f(r / 255.f, g / 255.f, b / 255.f, 1);
-		glVertex2f(x - (width / 2), y);
-		glVertex2f(x - (width / 2), y - height);
-		glVertex2f(x + (width / 2), y - height);
-		glVertex2f(x + (width / 2), y);
-		glEnd();
-	}
+#include <SDL3/SDL.h>
+#pragma comment(lib, "SDL3.lib")
 
-	void DrawRect(float x, float y, float width, float height, int r, int g, int b)
-	{
-		glLineWidth(2);
-		glBegin(GL_LINE_LOOP);
-		glColor4f(r / 255.f, g / 255.f, b / 255.f, 1);
-		glVertex2f(x - (width / 2), y);
-		glVertex2f(x - (width / 2), y - height);
-		glVertex2f(x + (width / 2), y - height);
-		glVertex2f(x + (width / 2), y);
-		glEnd();
-	}
-}
-
+SDL_Renderer *sdl_renderer;
 
 namespace client
 {
@@ -52,74 +25,97 @@ namespace client
 		// kmbox_mouse_up();
 	}
 
-	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
-		UNREFERENCED_PARAMETER(hwnd);	
-		float fl_x = ((float)x / (float)mode->width) * 2.0f;
-		float fl_y = ((mode->height - (float)y) / (float)mode->height) * 2.0f;
+		UNREFERENCED_PARAMETER(hwnd);
 
-		fl_x -= 1.0f;
-		fl_y -= 1.0f;
-
-		float fl_w = ((float)w / mode->width)  * 2.0f;
-		float fl_h = ((float)h / mode->height) * 2.0f;
-
-		fl_x += (fl_w/2.0f);
-
-		gl::DrawRect(fl_x, fl_y, fl_w, fl_h, r, g, b);
+		
+		SDL_FRect rect{};
+		rect.x = (float)x;
+		rect.y = (float)y;
+		rect.w = (float)w;
+		rect.h = (float)h;
+		SDL_SetRenderDrawColor(sdl_renderer, r, g, b, 255);
+		SDL_RenderRect(sdl_renderer, &rect);
+		
+		/*
+		SDL_FRect rect{};
+		rect.x = (float)x;
+		rect.y = (float)y;
+		rect.w = (float)w;
+		rect.h = (float)h;
+		SDL_SetRenderDrawColor(sdl_renderer, r, g, b, 20);
+		SDL_RenderFillRect(sdl_renderer, &rect);
+		*/
 	}
 
-	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
-		UNREFERENCED_PARAMETER(hwnd);	
-		float fl_x = ((float)x / (float)mode->width) * 2.0f;
-		float fl_y = ((mode->height - (float)y) / (float)mode->height) * 2.0f;
-
-		fl_x -= 1.0f;
-		fl_y -= 1.0f;
-
-		float fl_w = ((float)w / mode->width)  * 2.0f;
-		float fl_h = ((float)h / mode->height) * 2.0f;
-
-		fl_x += (fl_w/2.0f);
-
-		gl::DrawFillRect(fl_x, fl_y, fl_w, fl_h, r, g, b);
+		UNREFERENCED_PARAMETER(hwnd);
+		SDL_FRect rect{};
+		rect.x = (float)x;
+		rect.y = (float)y;
+		rect.w = (float)w;
+		rect.h = (float)h;
+		SDL_SetRenderDrawColor(sdl_renderer, r, g, b, 20);
+		SDL_RenderFillRect(sdl_renderer, &rect);
 	}
 }
 
 int main(void)
 {
-	if (!glfwInit())
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		return 0;
+	}
+
+	int w = 1920, h = 1080;
+	for (int i = 0; i < 10; i++)
+	{
+		const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(i);
+		if (disp)
+		{
+			w = disp->w;
+			h = disp->h;
+			break;
+		}
+	}
+
+	SDL_Window *window = SDL_CreateWindow("EC", w, h, SDL_WINDOW_FULLSCREEN);
+	if (window == NULL)
 	{
 		return 0;
 	}
 
-	glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+	SDL_DisplayID id = SDL_GetDisplayForWindow(window);
 
-	GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
+	SDL_SetWindowSize(window, disp->w, disp->h);
+	SDL_SetWindowPosition(window, 0, 0);
+	
+	sdl_renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_ACCELERATED);
+	SDL_SetRenderDrawBlendMode(sdl_renderer, SDL_BLENDMODE_BLEND);
 
-	mode = glfwGetVideoMode(monitor);
-	GLFWwindow *window = glfwCreateWindow(mode->width, mode->height, "EC", monitor, NULL);
-
-	glfwMakeContextCurrent(window);
-
-	glfwSwapInterval(1);
-
-	while (1)
+	BOOL quit = 0;
+	while (!quit)
 	{
-		int w, h;
-		glfwGetFramebufferSize(window, &w, &h);
-		glViewport(0, 0, w, h);
+		SDL_Event e;
+		while ( SDL_PollEvent( &e ) )
+		{
+			if (e.type == SDL_EVENT_QUIT)
+			{
+				quit = 1;
+				break;
+			}
+		}
 
-		glClearColor(0, 0, 0, 1);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		SDL_RenderClear(sdl_renderer);
 
 		cs2::run();
 
-		glfwSwapBuffers(window);
-		glfwPollEvents();
+		SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
+		SDL_RenderPresent(sdl_renderer);
 	}
-	glfwDestroyWindow(window);
-	return 0;
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 }
 

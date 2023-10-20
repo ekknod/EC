@@ -46,8 +46,8 @@ namespace gdi
 	BOOL init();
 	bool FrameRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr, int thickness);
 	bool FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr);
-	void DrawRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
-	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
+	void DrawRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 }
 
 
@@ -240,7 +240,7 @@ bool gdi::FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr)
 void gdi::DrawRect(
 	VOID *hwnd,
 	LONG x, LONG y, LONG w, LONG h,
-	unsigned char r, unsigned char g, unsigned b)
+	unsigned char r, unsigned char g, unsigned char b)
 {
 	if (!gdi::init())
 	{
@@ -266,7 +266,7 @@ void gdi::DrawRect(
 	NtGdiDeleteObjectApp(brush);
 }
 
-void gdi::DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b)
+void gdi::DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b)
 {
 	if (!gdi::init())
 	{

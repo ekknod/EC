@@ -117,7 +117,7 @@ namespace client
 		send_input(fd, EV_KEY, 0x110, 0);
 	}
 
-	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		float fl_x = ((float)x / (float)mode->width) * 2.0f;
 		float fl_y = ((mode->height - (float)y) / (float)mode->height) * 2.0f;
@@ -133,7 +133,7 @@ namespace client
 		gl::DrawRect(fl_x, fl_y, fl_w, fl_h, r, g, b);
 	}
 
-	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned b)
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		float fl_x = ((float)x / (float)mode->width) * 2.0f;
 		float fl_y = ((mode->height - (float)y) / (float)mode->height) * 2.0f;
