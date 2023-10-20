@@ -79,7 +79,7 @@ int main(void)
 	SDL_SetWindowSize(window, disp->w, disp->h);
 	SDL_SetWindowPosition(window, 0, 0);
 	
-	sdl_renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_ACCELERATED);
+	sdl_renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_SOFTWARE);
 	SDL_SetRenderDrawBlendMode(sdl_renderer, SDL_BLENDMODE_BLEND);
 
 	BOOL quit = 0;
