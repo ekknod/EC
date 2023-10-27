@@ -148,14 +148,14 @@
   <ItemGroup>
     <ClCompile Include="..\..\cs2\shared\cs.cpp" />
     <ClCompile Include="..\..\cs2\shared\features.cpp" />
-    <ClCompile Include="..\..\library\vm_usermode\vm.cpp" />
+    <ClCompile Include="..\..\library\vm\um\vm.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\cs2\shared\cs.h" />
     <ClInclude Include="..\..\cs2\shared\shared.h" />
     <ClInclude Include="..\..\library\math.h" />
-    <ClInclude Include="..\..\library\vm.h" />
+    <ClInclude Include="..\..\library\vm\vm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

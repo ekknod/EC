@@ -147,14 +147,13 @@
   <ItemGroup>
     <ClCompile Include="..\..\cs2\shared\cs.cpp" />
     <ClCompile Include="..\..\cs2\shared\features.cpp" />
-    <ClCompile Include="..\..\library\vm_pcileech\vm.cpp" />
+    <ClCompile Include="..\..\library\vm\pcileech\vm.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\cs2\shared\cs.h" />
     <ClInclude Include="..\..\cs2\shared\shared.h" />
     <ClInclude Include="..\..\library\math.h" />
-    <ClInclude Include="..\..\library\vm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

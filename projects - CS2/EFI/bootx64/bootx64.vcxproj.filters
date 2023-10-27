@@ -28,16 +28,16 @@
     <ClCompile Include="kernel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\csgo\shared\cs.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\csgo\shared\features.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\library\vm_efi\vm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="gdi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cs2\shared\cs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\cs2\shared\features.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\library\vm\km_ctx\vm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -45,10 +45,10 @@
     <ClInclude Include="globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\csgo\shared\cs.h">
+    <ClInclude Include="..\..\..\cs2\shared\cs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\csgo\shared\shared.h">
+    <ClInclude Include="..\..\..\cs2\shared\shared.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

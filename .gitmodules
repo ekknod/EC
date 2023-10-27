@@ -1,0 +1,3 @@
+[submodule "library/vm"]
+	path = library/vm
+	url = https://github.com/ekknod/vm

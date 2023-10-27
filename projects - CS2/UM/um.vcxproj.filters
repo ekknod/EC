@@ -18,13 +18,13 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\library\vm_usermode\vm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\cs2\shared\cs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\cs2\shared\features.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\library\vm\um\vm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,13 +32,13 @@
     <ClInclude Include="..\..\library\math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\library\vm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\cs2\shared\cs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\cs2\shared\shared.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\library\vm\vm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

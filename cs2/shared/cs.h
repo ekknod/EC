@@ -1,7 +1,7 @@
 #ifndef CS_H
 #define CS_H
 
-#include "../../library/vm.h"
+#include "../../library/vm/vm.h"
 #include "../../library/math.h"
 
 
