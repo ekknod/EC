@@ -81,7 +81,7 @@ inline const char *get_tier0_name() { return vm::get_target_os() == VmOs::Window
 inline const char *get_inputsystem_name() { return vm::get_target_os() == VmOs::Windows ? "inputsystem.dll" : "libinputsystem.so"; }
 inline int get_entity_off() { return vm::get_target_os() == VmOs::Windows ? 0x58 : 0x50; }
 inline int get_button_off() { return vm::get_target_os() == VmOs::Windows ? 0x0E : 0x11; }
-inline int get_viewangles_off() { return vm::get_target_os() == VmOs::Windows ? 0x4510 : 0x4520; }
+inline int get_viewangles_off() { return vm::get_target_os() == VmOs::Windows ? 0x4518 : 0x4528; }
 
 #ifdef DEBUG
 
