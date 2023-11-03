@@ -436,72 +436,72 @@ static BOOL cs::initialize(void)
 
 				if (!netvars::m_iHealth && !strcmpi_imp(netvar_name, "m_iHealth") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iHealth = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iTeamNum = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_hPawn && !strcmpi_imp(netvar_name, "m_hPawn") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_hPawn = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_lifeState && !strcmpi_imp(netvar_name, "m_lifeState") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_lifeState = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_vecViewOffset && !strcmpi_imp(netvar_name, "m_vecViewOffset") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_vecViewOffset = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_aimPunchCache && !strcmpi_imp(netvar_name, "m_aimPunchCache") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_aimPunchCache = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_iShotsFired && !strcmpi_imp(netvar_name, "m_iShotsFired") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iShotsFired = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_angEyeAngles && !strcmpi_imp(netvar_name, "m_angEyeAngles") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_angEyeAngles = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_flFOVSensitivityAdjust && !strcmpi_imp(netvar_name, "m_flFOVSensitivityAdjust"))
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::m_flFOVSensitivityAdjust = *(int*)(dos_header + j + 0x10);
 				}
 				else if (!netvars::m_pGameSceneNode && !strcmpi_imp(netvar_name, "m_pGameSceneNode"))
 				{
-					LOG("%s, %lx\n", netvar_name, *(WORD*)(dos_header + j + 0x10));
+					LOG("%s, %x\n", netvar_name, *(WORD*)(dos_header + j + 0x10));
 					netvars::m_pGameSceneNode = *(WORD*)(dos_header + j + 0x10);
 				}
 				else if (!netvars::m_bDormant && !strcmpi_imp(netvar_name, "m_bDormant"))
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::m_bDormant = *(int*)(dos_header + j + 0x10);
 				}
 				else if (!netvars::m_modelState && !strcmpi_imp(netvar_name, "m_modelState"))
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::m_modelState = *(int*)(dos_header + j + 0x10);
 				}
 				else if (!netvars::m_vecOrigin && !strcmpi_imp(netvar_name, "m_vecOrigin") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_vecOrigin = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_iIDEntIndex && !strcmpi_imp(netvar_name, "m_iIDEntIndex") && network_enable)
 				{
-					LOG("%s, %lx\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iIDEntIndex = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 				else if (!netvars::m_vOldOrigin && !strcmpi_imp(netvar_name, "m_vOldOrigin"))
