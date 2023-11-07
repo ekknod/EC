@@ -9,11 +9,13 @@
 #pragma comment (lib, "Setupapi.lib")
 
 SDL_Renderer *sdl_renderer;
-HANDLE g_serial_handle = 0;
 
 namespace kmbox
 {
+	static HANDLE kmbox_handle = 0;
+
 	void mouse_move(int x, int y);
+	void mouse_left(int state);
 
 	BOOL open();
 	BOOL scan_devices(LPCSTR deviceName, LPSTR lpOut);
@@ -23,18 +25,22 @@ namespace client
 {
 	void mouse_move(int x, int y)
 	{
-		kmbox::mouse_move(x, y);
-		//cs::input::move(x, y);
+		if (kmbox::kmbox_handle)
+			kmbox::mouse_move(x, y);
+		else
+			cs::input::move(x, y);
 	}
 
 	void mouse1_down(void)
 	{
-		// kmbox_mouse_down();
+		if (kmbox::kmbox_handle)
+			kmbox::mouse_left(1);
 	}
 
 	void mouse1_up(void)
 	{
-		// kmbox_mouse_up();
+		if (kmbox::kmbox_handle)
+			kmbox::mouse_left(0);
 	}
 
 	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
@@ -76,6 +82,15 @@ namespace client
 
 int main(void)
 {
+	if (kmbox::open())
+	{
+		LOG("kmbox device found\n");
+	}
+	else
+	{
+		LOG("kmbox not found, using normal input\n");
+	}
+
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		return 0;
 	}
@@ -120,27 +135,31 @@ int main(void)
 
 void kmbox::mouse_move(int x, int y)
 {
-	if (!kmbox::open()) { return; }
+	std::string buffer = std::format("km.move({},{})\r", x, y);
+	WriteFile(kmbox_handle, (void*)buffer.c_str(), (DWORD)buffer.size(), 0, NULL);
+}
 
-	auto buffer = std::format("km.move({},{})\r", x, y).c_str();
-
-	DWORD bytes_written;
-	WriteFile(g_serial_handle, (void*)buffer, sizeof buffer, &bytes_written, NULL);
+void kmbox::mouse_left(int state)
+{
+	std::string buffer = std::format("km.left({})\r", state);
+	WriteFile(kmbox_handle, (void*)buffer.c_str(), (DWORD)buffer.size(), 0, NULL);
 }
 
 BOOL kmbox::open()
 {
-	if (g_serial_handle) { return TRUE; }
+	if (kmbox_handle) { return TRUE; }
 
 	LPCSTR deviceName = "USB-SERIAL CH340";
-	char port[] = "\\.\\";
 
-	while (!scan_devices(deviceName, port))
+	char port[120]{};
+	strcat_s(port, "\\\\.\\");
+
+	if (!scan_devices(deviceName, port))
 	{
-		Sleep(1000);
+		return 0;
 	}
 
-	g_serial_handle = CreateFileA(
+	kmbox_handle = CreateFileA(
 		port,
 		GENERIC_READ | GENERIC_WRITE,
 		0,
@@ -150,52 +169,39 @@ BOOL kmbox::open()
 		NULL
 	);
 
-	if (g_serial_handle)
+	if (kmbox_handle == (HANDLE)-1)
 	{
-		DCB dcb = { 0 };
-		dcb.DCBlength = sizeof(dcb);
-
-		if (!GetCommState(g_serial_handle, &dcb))
-		{
-			CloseHandle(g_serial_handle);
-			return FALSE;
-		}
-
-		dcb.BaudRate = CBR_115200;
-		dcb.ByteSize = 8;
-		dcb.StopBits = ONESTOPBIT;
-		dcb.Parity = NOPARITY;
-
-		if (!SetCommState(g_serial_handle, &dcb))
-		{
-			CloseHandle(g_serial_handle);
-			return FALSE;
-		}
-
-		COMMTIMEOUTS cto = { 0 };
-		cto.ReadIntervalTimeout = 50;
-		cto.ReadTotalTimeoutConstant = 50;
-		cto.ReadTotalTimeoutMultiplier = 10;
-		cto.WriteTotalTimeoutConstant = 50;
-		cto.WriteTotalTimeoutMultiplier = 10;
-
-		if (!SetCommTimeouts(g_serial_handle, &cto))
-		{
-			CloseHandle(g_serial_handle);
-			return FALSE;
-		}
-
-		return TRUE;
+		kmbox_handle = 0;
+		return 0;
 	}
 
-	return FALSE;
+	DCB dcb = { 0 };
+	dcb.DCBlength = sizeof(dcb);
+	GetCommState(kmbox_handle, &dcb);
+
+	dcb.BaudRate = CBR_115200;
+	dcb.ByteSize = 8;
+	dcb.StopBits = ONESTOPBIT;
+	dcb.Parity = NOPARITY;
+
+	SetCommState(kmbox_handle, &dcb);
+
+	COMMTIMEOUTS cto = { 0 };
+	cto.ReadIntervalTimeout = 1;
+	cto.ReadTotalTimeoutConstant = 0;
+	cto.ReadTotalTimeoutMultiplier = 0;
+	cto.WriteTotalTimeoutConstant = 0;
+	cto.WriteTotalTimeoutMultiplier = 0;
+
+	SetCommTimeouts(kmbox_handle, &cto);
+
+	return TRUE;
 }
 
 // https://github.com/nbqofficial/cpp-arduino
-
 BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 {
-	bool status = false;
+	BOOL status = 0;
 	char com[] = "COM";
 
 	HDEVINFO deviceInfo = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS, NULL, NULL, DIGCF_PRESENT);
@@ -211,9 +217,9 @@ BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 		BYTE buffer[256];
 		if (SetupDiGetDeviceRegistryProperty(deviceInfo, &dev_info_data, SPDRP_FRIENDLYNAME, NULL, buffer, sizeof(buffer), NULL))
 		{
-			DWORD i = strlen(lpOut);
+			DWORD i = (DWORD)strlen(lpOut);
 			LPCSTR lp_pos = strstr((LPCSTR)buffer, com);
-			DWORD len = i + strlen(lp_pos);
+			DWORD len = i + (DWORD)strlen(lp_pos);
 
 			if (strstr((LPCSTR)buffer, deviceName) && lp_pos)
 			{
@@ -232,3 +238,4 @@ BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 	SetupDiDestroyDeviceInfoList(deviceInfo);
 	return status;
 }
+
