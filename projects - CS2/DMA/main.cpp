@@ -135,14 +135,16 @@ int main(void)
 
 void kmbox::mouse_move(int x, int y)
 {
-	std::string buffer = std::format("km.move({},{})\r", x, y);
-	WriteFile(kmbox_handle, (void*)buffer.c_str(), (DWORD)buffer.size(), 0, NULL);
+	char buffer[120]{};
+	snprintf(buffer, 120, "km.move(%d, %d)\r", x, y);
+	WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
 }
 
 void kmbox::mouse_left(int state)
 {
-	std::string buffer = std::format("km.left({})\r", state);
-	WriteFile(kmbox_handle, (void*)buffer.c_str(), (DWORD)buffer.size(), 0, NULL);
+	char buffer[120]{};
+	snprintf(buffer, 120, "km.left(%d)\r", state);
+	WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
 }
 
 BOOL kmbox::open()
