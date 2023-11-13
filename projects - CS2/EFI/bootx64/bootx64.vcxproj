@@ -160,6 +160,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>EFI Application</SubSystem>
+      <SectionAlignment>4096</SectionAlignment>
     </Link>
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
