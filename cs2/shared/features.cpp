@@ -398,7 +398,7 @@ void features::run(void)
 		return;
 	}
 
-	vec2 view_angle = cs::engine::get_viewangles();
+	vec2 view_angle = cs::player::get_eye_angles(local_player);
 	
 	vec3  aimbot_angle{};
 	vec3  aimbot_pos{};
@@ -572,7 +572,7 @@ skip_recoil:
 
 static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target)
 {
-	vec2 va = cs::engine::get_viewangles();
+	vec2 va = cs::player::get_eye_angles(local_player);
 	float best_fov = 360.0f;
 	vec3  angle{};
 	vec3  aimpos{};
