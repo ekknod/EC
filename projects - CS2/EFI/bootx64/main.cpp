@@ -26,6 +26,12 @@ extern "C"
 
 
 	//
+	// compatibility mode for old EFI motherboards
+	//
+	BOOL  compatibility_mode    = 0;
+
+
+	//
 	// fixed table for HVCI
 	//
 	EFI_MEMORY_ATTRIBUTES_TABLE *mTable;
@@ -240,7 +246,7 @@ unsigned __int64 __fastcall RtlFindExportedRoutineByName(QWORD BaseAddress, cons
 
 		BlMmMapPhysicalAddressEx = (FnBlMmMapPhysicalAddressEx)TrampolineHook(
 			(void *)BlMmMapPhysicalAddressExHook,
-			(void*)GetExportByName(get_caller_base((QWORD)_ReturnAddress()), "BlMmMapPhysicalAddressEx"),
+			(void*)BlMmMapPhysicalAddressEx,
 			BlMmMapPhysicalAddressExOriginal
 			);
 	}
@@ -304,9 +310,13 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 	//
 	// hook attributes table, we can return correct page attributes for the OS.
 	//
-	routine = GetExportByName(winload, "EfiGetMemoryAttributesTable");
-	*(QWORD*)(routine + 0x00) = 0x25FF;
-	*(QWORD*)(routine + 0x06) = (QWORD)GetMemoryAttributesTable;
+	if (!compatibility_mode)
+	{
+		routine = GetExportByName(winload, "EfiGetMemoryAttributesTable");
+		*(QWORD*)(routine + 0x00) = 0x25FF;
+		*(QWORD*)(routine + 0x06) = (QWORD)GetMemoryAttributesTable;
+	}
+
 
 	//
 	// we need these routines for our attributes table hook
@@ -348,10 +358,27 @@ __int64 __fastcall EfiGetSystemTable(QWORD SystemTable, QWORD* a1, QWORD* a2)
 extern "C" VOID *AllocateImage(QWORD ImageBase)
 {
 	//
-	// copy current runtime image entries to new attributes table
+	// get memory attributes table if its available
 	//
 	EFI_MEMORY_ATTRIBUTES_TABLE *table=0;
-	EfiGetSystemTable((QWORD)gST, (QWORD*)&gEfiMemoryAttributesTableGuid, (QWORD*)&table);
+	if (EfiGetSystemTable((QWORD)gST, (QWORD*)&gEfiMemoryAttributesTableGuid, (QWORD*)&table) != 0)
+	{
+		compatibility_mode = 1;
+
+		QWORD nt = get_nt_header((QWORD)ImageBase);
+		DWORD image_size = *(DWORD*)(nt + 0x18 + 0x38);
+		void  *rwx = 0;
+		if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesCode, EFI_SIZE_TO_PAGES(image_size), (EFI_PHYSICAL_ADDRESS*)&rwx)))
+		{
+			return 0;
+		}
+		return rwx;
+	}
+
+
+	//
+	// copy current runtime image entries to new attributes table
+	//
 	QWORD table_size = sizeof (EFI_MEMORY_ATTRIBUTES_TABLE) + table->DescriptorSize * (table->NumberOfEntries + 3);
 	gBS->AllocatePool (EfiBootServicesData, table_size, (void**)&mTable);
 	MemCopy( (void *)mTable, (void*)table, sizeof (EFI_MEMORY_ATTRIBUTES_TABLE) + table->DescriptorSize * (table->NumberOfEntries));
