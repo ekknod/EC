@@ -182,7 +182,7 @@ static BOOL cs::initialize(void)
 	direct::view_angles     = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles     += get_viewangles_off();
-	direct::view_angles     += 0xE10;
+	direct::view_angles     += 0x1C28;
 
 	if (vm::get_target_os() == VmOs::Linux)
 	{
