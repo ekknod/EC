@@ -116,6 +116,7 @@ namespace cs
 		vec2  get_eye_angles(QWORD player);
 		float get_fov_multipler(QWORD player);
 		vec2  get_vec_punch(QWORD player);
+		vec2  get_viewangle(QWORD player);
 		WEAPON_CLASS get_weapon_class(QWORD player);
 		QWORD get_node(QWORD player);
 		BOOL  is_valid(QWORD player, QWORD node);

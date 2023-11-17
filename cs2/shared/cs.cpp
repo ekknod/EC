@@ -53,6 +53,7 @@ namespace cs
 		static int m_iIDEntIndex = 0;
 		static int m_vOldOrigin = 0;
 		static int m_pClippingWeapon = 0;
+		static int v_angle = 0;
 	}
 
 	static BOOL initialize(void);
@@ -357,6 +358,11 @@ static BOOL cs::initialize(void)
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
 				netvars::m_pClippingWeapon = *(int*)(entry + 0x10);
 			}
+			else if (!netvars::v_angle && !strcmpi_imp(netvar_name, "v_angle"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
+				netvars::v_angle = *(int*)(entry + 0x10);
+			}
 		}
 		vm::free_module(dump_client);
 	}
@@ -514,6 +520,11 @@ static BOOL cs::initialize(void)
 				{
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::m_pClippingWeapon = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::v_angle && !strcmpi_imp(netvar_name, "v_angle"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::v_angle = *(int*)(dos_header + j + 0x10 );
 				}
 			}
 		}
@@ -844,6 +855,16 @@ vec2 cs::player::get_vec_punch(QWORD player)
 	}
 
 	return data;
+}
+
+vec2 cs::player::get_viewangle(QWORD player)
+{
+	vec2 value{};
+	if (!vm::read(game_handle, player + netvars::v_angle, &value, sizeof(value)))
+	{
+		value = {};
+	}
+	return value;
 }
 
 cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
