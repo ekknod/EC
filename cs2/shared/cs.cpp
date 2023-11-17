@@ -122,7 +122,7 @@ static BOOL cs::initialize(void)
 	JZ(sdl = vm::get_module(game_handle, get_sdl3_name()), E1);
 	JZ(inputsystem = vm::get_module(game_handle, get_inputsystem_name()), E1);
 
-	direct::previous_xy = inputsystem + 0x3C770;
+	direct::previous_xy = inputsystem + 0x3C760;
 
 	interfaces::resource = get_interface(vm::get_module(game_handle, get_engine_name()), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
