@@ -819,7 +819,6 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	{
 		if (aimbot_target == target_player)
 		{
-			r = 30.0f - target_health;
 			g = 144.0f;
 			b = 255.0f;
 		}
