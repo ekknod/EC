@@ -95,7 +95,7 @@ inline void features::update_settings(void)
 
 
 #ifdef _KERNEL_MODE
-	config::visuals_enabled = 1;
+	config::visuals_enabled = 2;
 #else
 	config::visuals_enabled = 1;
 #endif
@@ -813,6 +813,17 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 	float r = 255.0f - target_health;
 	float g = target_health;
 	float b = 0.00f;
+
+
+	if (config::visuals_enabled == 2)
+	{
+		if (aimbot_target == target_player)
+		{
+			r = 30.0f - target_health;
+			g = 144.0f;
+			b = 255.0f;
+		}
+	}
 
 	int box_height = (int)(screen_bottom.y - screen_top.y);
 	int box_width = box_height / 2;
