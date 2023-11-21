@@ -224,7 +224,7 @@ __int64 __fastcall BlMmMapPhysicalAddressExHook(__int64 *a1, __int64 a2, unsigne
 	__int64 status = BlMmMapPhysicalAddressEx(a1, a2, a3, a4, a5);
 	if (status == 0 && EfiBaseAddress >= (QWORD)a2 && (a2 + a3) >= EfiBaseAddress)
 	{
-		QWORD EfiBaseVirtualAddress = *(QWORD*)(a1) + (EfiBaseAddress - a2);
+		QWORD EfiBaseVirtualAddress = *(QWORD*)(a1) - (EfiBaseAddress - a2);
 		SwapMemory2(EfiBaseAddress, EfiBaseVirtualAddress);
 		GlobalStatusVariable = km::initialize(ntoskrnl_base);
 		SwapMemory2(EfiBaseVirtualAddress, EfiBaseAddress);
