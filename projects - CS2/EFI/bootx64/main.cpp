@@ -222,7 +222,9 @@ __int64 __fastcall BlMmMapPhysicalAddressExHook(__int64 *a1, __int64 a2, unsigne
 {
 	TrampolineUnHook((void*)BlMmMapPhysicalAddressEx, BlMmMapPhysicalAddressExOriginal);
 	__int64 status = BlMmMapPhysicalAddressEx(a1, a2, a3, a4, a5);
-	if (status == 0 && EfiBaseAddress >= (QWORD)a2 && (a2 + a3) >= EfiBaseAddress)
+
+	if (status == 0 && a2 == (__int64)EfiBaseAddress)
+	// if (status == 0 && EfiBaseAddress >= (QWORD)a2 && (a2 + a3) >= EfiBaseAddress)
 	{
 		QWORD EfiBaseVirtualAddress = *(QWORD*)(a1) - (EfiBaseAddress - a2);
 		SwapMemory2(EfiBaseAddress, EfiBaseVirtualAddress);
