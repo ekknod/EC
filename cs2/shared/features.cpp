@@ -94,7 +94,7 @@ inline void features::update_settings(void)
 
 
 #ifdef _KERNEL_MODE
-	config::visuals_enabled = 2;
+	config::visuals_enabled = 1;
 #else
 	config::visuals_enabled = 1;
 #endif
@@ -196,7 +196,7 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 8.5f;
+		config::aimbot_smooth     = 5.0f;
 		break;
 	}
 }
@@ -232,7 +232,7 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 		}
 	}
 
-	if (b_triggerbot_button && config::aimbot_enabled && mouse_down_ms == 0)
+	if (b_triggerbot_button && config::aimbot_enabled && mouse_down_ms == 0 && event_state == 0)
 	{
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs::WEAPON_CLASS::Pistol)
