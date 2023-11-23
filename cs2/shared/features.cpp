@@ -54,13 +54,12 @@ namespace features
 	inline void update_settings(void);
 
 	
-	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle, vec3 bone);
+	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec2 aim_punch, vec3 aimbot_angle, vec2 view_angle, vec3 bone);
 
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
-	static void triggerbot(BOOL ffa, QWORD local_player);
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
 }
 
@@ -122,31 +121,31 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 10.0f;
+		config::aimbot_smooth     = 5.0f;
 		break;
 	case 245:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 2.5f;
-		config::aimbot_smooth     = 8.5f;
+		config::aimbot_smooth     = 4.5f;
 		break;
 	case 246:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 7.0f;
+		config::aimbot_smooth     = 4.0f;
 		break;
 	case 247:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 3.5f;
-		config::aimbot_smooth     = 5.5f;
+		config::aimbot_smooth     = 3.5f;
 		break;
 	case 248:
 		config::aimbot_button     = 318;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 4.0f;
+		config::aimbot_smooth     = 3.0f;
 		break;
 	case 249:
 		config::aimbot_button     = 318;
@@ -161,31 +160,31 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 10.0f;
+		config::aimbot_smooth     = 5.0f;
 		break;
 	case 251:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 2.5f;
-		config::aimbot_smooth     = 8.5f;
+		config::aimbot_smooth     = 4.5f;
 		break;
 	case 252:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 7.0f;
+		config::aimbot_smooth     = 4.0f;
 		break;
 	case 253:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 3.5f;
-		config::aimbot_smooth     = 5.5f;
+		config::aimbot_smooth     = 3.5f;
 		break;
 	case 254:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 318;
 		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 4.0f;
+		config::aimbot_smooth     = 3.0f;
 		break;
 	case 255:
 		config::aimbot_button     = 314;
@@ -206,7 +205,7 @@ inline void features::update_settings(void)
 // this event is called from get best target/aimbot,
 // when we have active target
 //
-static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec3 aimbot_angle, vec3 bone)
+static void features::has_target_event(QWORD local_player, QWORD target_player, float fov, vec2 aim_punch, vec3 aimbot_angle, vec2 view_angle, vec3 bone)
 {
 #ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
@@ -230,6 +229,53 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 		if (event_state == 0)
 		{
 			esp(local_player, target_player, bone);
+		}
+	}
+
+	if (b_triggerbot_button && config::aimbot_enabled && mouse_down_ms == 0)
+	{
+		float accurate_shots_fl = -0.08f;
+		if (weapon_class == cs::WEAPON_CLASS::Pistol)
+		{
+			accurate_shots_fl = -0.04f;
+		}
+
+		//
+		// accurate shots only
+		//
+		if (aim_punch.x > accurate_shots_fl)
+		{
+			typedef struct {
+				float radius;
+				vec3  min;
+				vec3  max;
+			} COLL;
+
+			COLL coll = {
+				2.800000f, {-0.200000f, 1.100000f,  0.000000f},  {3.600000f,  0.100000f, 0.000000f}
+			};
+
+			vec3 dir = math::vec_atd(vec3{view_angle.x, view_angle.y, 0});
+			vec3 eye = cs::player::get_eye_position(local_player);
+
+			matrix3x4_t matrix{};
+			matrix[0][3] = bone.x;
+			matrix[1][3] = bone.y;
+			matrix[2][3] = bone.z;
+
+			if (math::vec_min_max(eye, dir,
+				math::vec_transform(coll.min, matrix),
+				math::vec_transform(coll.max, matrix),
+				coll.radius))
+			{
+				DWORD current_ms = cs::engine::get_current_ms();
+				if (current_ms > mouse_up_ms)
+				{
+					client::mouse1_down();
+					mouse_up_ms   = 0;
+					mouse_down_ms = random_number(30, 50) + current_ms;
+				}
+			}
 		}
 	}
 }
@@ -290,7 +336,13 @@ void features::run(void)
 	b_aimbot_button     = cs::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
 	
 
-
+	//
+	// if we are holding triggerbot key, force head only
+	//
+	if (b_triggerbot_button)
+	{
+		config::aimbot_multibone = 0;
+	}
 
 
 	BOOL  ffa         = cs::gamemode::is_ffa();
@@ -303,23 +355,6 @@ void features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (b_triggerbot_button && config::aimbot_enabled)
-	{
-		float accurate_shots_fl = -0.08f;
-		if (weapon_class == cs::WEAPON_CLASS::Pistol)
-		{
-			accurate_shots_fl = -0.04f;
-		}
-
-		//
-		// accurate shots only
-		//
-		if (aim_punch.x > accurate_shots_fl)
-		{
-			triggerbot(ffa, local_player);
-		}
-	}
-
 	if (!b_aimbot_button)
 	{
 		//
@@ -459,7 +494,7 @@ void features::run(void)
 	{
 		if (aimbot_fov != 360.0f)
 		{
-			features::has_target_event(local_player, aimbot_target, aimbot_fov, aimbot_angle, aimbot_pos);
+			features::has_target_event(local_player, aimbot_target, aimbot_fov, aim_punch, aimbot_angle, view_angle, aimbot_pos);
 		}
 	}
 
@@ -645,7 +680,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 	if (best_fov != 360.0f)
 	{
 		event_state = 1;
-		features::has_target_event(local_player, *target, best_fov, angle, aimpos);
+		features::has_target_event(local_player, *target, best_fov, aim_punch, angle, va, aimpos);
 	}
 }
 
@@ -665,40 +700,6 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 		}
 	}
 	rcs_old_punch = vec_punch;
-}
-
-static void features::triggerbot(BOOL ffa, QWORD local_player)
-{
-	if (mouse_down_ms)
-	{
-		return;
-	}
-
-	DWORD crosshair_id = cs::player::get_crosshair_id(local_player);
-
-	if (crosshair_id == (DWORD)-1)
-		return;
-
-	QWORD crosshair_target = cs::entity::get_client_entity(crosshair_id);
-	if (crosshair_target == 0)
-		return;
-
-	if (cs::player::get_health(crosshair_target) < 1)
-		return;
-
-	if (!ffa)
-	{
-		if (cs::player::get_team_num(local_player) == cs::player::get_team_num(crosshair_target))
-			return;
-	}
-
-	DWORD current_ms = cs::engine::get_current_ms();
-	if (current_ms > mouse_up_ms)
-	{
-		client::mouse1_down();
-		mouse_up_ms   = 0;
-		mouse_down_ms = random_number(30, 50) + current_ms;
-	}
 }
 
 static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
