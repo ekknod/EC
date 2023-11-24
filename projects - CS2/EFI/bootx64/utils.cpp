@@ -244,7 +244,7 @@ BOOL pe_resolve_imports(QWORD ntoskrnl, QWORD base)
 						"ExAllocatePool2")
 						)
 					{
-						import = GetExportByName((QWORD)ntoskrnl, "ExAllocatePool");
+						import = GetExportByName((QWORD)ntoskrnl, "ExAllocatePoolWithTag");
 						if (import == 0)
 						{
 							return 0;
