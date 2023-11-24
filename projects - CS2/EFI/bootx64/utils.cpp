@@ -238,8 +238,23 @@ BOOL pe_resolve_imports(QWORD ntoskrnl, QWORD base)
 					->Name);
 
 				if (import == 0)
-					return 0;
-
+				{
+					if (!strcmp_imp(
+						((IMAGE_IMPORT_BY_NAME*)(base + original_thunk->u1.AddressOfData))->Name,
+						"ExAllocatePool2")
+						)
+					{
+						import = GetExportByName((QWORD)ntoskrnl, "ExAllocatePool");
+						if (import == 0)
+						{
+							return 0;
+						}
+					}
+					else
+					{
+						return 0;
+					}
+				}
 				thunk->u1.Function = import;
 			}
 		}
