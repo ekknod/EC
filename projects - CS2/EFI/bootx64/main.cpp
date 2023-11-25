@@ -16,6 +16,7 @@ extern "C"
 	EFI_RUNTIME_SERVICES   *gRT = 0;
 	EFI_BOOT_SERVICES      *gBS = 0;
 
+
 	//
 	// EFI image variables
 	//
@@ -23,12 +24,6 @@ extern "C"
 	QWORD EfiBaseSize           = 0;
 	DWORD GlobalStatusVariable  = 0;
 	QWORD ntoskrnl_base         = 0;
-
-
-	//
-	// compatibility mode for old EFI motherboards
-	//
-	BOOL  compatibility_mode    = 0;
 
 
 	//
@@ -46,6 +41,7 @@ extern "C"
 	EFI_EXIT_BOOT_SERVICES oExitBootServices;
 	EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle, UINTN MapKey);
 	EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMORY_TYPE MemoryType, UINTN Pages, EFI_PHYSICAL_ADDRESS *Memory);
+
 
 	//
 	// utils
@@ -140,7 +136,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	VOID *rwx = AllocateImage((QWORD)current_image->ImageBase);
 	if (rwx == 0)
 	{
-		Print(FILENAME L" Failed to start " SERVICE_NAME L" service.");
+		Print(FILENAME L" Compatibility version is required");
 		return 0;
 	}
 
@@ -305,6 +301,7 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 	QWORD routine = GetExportByName(winload, "RtlFindExportedRoutineByName");
 	if (!routine)
 		return oAllocatePages(Type, MemoryType, Pages, Memory);
+
 	*(QWORD*)(routine + 0x00) = 0x25FF;
 	*(QWORD*)(routine + 0x06) = (QWORD)RtlFindExportedRoutineByName;
 
@@ -312,12 +309,9 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 	//
 	// hook attributes table, we can return correct page attributes for the OS.
 	//
-	if (!compatibility_mode)
-	{
-		routine = GetExportByName(winload, "EfiGetMemoryAttributesTable");
-		*(QWORD*)(routine + 0x00) = 0x25FF;
-		*(QWORD*)(routine + 0x06) = (QWORD)GetMemoryAttributesTable;
-	}
+	routine = GetExportByName(winload, "EfiGetMemoryAttributesTable");
+	*(QWORD*)(routine + 0x00) = 0x25FF;
+	*(QWORD*)(routine + 0x06) = (QWORD)GetMemoryAttributesTable;
 
 
 	//
@@ -360,21 +354,12 @@ __int64 __fastcall EfiGetSystemTable(QWORD SystemTable, QWORD* a1, QWORD* a2)
 extern "C" VOID *AllocateImage(QWORD ImageBase)
 {
 	//
-	// get memory attributes table if its available
+	// get memory attributes table
 	//
 	EFI_MEMORY_ATTRIBUTES_TABLE *table=0;
 	if (EfiGetSystemTable((QWORD)gST, (QWORD*)&gEfiMemoryAttributesTableGuid, (QWORD*)&table) != 0)
 	{
-		compatibility_mode = 1;
-
-		QWORD nt = get_nt_header((QWORD)ImageBase);
-		DWORD image_size = *(DWORD*)(nt + 0x18 + 0x38);
-		void  *rwx = 0;
-		if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesCode, EFI_SIZE_TO_PAGES(image_size), (EFI_PHYSICAL_ADDRESS*)&rwx)))
-		{
-			return 0;
-		}
-		return rwx;
+		return 0;
 	}
 
 
