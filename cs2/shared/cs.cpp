@@ -54,6 +54,8 @@ namespace cs
 		static int m_vOldOrigin = 0;
 		static int m_pClippingWeapon = 0;
 		static int v_angle = 0;
+		static int m_entitySpottedState = 0;
+		static int m_bSpottedByMask = 0;
 	}
 
 	static BOOL initialize(void);
@@ -526,6 +528,17 @@ static BOOL cs::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::v_angle = *(int*)(dos_header + j + 0x10 );
 				}
+				else if (!netvars::m_entitySpottedState && !strcmpi_imp(netvar_name, "m_entitySpottedState") && network_enable)
+				{
+					//LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					//netvars::m_entitySpottedState = *(int*)(dos_header + j + 0x08 + 0x10);
+					netvars::m_entitySpottedState = 0x1630;
+				}
+				else if (!netvars::m_bSpottedByMask && !strcmpi_imp(netvar_name, "m_bSpottedByMask") && network_enable)
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_bSpottedByMask = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
 			}
 		}
 		vm::free_module(dump_client);
@@ -546,6 +559,8 @@ static BOOL cs::initialize(void)
 	JZ(netvars::m_angEyeAngles, E1);
 	JZ(netvars::m_iIDEntIndex, E1);
 	JZ(netvars::m_vOldOrigin, E1);
+	JZ(netvars::m_entitySpottedState, E1);
+	JZ(netvars::m_bSpottedByMask, E1);
 
 
 	return 1;
@@ -1005,6 +1020,14 @@ BOOL cs::player::is_valid(QWORD player, QWORD node)
 	}
 
 	return node::get_dormant(node) == 0;
+}
+
+BOOL cs::player::is_visible(QWORD player, int local_player_index)
+{
+	int mask = vm::read_i32(game_handle, (QWORD)(player + (netvars::m_entitySpottedState + netvars::m_bSpottedByMask)));
+	int base = local_player_index - 1;
+
+	return (mask & (1 << base)) != 0;
 }
 
 BOOLEAN cs::node::get_dormant(QWORD node)

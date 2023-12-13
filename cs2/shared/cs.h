@@ -120,6 +120,7 @@ namespace cs
 		WEAPON_CLASS get_weapon_class(QWORD player);
 		QWORD get_node(QWORD player);
 		BOOL  is_valid(QWORD player, QWORD node);
+		BOOL  is_visible(QWORD player, int local_player_index);
 	}
 
 	namespace node
