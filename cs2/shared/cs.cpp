@@ -82,7 +82,7 @@ inline const char *get_tier0_name() { return vm::get_target_os() == VmOs::Window
 inline const char *get_inputsystem_name() { return vm::get_target_os() == VmOs::Windows ? "inputsystem.dll" : "libinputsystem.so"; }
 inline int get_entity_off() { return vm::get_target_os() == VmOs::Windows ? 0x58 : 0x50; }
 inline int get_button_off() { return vm::get_target_os() == VmOs::Windows ? 0x0E : 0x11; }
-inline int get_viewangles_off() { return vm::get_target_os() == VmOs::Windows ? 0x4518 : 0x4528; }
+inline int get_viewangles_off() { return vm::get_target_os() == VmOs::Windows ? 0x6140 : 0x4528; }
 
 #ifdef DEBUG
 
@@ -183,7 +183,7 @@ static BOOL cs::initialize(void)
 	direct::view_angles     = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles     += get_viewangles_off();
-	direct::view_angles     += 0x1C28;
+
 
 	if (vm::get_target_os() == VmOs::Linux)
 	{
@@ -701,7 +701,7 @@ BOOL cs::entity::is_player(QWORD controller)
 		return 1;
 	}
 
-	QWORD vfunc = get_interface_function(controller, 144);
+	QWORD vfunc = get_interface_function(controller, 145);
 	if (vfunc == 0)
 		return 0;
 
