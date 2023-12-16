@@ -100,26 +100,12 @@ inline void features::update_settings(void)
 #endif
 
 
-	switch (weapon_class)
-	{
-	case cs::WEAPON_CLASS::Knife:
-	case cs::WEAPON_CLASS::Grenade:
-		config::aimbot_enabled = 0;
-		break;
-	case cs::WEAPON_CLASS::Pistol:
-		config::aimbot_fov	   = 5.0f;
-		break;
-	case cs::WEAPON_CLASS::Rifle:
-		config::aimbot_fov = 20.0f;
-		break;
-	}
+
 
 
 	switch (crosshair_alpha)
 	{
-	//
 	// mouse1 aimkey, mouse4 triggerkey
-	//
 	case 254:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
@@ -139,6 +125,25 @@ inline void features::update_settings(void)
 		config::aimbot_smooth     = 5.0f;
 		break;
 	}
+
+
+
+	switch (weapon_class)
+	{
+	case cs::WEAPON_CLASS::Knife:
+	case cs::WEAPON_CLASS::Grenade:
+		config::aimbot_enabled = 0;
+		break;
+	case cs::WEAPON_CLASS::Pistol:
+		config::aimbot_fov = 5.0f;
+		break;
+	case cs::WEAPON_CLASS::Rifle:
+		config::aimbot_fov = 20.0f;
+		break;
+	}
+
+
+
 }
 
 //
