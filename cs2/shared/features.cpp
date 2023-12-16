@@ -107,7 +107,10 @@ inline void features::update_settings(void)
 		config::aimbot_enabled = 0;
 		break;
 	case cs::WEAPON_CLASS::Pistol:
-		config::aimbot_multibone = 0;
+		config::aimbot_fov	   = 5.0f;
+		break;
+	case cs::WEAPON_CLASS::Rifle:
+		config::aimbot_fov = 20.0f;
 		break;
 	}
 
