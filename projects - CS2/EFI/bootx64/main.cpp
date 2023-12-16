@@ -64,7 +64,7 @@ inline void PressAnyKey()
 	EFI_EVENT          WaitList;
 	EFI_INPUT_KEY      Key;
 	UINTN              Index;
-	Print(FILENAME L" " L"Press F11 key to continue . . .");
+	Print(FILENAME L" " L"puppyhook initiated - Press F11 key to continue . . .");
 	do {
 		WaitList = gST->ConIn->WaitForKey;
 		Status = gBS->WaitForEvent(1, &WaitList, &Index);
@@ -179,7 +179,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	gST->ConOut->ClearScreen(gST->ConOut);
 	gST->ConOut->SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLACK);
 
-	Print(FILENAME L" " SERVICE_NAME L" is now started");
+	Print(FILENAME L" " SERVICE_NAME L" is now started, welcome to puppyhook");
 	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 1);
 	PressAnyKey();
 	return EFI_SUCCESS;
