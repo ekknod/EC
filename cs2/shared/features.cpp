@@ -109,20 +109,20 @@ inline void features::update_settings(void)
 	case 254:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 5.0f;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 8.0f;
 		break;
 	case 255:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
-		config::aimbot_fov        = 4.5f;
-		config::aimbot_smooth     = 2.5f;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 12.0f;
 		break;
 	default:
 		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
-		config::aimbot_fov        = 2.0f;
-		config::aimbot_smooth     = 5.0f;
+		config::triggerbot_button = 317;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 12.0f;
 		break;
 	}
 
@@ -135,10 +135,9 @@ inline void features::update_settings(void)
 		config::aimbot_enabled = 0;
 		break;
 	case cs::WEAPON_CLASS::Pistol:
-		config::aimbot_fov = 5.0f;
-		break;
-	case cs::WEAPON_CLASS::Rifle:
-		config::aimbot_fov = 20.0f;
+	case cs::WEAPON_CLASS::Sniper:
+		config::aimbot_smooth = 50.0f;
+		config::aimbot_fov	  = 1.0f;
 		break;
 	}
 
