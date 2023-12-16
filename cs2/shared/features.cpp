@@ -395,20 +395,21 @@ void features::run(void)
 		//
 		// use cached information for saving resources
 		//
-		if (aimbot_bone != 0)
-		{
-			vec3 pos{};
-			if (!cs::node::get_bone_position(node, aimbot_bone, &pos))
-			{
-				return;
-			}
-			aimbot_pos   = pos;
-			aimbot_angle = get_target_angle(local_player, pos, num_shots, aim_punch);
-			aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
-		}
-		else
-		{
-			for (DWORD i = 2; i < 9; i++)
+		//if (aimbot_bone != 0)
+		//{
+		//	vec3 pos{};
+		//	if (!cs::node::get_bone_position(node, aimbot_bone, &pos))
+		//	{
+		//		return;
+		//	}
+		//	aimbot_pos   = pos;
+		//	aimbot_angle = get_target_angle(local_player, pos, num_shots, aim_punch);
+		//	aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
+		//}
+
+		//else
+		//{
+			for (DWORD i = 3; i < 9; i++)
 			{
 				vec3 pos{};
 				if (!cs::node::get_bone_position(node, i, &pos))
@@ -427,7 +428,7 @@ void features::run(void)
 					aimbot_bone  = i;
 				}
 			}
-		}
+		//}
 	}
 	else
 	{

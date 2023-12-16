@@ -5,3 +5,6 @@ projects - CS2/EFI/bootx64/.vs/bootx64/v17/Browse.VC.opendb
 *.db-shm
 *.db
 *.vsidx
+projects - CS2/EFI/bootx64/.vs/bootx64/v17/.suo
+*.log
+projects - CS2/EFI/bootx64/x64/Release/bootx64.efi
