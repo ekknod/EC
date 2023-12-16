@@ -107,11 +107,11 @@ inline void features::update_settings(void)
 	{
 	// mouse1 aimkey, mouse4 triggerkey
 	case 253:
-		config::aimbot_button = 314;
+		config::aimbot_button	  = 314;
 		config::triggerbot_button = 317;
-		config::aimbot_fov = 3.0f;
-		config::aimbot_smooth = 12.0f;
-		config::visuals_enabled = 0;
+		config::aimbot_fov		  = 3.0f;
+		config::aimbot_smooth	  = 12.0f;
+		config::visuals_enabled	  = 0;
 		break;
 	case 254:
 		config::aimbot_button     = 314;
@@ -288,11 +288,11 @@ void features::run(void)
 	
 
 	//
-	// if we are holding triggerbot key, force head only
+	// if we are holding triggerbot key,  >DONT< force head only
 	//
 	if (b_triggerbot_button)
 	{
-		config::aimbot_multibone = 0;
+		config::aimbot_multibone = 1;
 	}
 
 
@@ -408,7 +408,7 @@ void features::run(void)
 		}
 		else
 		{
-			for (DWORD i = 2; i < 7; i++)
+			for (DWORD i = 2; i < 9; i++)
 			{
 				vec3 pos{};
 				if (!cs::node::get_bone_position(node, i, &pos))
