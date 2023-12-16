@@ -1,0 +1,7 @@
+
+*.ipch
+projects - CS2/EFI/bootx64/.vs/bootx64/v17/Browse.VC.opendb
+*.db-wal
+*.db-shm
+*.db
+*.vsidx
