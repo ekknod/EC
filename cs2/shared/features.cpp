@@ -106,6 +106,13 @@ inline void features::update_settings(void)
 	switch (crosshair_alpha)
 	{
 	// mouse1 aimkey, mouse4 triggerkey
+	case 253:
+		config::aimbot_button = 314;
+		config::triggerbot_button = 317;
+		config::aimbot_fov = 3.0f;
+		config::aimbot_smooth = 12.0f;
+		config::visuals_enabled = 0;
+		break;
 	case 254:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
