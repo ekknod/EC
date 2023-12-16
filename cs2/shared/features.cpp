@@ -392,7 +392,7 @@ void features::run(void)
 
 	if (config::aimbot_multibone)
 	{
-		for (DWORD i = 3; i < 9; i++)
+		for (DWORD i = 0; i < 9; i++)
 			{
 				vec3 pos{};
 				if (!cs::node::get_bone_position(node, i, &pos))
