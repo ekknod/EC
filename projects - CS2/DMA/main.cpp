@@ -57,6 +57,7 @@ namespace kmbox
 		static SOCKADDR_IN address_srv = { 0 };
 
 		BOOL open();
+		void send(unsigned int cmd);
 	}
 
 	static HANDLE kmbox_handle = 0;
@@ -187,18 +188,9 @@ void kmbox::mouse_move(int x, int y)
 {
 	if (net::is_net) 
 	{
-		net::tx.head.indexpts++;
-		net::tx.head.cmd = 0xaede7345;
-		net::tx.head.rand = rand();
 		net::softmouse.x = x;
 		net::softmouse.y = y;
-		memcpy(&net::tx.cmd_mouse, &net::softmouse, sizeof(net::soft_mouse_t));
-		sendto(net::net_socket, (const char*)&net::tx, sizeof(net::cmd_head_t) + sizeof(net::soft_mouse_t), 0, (struct sockaddr*)&net::address_srv, sizeof(net::address_srv));
-		net::softmouse.x = 0;
-		net::softmouse.y = 0;
-		SOCKADDR_IN sclient{};
-		int clen = sizeof(sclient);
-		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
+		net::send(0xaede7345);
 	}
 	else
 	{
@@ -212,15 +204,8 @@ void kmbox::mouse_left(int state)
 {
 	if (net::is_net)
 	{
-		net::tx.head.indexpts++;
-		net::tx.head.cmd = 0x9823AE8D;
-		net::tx.head.rand = rand();
 		net::softmouse.button = (state ? (net::softmouse.button | 0x01) : (net::softmouse.button & (~0x01)));
-		memcpy(&net::tx.cmd_mouse, &net::softmouse, sizeof(net::soft_mouse_t));
-		sendto(net::net_socket, (const char*)&net::tx, sizeof(net::cmd_head_t) + sizeof(net::soft_mouse_t), 0, (struct sockaddr*)&net::address_srv, sizeof(net::address_srv));
-		SOCKADDR_IN sclient;
-		int clen = sizeof(sclient);
-		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
+		net::send(0x9823ae8d);
 	}
 	else
 	{
@@ -228,6 +213,20 @@ void kmbox::mouse_left(int state)
 		snprintf(buffer, 120, "km.left(%d)\r", state);
 		WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
 	}
+}
+
+void kmbox::net::send(unsigned int cmd)
+{
+	tx.head.indexpts++;
+	tx.head.cmd = cmd;
+	tx.head.rand = rand();
+	memcpy(&tx.cmd_mouse, &softmouse, sizeof(soft_mouse_t));
+	sendto(net_socket, (const char*)&tx, sizeof(cmd_head_t) + sizeof(soft_mouse_t), 0, (struct sockaddr*)&address_srv, sizeof(address_srv));
+	softmouse.x = 0;
+	softmouse.y = 0;
+	SOCKADDR_IN sclient{};
+	int clen = sizeof(sclient);
+	recvfrom(net_socket, (char*)&rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
 }
 
 BOOL kmbox::net::open()
