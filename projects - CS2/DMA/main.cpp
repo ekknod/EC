@@ -13,7 +13,7 @@
 #pragma comment(lib, "Setupapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
-SDL_Renderer* sdl_renderer;
+SDL_Renderer *sdl_renderer;
 
 namespace kmbox
 {
@@ -28,16 +28,6 @@ namespace kmbox
 
 		typedef struct
 		{
-			unsigned char buff[1024];
-		}cmd_data_t;
-
-		typedef struct
-		{
-			unsigned short buff[512];
-		}cmd_u16_t;
-
-		typedef struct
-		{
 			int button;
 			int x;
 			int y;
@@ -45,22 +35,11 @@ namespace kmbox
 			int point[10];
 		}soft_mouse_t;
 
-
-		typedef struct
-		{
-			char ctrl;
-			char resvel;
-			char button[10];
-		}soft_keyboard_t;
-
 		typedef struct
 		{
 			cmd_head_t head;
 			union {
-				cmd_data_t      u8buff;
-				cmd_u16_t       u16buff;
 				soft_mouse_t    cmd_mouse;
-				soft_keyboard_t cmd_keyboard;
 			};
 		}client_tx;
 
@@ -206,7 +185,8 @@ int main(void)
 
 void kmbox::mouse_move(int x, int y)
 {
-	if (net::is_net) {
+	if (net::is_net) 
+	{
 		net::tx.head.indexpts++;
 		net::tx.head.cmd = 0xaede7345;
 		net::tx.head.rand = rand();
@@ -220,7 +200,8 @@ void kmbox::mouse_move(int x, int y)
 		int clen = sizeof(sclient);
 		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
 	}
-	else {
+	else
+	{
 		char buffer[120]{};
 		snprintf(buffer, 120, "km.move(%d, %d)\r", x, y);
 		WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
@@ -229,7 +210,8 @@ void kmbox::mouse_move(int x, int y)
 
 void kmbox::mouse_left(int state)
 {
-	if (net::is_net) {
+	if (net::is_net)
+	{
 		net::tx.head.indexpts++;
 		net::tx.head.cmd = 0x9823AE8D;
 		net::tx.head.rand = rand();
@@ -240,7 +222,8 @@ void kmbox::mouse_left(int state)
 		int clen = sizeof(sclient);
 		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
 	}
-	else {
+	else
+	{
 		char buffer[120]{};
 		snprintf(buffer, 120, "km.left(%d)\r", state);
 		WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
@@ -262,22 +245,22 @@ BOOL kmbox::net::open()
 	}
 
 	auto to_hex = [](char* src, int len)
+	{
+		unsigned int dest[16] = { 0 };
+		for (int i = 0; i < len; i++)
 		{
-			unsigned int dest[16] = { 0 };
-			for (int i = 0; i < len; i++)
-			{
-				char h1 = src[2 * i];
-				char h2 = src[2 * i + 1];
-				unsigned char s1 = toupper(h1) - 0x30;
-				if (s1 > 9)
-					s1 -= 7;
-				unsigned char s2 = toupper(h2) - 0x30;
-				if (s2 > 9)
-					s2 -= 7;
-				dest[i] = s1 * 16 + s2;
-			}
-			return dest[0] << 24 | dest[1] << 16 | dest[2] << 8 | dest[3];
-		};
+			char h1 = src[2 * i];
+			char h2 = src[2 * i + 1];
+			unsigned char s1 = toupper(h1) - 0x30;
+			if (s1 > 9)
+				s1 -= 7;
+			unsigned char s2 = toupper(h2) - 0x30;
+			if (s2 > 9)
+				s2 -= 7;
+			dest[i] = s1 * 16 + s2;
+		}
+		return dest[0] << 24 | dest[1] << 16 | dest[2] << 8 | dest[3];
+	};
 
 	srand((unsigned)time(NULL));
 	net_socket = socket(AF_INET, SOCK_DGRAM, 0);
