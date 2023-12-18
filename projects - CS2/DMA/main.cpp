@@ -1,18 +1,87 @@
+#include <Winsock2.h>
 #include "../../cs2/shared/shared.h"
 
 #include <SDL3/SDL.h>
 #include <devguid.h>
 #include <SetupAPI.h>
 #include <format>
+#include <time.h>
+
+#pragma warning(disable : 4996)
 
 #pragma comment(lib, "SDL3.lib")
-#pragma comment (lib, "Setupapi.lib")
+#pragma comment(lib, "Setupapi.lib")
+#pragma comment(lib, "ws2_32.lib")
 
-SDL_Renderer *sdl_renderer;
+SDL_Renderer* sdl_renderer;
 
 namespace kmbox
 {
+	namespace net {
+		typedef struct
+		{
+			unsigned int  mac;
+			unsigned int  rand;
+			unsigned int  indexpts;
+			unsigned int  cmd;
+		}cmd_head_t;
+
+		typedef struct
+		{
+			unsigned char buff[1024];
+		}cmd_data_t;
+
+		typedef struct
+		{
+			unsigned short buff[512];
+		}cmd_u16_t;
+
+		typedef struct
+		{
+			int button;
+			int x;
+			int y;
+			int wheel;
+			int point[10];
+		}soft_mouse_t;
+
+
+		typedef struct
+		{
+			char ctrl;
+			char resvel;
+			char button[10];
+		}soft_keyboard_t;
+
+		typedef struct
+		{
+			cmd_head_t head;
+			union {
+				cmd_data_t      u8buff;
+				cmd_u16_t       u16buff;
+				soft_mouse_t    cmd_mouse;
+				soft_keyboard_t cmd_keyboard;
+			};
+		}client_tx;
+
+		// data can be found on device screen
+		static char ip[14] = "192.168.2.xxx"; // must replace with your devices ip.
+		static char port[5] = "xxxx"; // must replace with your devices port.
+		static char uuid[9] = "xxxxxxxx"; // must replace with your devices uuid.
+
+		static client_tx tx;
+		static client_tx rx;
+		static soft_mouse_t softmouse;
+
+		static BOOL is_net = 0;
+		static SOCKET net_socket = 0;
+		static SOCKADDR_IN address_srv = { 0 };
+
+		BOOL open();
+	}
+
 	static HANDLE kmbox_handle = 0;
+	static BOOL is_kmbox = 0;
 
 	void mouse_move(int x, int y);
 	void mouse_left(int state);
@@ -25,7 +94,7 @@ namespace client
 {
 	void mouse_move(int x, int y)
 	{
-		if (kmbox::kmbox_handle)
+		if (kmbox::is_kmbox)
 			kmbox::mouse_move(x, y);
 		else
 			cs::input::move(x, y);
@@ -33,21 +102,21 @@ namespace client
 
 	void mouse1_down(void)
 	{
-		if (kmbox::kmbox_handle)
+		if (kmbox::is_kmbox)
 			kmbox::mouse_left(1);
 	}
 
 	void mouse1_up(void)
 	{
-		if (kmbox::kmbox_handle)
+		if (kmbox::is_kmbox)
 			kmbox::mouse_left(0);
 	}
 
-	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	void DrawRect(void* hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		UNREFERENCED_PARAMETER(hwnd);
 
-		
+
 		SDL_FRect rect{};
 		rect.x = (float)x;
 		rect.y = (float)y;
@@ -55,7 +124,7 @@ namespace client
 		rect.h = (float)h;
 		SDL_SetRenderDrawColor(sdl_renderer, r, g, b, 255);
 		SDL_RenderRect(sdl_renderer, &rect);
-		
+
 		/*
 		SDL_FRect rect{};
 		rect.x = (float)x;
@@ -67,7 +136,7 @@ namespace client
 		*/
 	}
 
-	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	void DrawFillRect(void* hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
 		UNREFERENCED_PARAMETER(hwnd);
 		SDL_FRect rect{};
@@ -82,7 +151,8 @@ namespace client
 
 int main(void)
 {
-	if (kmbox::open())
+	kmbox::is_kmbox = kmbox::open() || kmbox::net::open();
+	if (kmbox::is_kmbox)
 	{
 		LOG("kmbox device found\n");
 	}
@@ -91,21 +161,22 @@ int main(void)
 		LOG("kmbox not found, using normal input\n");
 	}
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	{
 		return 0;
 	}
 
-	SDL_Window *window = SDL_CreateWindow("EC", 640, 480, SDL_WINDOW_BORDERLESS);
+	SDL_Window* window = SDL_CreateWindow("EC", 640, 480, SDL_WINDOW_BORDERLESS);
 	if (window == NULL)
 	{
 		return 0;
 	}
 
 	SDL_DisplayID id = SDL_GetDisplayForWindow(window);
-	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
+	const SDL_DisplayMode* disp = SDL_GetCurrentDisplayMode(id);
 	SDL_SetWindowSize(window, disp->w, disp->h);
 	SDL_SetWindowPosition(window, 0, 0);
-	
+
 	sdl_renderer = SDL_CreateRenderer(window, 0, SDL_RENDERER_SOFTWARE);
 	SDL_SetRenderDrawBlendMode(sdl_renderer, SDL_BLENDMODE_BLEND);
 
@@ -113,7 +184,7 @@ int main(void)
 	while (!quit)
 	{
 		SDL_Event e;
-		while ( SDL_PollEvent( &e ) )
+		while (SDL_PollEvent(&e))
 		{
 			if (e.type == SDL_EVENT_QUIT)
 			{
@@ -135,16 +206,107 @@ int main(void)
 
 void kmbox::mouse_move(int x, int y)
 {
-	char buffer[120]{};
-	snprintf(buffer, 120, "km.move(%d, %d)\r", x, y);
-	WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
+	if (net::is_net) {
+		net::tx.head.indexpts++;
+		net::tx.head.cmd = 0xaede7345;
+		net::tx.head.rand = rand();
+		net::softmouse.x = x;
+		net::softmouse.y = y;
+		memcpy(&net::tx.cmd_mouse, &net::softmouse, sizeof(net::soft_mouse_t));
+		sendto(net::net_socket, (const char*)&net::tx, sizeof(net::cmd_head_t) + sizeof(net::soft_mouse_t), 0, (struct sockaddr*)&net::address_srv, sizeof(net::address_srv));
+		net::softmouse.x = 0;
+		net::softmouse.y = 0;
+		SOCKADDR_IN sclient{};
+		int clen = sizeof(sclient);
+		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
+	}
+	else {
+		char buffer[120]{};
+		snprintf(buffer, 120, "km.move(%d, %d)\r", x, y);
+		WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
+	}
 }
 
 void kmbox::mouse_left(int state)
 {
-	char buffer[120]{};
-	snprintf(buffer, 120, "km.left(%d)\r", state);
-	WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
+	if (net::is_net) {
+		net::tx.head.indexpts++;
+		net::tx.head.cmd = 0x9823AE8D;
+		net::tx.head.rand = rand();
+		net::softmouse.button = (state ? (net::softmouse.button | 0x01) : (net::softmouse.button & (~0x01)));
+		memcpy(&net::tx.cmd_mouse, &net::softmouse, sizeof(net::soft_mouse_t));
+		sendto(net::net_socket, (const char*)&net::tx, sizeof(net::cmd_head_t) + sizeof(net::soft_mouse_t), 0, (struct sockaddr*)&net::address_srv, sizeof(net::address_srv));
+		SOCKADDR_IN sclient;
+		int clen = sizeof(sclient);
+		recvfrom(net::net_socket, (char*)&net::rx, 1024, 0, (struct sockaddr*)&sclient, &clen);
+	}
+	else {
+		char buffer[120]{};
+		snprintf(buffer, 120, "km.left(%d)\r", state);
+		WriteFile(kmbox_handle, (void*)buffer, (DWORD)strlen(buffer), 0, NULL);
+	}
+}
+
+BOOL kmbox::net::open()
+{
+	if (kmbox_handle) { return FALSE; }
+
+	WSADATA wsa_data;
+	if (WSAStartup(MAKEWORD(1, 1), &wsa_data) != 0) { return FALSE; }
+
+	if (LOBYTE(wsa_data.wVersion) != 1 || HIBYTE(wsa_data.wVersion) != 1)
+	{
+		WSACleanup();
+		net_socket = -1;
+		return FALSE;
+	}
+
+	auto to_hex = [](char* src, int len)
+		{
+			unsigned int dest[16] = { 0 };
+			for (int i = 0; i < len; i++)
+			{
+				char h1 = src[2 * i];
+				char h2 = src[2 * i + 1];
+				unsigned char s1 = toupper(h1) - 0x30;
+				if (s1 > 9)
+					s1 -= 7;
+				unsigned char s2 = toupper(h2) - 0x30;
+				if (s2 > 9)
+					s2 -= 7;
+				dest[i] = s1 * 16 + s2;
+			}
+			return dest[0] << 24 | dest[1] << 16 | dest[2] << 8 | dest[3];
+		};
+
+	srand((unsigned)time(NULL));
+	net_socket = socket(AF_INET, SOCK_DGRAM, 0);
+	address_srv.sin_addr.S_un.S_addr = inet_addr(ip);
+	address_srv.sin_family = AF_INET;
+	address_srv.sin_port = htons(atoi(port));
+	tx.head.mac = to_hex(uuid, 4);
+	tx.head.rand = rand();
+	tx.head.indexpts = 0;
+	tx.head.cmd = 0xaf3c2828;
+	memset(&softmouse, 0, sizeof(softmouse));
+	sendto(net_socket, (const char*)&tx, sizeof(cmd_head_t), 0, (struct sockaddr*)&address_srv, sizeof(address_srv));
+	Sleep(20);
+	int clen = sizeof(address_srv);
+	if (recvfrom(net_socket, (char*)&rx, 1024, 0, (struct sockaddr*)&address_srv, &clen) < 0)
+	{
+		closesocket(net_socket);
+		WSACleanup();
+		return FALSE;
+	}
+
+	if (rx.head.cmd != tx.head.cmd || rx.head.indexpts != tx.head.indexpts)
+	{
+		return FALSE;
+	}
+
+	is_net = TRUE;
+
+	return TRUE;
 }
 
 BOOL kmbox::open()
@@ -240,4 +402,3 @@ BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 	SetupDiDestroyDeviceInfoList(deviceInfo);
 	return status;
 }
-
