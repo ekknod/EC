@@ -327,10 +327,10 @@ void features::run(void)
 		//
 		// optimize: find target only when button not pressed
 		//
-		//if (!b_aimbot_button)
-		//{
-		//	get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
-		//}
+		if (!b_aimbot_button)
+		{
+			get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
+		}
 	}
 
 	//
