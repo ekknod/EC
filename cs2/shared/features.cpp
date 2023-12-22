@@ -117,13 +117,13 @@ inline void features::update_settings(void)
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 8.0f;
+		config::aimbot_smooth     = 6.0f;
 		break;
 	case 255:
 		config::aimbot_button     = 314;
 		config::triggerbot_button = 317;
 		config::aimbot_fov        = 3.0f;
-		config::aimbot_smooth     = 12.0f;
+		config::aimbot_smooth     = 8.0f;
 		break;
 	default:
 		config::aimbot_button     = 314;
@@ -143,7 +143,7 @@ inline void features::update_settings(void)
 		break;
 	case cs::WEAPON_CLASS::Pistol:
 	case cs::WEAPON_CLASS::Sniper:
-		config::aimbot_smooth = 50.0f;
+		config::aimbot_smooth = 5.0f;
 		config::aimbot_fov	  = 1.0f;
 		break;
 	}
@@ -327,10 +327,10 @@ void features::run(void)
 		//
 		// optimize: find target only when button not pressed
 		//
-		if (!b_aimbot_button)
-		{
-			get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
-		}
+		//if (!b_aimbot_button)
+		//{
+		//	get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
+		//}
 	}
 
 	//
