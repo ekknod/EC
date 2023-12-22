@@ -9,4 +9,4 @@ i call it puppyhook, i'm just built like that
 - default config provided is less blatant
 
 ## Planned changes
-- to be determined
+- maybe a vis check if i manage to paste / find one
