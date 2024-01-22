@@ -42,23 +42,23 @@ namespace features
 
 	void reset(void)
 	{
-		mouse_down_ms    = 0;
-		mouse_up_ms      = 0;
-		rcs_old_punch    = {};
-		aimbot_active    = 0;
-		aimbot_target    = 0;
-		aimbot_bone      = 0;
-		aimbot_ms        = 0;
+		mouse_down_ms = 0;
+		mouse_up_ms = 0;
+		rcs_old_punch = {};
+		aimbot_active = 0;
+		aimbot_target = 0;
+		aimbot_bone = 0;
+		aimbot_ms = 0;
 	}
 
 	inline void update_settings(void);
 
-	
+
 	static void has_target_event(QWORD local_player, QWORD target_player, float fov, vec2 aim_punch, vec3 aimbot_angle, vec2 view_angle, vec3 bone);
 
 
 	static vec3 get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch);
-	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
+	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD* target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
 }
@@ -88,7 +88,7 @@ inline void features::update_settings(void)
 	//
 	// default global settings
 	//
-	config::rcs = 0;
+	config::rcs = 1;
 	config::aimbot_enabled = 1;
 	config::aimbot_multibone = 1;
 
@@ -100,45 +100,38 @@ inline void features::update_settings(void)
 #endif
 
 
-
-
-
-	switch (crosshair_alpha)
-	{
-	// mouse1 aimkey, mouse4 triggerkey
-	case 254:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 0.5f;
-		config::aimbot_smooth     = 2.0f;
-		config::visuals_enabled	  = 2;
-		break;
-	case 255:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 0.7f;
-		config::aimbot_smooth     = 2.0f;
-		break;
-	default:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 317;
-		config::aimbot_fov        = 0.7f;
-		config::aimbot_smooth     = 2.0f;
-		break;
-	}
-
-
-
 	switch (weapon_class)
 	{
 	case cs::WEAPON_CLASS::Knife:
 	case cs::WEAPON_CLASS::Grenade:
 		config::aimbot_enabled = 0;
 		break;
+	case cs::WEAPON_CLASS::Pistol:
+		config::aimbot_multibone = 0;
+		break;
+	case cs::WEAPON_CLASS::Sniper:
+		config::aimbot_multibone = 1;
+		break;
+	case cs::WEAPON_CLASS::Rifle:
+		config::aimbot_multibone = 1;
 	}
 
 
-
+	switch (crosshair_alpha)
+	{
+	case 255:
+		config::aimbot_button = 314;
+		config::triggerbot_button = 317;
+		config::aimbot_fov = 0.7f;
+		config::aimbot_smooth = 2.0f;
+		break;
+	default:
+		config::aimbot_button = 314;
+		config::triggerbot_button = 317;
+		config::aimbot_fov = 0.7f;
+		config::aimbot_smooth = 2.0f;
+		break;
+	}
 }
 
 //
@@ -177,7 +170,7 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs::WEAPON_CLASS::Pistol)
 		{
-			accurate_shots_fl = -0.04f;
+			accurate_shots_fl = -0.02f;
 		}
 
 		//
@@ -195,7 +188,7 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 				2.800000f, {-0.200000f, 1.100000f,  0.000000f},  {3.600000f,  0.100000f, 0.000000f}
 			};
 
-			vec3 dir = math::vec_atd(vec3{view_angle.x, view_angle.y, 0});
+			vec3 dir = math::vec_atd(vec3{ view_angle.x, view_angle.y, 0 });
 			vec3 eye = cs::player::get_eye_position(local_player);
 
 			matrix3x4_t matrix{};
@@ -212,7 +205,7 @@ static void features::has_target_event(QWORD local_player, QWORD target_player, 
 				if (current_ms > mouse_up_ms)
 				{
 					client::mouse1_down();
-					mouse_up_ms   = 0;
+					mouse_up_ms = 0;
 					mouse_down_ms = random_number(30, 50) + current_ms;
 				}
 			}
@@ -231,8 +224,8 @@ void features::run(void)
 		if (current_ms > mouse_down_ms)
 		{
 			client::mouse1_up();
-			mouse_down_ms   = 0;
-			mouse_up_ms     = random_number(30, 50) + current_ms;
+			mouse_down_ms = 0;
+			mouse_up_ms = random_number(30, 50) + current_ms;
 		}
 	}
 
@@ -273,35 +266,35 @@ void features::run(void)
 	// update buttons
 	//
 	b_triggerbot_button = cs::input::is_button_down(config::triggerbot_button);
-	b_aimbot_button     = cs::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
-	
+	b_aimbot_button = cs::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
+
 
 	//
-	// if we are holding triggerbot key,  >DONT< force head only
+	// if we are holding triggerbot key, force head only
 	//
-	if (b_triggerbot_button)
+	/*if (b_triggerbot_button)
 	{
-		config::aimbot_multibone = 1;
-	}
+		config::aimbot_multibone = 0;
+	}*/
 
 
-	BOOL  ffa         = cs::gamemode::is_ffa();
-	DWORD num_shots   = cs::player::get_shots_fired(local_player);
-	vec2  aim_punch   = cs::player::get_vec_punch(local_player);
+	BOOL  ffa = cs::gamemode::is_ffa();
+	DWORD num_shots = cs::player::get_shots_fired(local_player);
+	vec2  aim_punch = cs::player::get_vec_punch(local_player);
 	float sensitivity = cs::mouse::get_sensitivity() * cs::player::get_fov_multipler(local_player);
 
 	if (config::rcs)
 	{
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
-	
+
 	if (!b_aimbot_button)
 	{
 		//
 		// reset target
 		//
 		aimbot_target = 0;
-		aimbot_bone   = 0;
+		aimbot_bone = 0;
 	}
 
 	event_state = 0;
@@ -327,7 +320,7 @@ void features::run(void)
 	//
 	if (aimbot_target == 0)
 	{
-		aimbot_bone   = 0;
+		aimbot_bone = 0;
 		aimbot_target = best_target;
 	}
 	else
@@ -374,14 +367,14 @@ void features::run(void)
 	}
 
 	vec2 view_angle = cs::player::get_viewangle(local_player);
-	
+
 	vec3  aimbot_angle{};
 	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
 
 	if (config::aimbot_multibone)
 	{
-		for (DWORD i = 0; i < 9; i++)
+			for (DWORD i = 0; i < 9; i++)
 			{
 				vec3 pos{};
 				if (!cs::node::get_bone_position(node, i, &pos))
@@ -390,16 +383,17 @@ void features::run(void)
 				}
 
 				vec3  angle = get_target_angle(local_player, pos, num_shots, aim_punch);
-				float fov   = math::get_fov(view_angle, angle);
+				float fov = math::get_fov(view_angle, angle);
 
 				if (fov < aimbot_fov)
 				{
-					aimbot_fov   = fov;
-					aimbot_pos   = pos;
+					aimbot_fov = fov;
+					aimbot_pos = pos;
 					aimbot_angle = angle;
-					aimbot_bone  = i;
+					aimbot_bone = i;
 				}
-		}
+			}
+		
 	}
 	else
 	{
@@ -408,9 +402,9 @@ void features::run(void)
 		{
 			return;
 		}
-		aimbot_pos   = head;
+		aimbot_pos = head;
 		aimbot_angle = get_target_angle(local_player, head, num_shots, aim_punch);
-		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
+		aimbot_fov = math::get_fov(view_angle, aimbot_angle);
 	}
 
 	if (event_state == 0)
@@ -436,7 +430,7 @@ void features::run(void)
 
 	float x = (angles.y / sensitivity) / 0.022f;
 	float y = (angles.x / sensitivity) / -0.022f;
-	
+
 	float smooth_x = 0.00f;
 	float smooth_y = 0.00f;
 
@@ -475,9 +469,9 @@ void features::run(void)
 	}
 	else
 	{
-		smooth_x  = x;
-		smooth_y  = y;
-		ms        = 16;
+		smooth_x = x;
+		smooth_y = y;
+		ms = 16;
 	}
 
 	DWORD current_ms = cs::engine::get_current_ms();
@@ -491,7 +485,7 @@ void features::run(void)
 static vec3 features::get_target_angle(QWORD local_player, vec3 position, DWORD num_shots, vec2 aim_punch)
 {
 	vec3 eye_position = cs::node::get_origin(cs::player::get_node(local_player));
-	eye_position.z    += cs::player::get_vec_view(local_player);
+	eye_position.z += cs::player::get_vec_view(local_player);
 
 	//
 	// which one is better???
@@ -528,13 +522,13 @@ skip_recoil:
 	return angle;
 }
 
-static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target)
+static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD* target)
 {
 	vec2 va = cs::player::get_viewangle(local_player);
 	float best_fov = 360.0f;
 	vec3  angle{};
 	vec3  aimpos{};
-	
+
 	for (int i = 1; i < 32; i++)
 	{
 		QWORD ent = cs::entity::get_client_entity(i);
@@ -581,7 +575,7 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		{
 			continue;
 		}
-		
+
 		if (config::visuals_enabled)
 		{
 			esp(local_player, player, head);
@@ -590,16 +584,16 @@ static void features::get_best_target(BOOL ffa, QWORD local_controller, QWORD lo
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
 		float fov = math::get_fov(va, *(vec3*)&best_angle);
-		
+
 		if (fov < best_fov)
 		{
 			best_fov = fov;
-			*target  = player;
-			aimpos   = head;
-			angle    = best_angle;
+			*target = player;
+			aimpos = head;
+			angle = best_angle;
 		}
 	}
-	
+
 	if (best_fov != 360.0f)
 	{
 		event_state = 1;
@@ -611,9 +605,9 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 {
 	if (num_shots > 1)
 	{
-		float x = (vec_punch.x - rcs_old_punch.x) * -1.0f;
-		float y = (vec_punch.y - rcs_old_punch.y) * -1.0f;
-		
+		float x = (vec_punch.x - rcs_old_punch.x) * -0.05f;
+		float y = (vec_punch.y - rcs_old_punch.y) * -0.05f;
+
 		int mouse_angle_x = (int)(((y * 2.0f) / sensitivity) / -0.022f);
 		int mouse_angle_y = (int)(((x * 2.0f) / sensitivity) / 0.022f);
 
@@ -625,135 +619,65 @@ static void features::standalone_rcs(DWORD num_shots, vec2 vec_punch, float sens
 	rcs_old_punch = vec_punch;
 }
 
+// Adicione esta função para desenhar um ponto na tela
+
+
+// Função ESP modificada com head dot
 static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 {
+	// Obter janela SDL
 	QWORD sdl_window = cs::sdl::get_window();
 	if (sdl_window == 0)
 		return;
 
-
+	// Obter informações da janela
 	cs::WINDOW_INFO window{};
 	if (!cs::sdl::get_window_info(sdl_window, &window))
 		return;
 
-	/*
-	float view = cs::player::get_vec_view(local_player) - 10.0f;
-
-	
-	vec3 bottom;
-	bottom.x = head.x;
-	bottom.y = head.y;
-	bottom.z = head.z - view;
-
-	vec3 top;
-	top.x = bottom.x;
-	top.y = bottom.y;
-	top.z = bottom.z + view;
-	
-
-	view_matrix_t view_matrix = cs::engine::get_viewmatrix();
-
-
-	vec2 screen_size;
-	screen_size.x = window.w;
-	screen_size.y = window.h;
-
-
-	vec3 screen_bottom, screen_top;
-	if (!math::world_to_screen(screen_size, bottom, screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top, screen_top, view_matrix))
-	{
-		return;
-	}
-
-	float height  = (screen_bottom.y - screen_top.y) / 8.f;
-	float width   = (screen_bottom.y - screen_top.y) / 14.f;
-
-	int x = (int)((screen_top.x - (width  / 2.0f)) + window.x);
-	int y = (int)((screen_top.y - (height / 2.0f)) + window.y);
-	int w = (int)width;
-	int h = (int)height;
-	
-	if (x > (int)(window.x + screen_size.x - (w)))
-	{
-		return;
-	}
-	else if (x < window.x)
-	{
-		return;
-	}
-
-	if (y > (int)(screen_size.y + window.y - (h)))
-	{
-		return;
-	}
-	else if (y < window.y)
-	{
-		return;
-	}
-
-	float target_health = ((float)cs::player::get_health(target_player) / 100.0f) * 255.0f;
-	float r = 255.0f - target_health;
-	float g = target_health;
-	float b = 0.00f;
-	
-#ifdef __linux__
-	client::DrawFillRect((void *)0, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
-#else
-	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
-	if (sdl_window_data == 0)
-		return;
-	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
-	client::DrawFillRect((void *)hwnd, x, y, w, h, (unsigned char)r, (unsigned char)g, (unsigned char)b);
-#endif
-	*/
-	
-	
-	
+	// Excluir parâmetros específicos para o Linux
 #ifndef __linux__
 	UNREFERENCED_PARAMETER(local_player);
 	UNREFERENCED_PARAMETER(head);
 #endif
 
+	// Obter origem do jogador e ajustar origem superior
 	vec3 origin = cs::player::get_origin(target_player);
 	vec3 top_origin = origin;
 	top_origin.z += 75.0f;
 
-
+	// Variáveis para posições na tela
 	vec3 screen_bottom, screen_top;
 	view_matrix_t view_matrix = cs::engine::get_viewmatrix();
 
+	// Obter tamanho da tela
 	vec2 screen_size{};
 	screen_size.x = (float)window.w;
 	screen_size.y = (float)window.h;
 
-
+	// Converter coordenadas mundiais para coordenadas de tela
 	if (!math::world_to_screen(screen_size, origin, screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top_origin, screen_top, view_matrix))
 	{
 		return;
 	}
 
-
-	float target_health = ((float)cs::player::get_health(target_player) / 100.0f) * 255.0f;
-	float r = 255.0f - target_health;
-	float g = target_health;
-	float b = 0.00f;
-
-
+	// Ajustar cor da barra de vida se visuais estiverem ativados e o alvo for o alvo do aimbot
 	if (config::visuals_enabled == 2)
 	{
 		if (aimbot_target == target_player)
 		{
-			g = 144.0f;
-			b = 255.0f;
+			// Lógica específica para o alvo do aimbot (se necessário)
 		}
 	}
 
+	// Calcular dimensões e posição da caixa ESP
 	int box_height = (int)(screen_bottom.y - screen_top.y);
 	int box_width = box_height / 2;
 
 	int x = (int)window.x + (int)(screen_top.x - box_width / 2);
 	int y = (int)window.y + (int)(screen_top.y);
 
+	// Verificar se a caixa está dentro dos limites da janela
 	if (x > (int)(window.x + screen_size.x - (box_width)))
 	{
 		return;
@@ -772,14 +696,40 @@ static void features::esp(QWORD local_player, QWORD target_player, vec3 head)
 		return;
 	}
 
+
+	// Calcular dimensões e posição da barra de vida
+	int barWidth = 2;  // Largura da barra de vida ajustada para 2 pixels
+	int barHeight = box_height;
+
+	// Calcular cor da barra de vida
+	unsigned char healthBarColorR = 0;
+	unsigned char healthBarColorG = 255;
+	unsigned char healthBarColorB = 0;
+
+	// Calcular altura da parte verde da barra de vida
+	int greenBarHeight = static_cast<int>((float)cs::player::get_health(target_player) / 100.0f * barHeight);
+
+	// Calcular altura da parte vermelha da barra de vida
+	int redOverlayHeight = barHeight - greenBarHeight;
+
+	// Cor da ESP box branca
+	unsigned char espBoxColorR = 255;
+	unsigned char espBoxColorG = 255;
+	unsigned char espBoxColorB = 255;
+
+	// Desenho específico da plataforma
 #ifdef __linux__
-	client::DrawRect((void *)0, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawRect((void*)0, x, y, box_width, box_height, espBoxColorR, espBoxColorG, espBoxColorB);
+	client::DrawRect((void*)0, x + box_width, y, barWidth, greenBarHeight, healthBarColorR, healthBarColorG, healthBarColorB);
+	client::DrawRect((void*)0, x + box_width, y + greenBarHeight, barWidth, redOverlayHeight, 255, 0, 0);  // Sobreposição vermelha
 #else
 	QWORD sdl_window_data = cs::sdl::get_window_data(sdl_window);
 	if (sdl_window_data == 0)
 		return;
 	QWORD hwnd = cs::sdl::get_hwnd(sdl_window_data);
-	client::DrawRect((void *)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawRect((void*)hwnd, x, y, box_width, box_height, espBoxColorR, espBoxColorG, espBoxColorB);
+	client::DrawRect((void*)hwnd, x + box_width, y, barWidth, greenBarHeight, healthBarColorR, healthBarColorG, healthBarColorB);
+	client::DrawRect((void*)hwnd, x + box_width, y + greenBarHeight, barWidth, redOverlayHeight, 255, 0, 0);  // Sobreposição vermelha
+	// client::DrawHeadDot(reinterpret_cast<void*>(hwnd), head, screen_size, view_matrix);
 #endif
 }
-
