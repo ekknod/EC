@@ -6,7 +6,7 @@ i call it puppyhook, i'm just built like that
 ## Changes made
 - removed bone caching logic for better triggerbot experience
 - removed most of the cl_crosshairalpha modes for simplicity
-- default config provided is less blatant
+- changed bone logic for Pistols slightly to be more consistent
 - ESP boxes stay white but has healthbar next to it
 
 ## Planned changes
