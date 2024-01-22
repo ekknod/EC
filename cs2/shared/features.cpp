@@ -106,14 +106,6 @@ inline void features::update_settings(void)
 	case cs::WEAPON_CLASS::Grenade:
 		config::aimbot_enabled = 0;
 		break;
-	case cs::WEAPON_CLASS::Pistol:
-		config::aimbot_multibone = 0;
-		break;
-	case cs::WEAPON_CLASS::Sniper:
-		config::aimbot_multibone = 1;
-		break;
-	case cs::WEAPON_CLASS::Rifle:
-		config::aimbot_multibone = 1;
 	}
 
 
