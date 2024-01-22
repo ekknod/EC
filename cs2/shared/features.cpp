@@ -261,15 +261,6 @@ void features::run(void)
 	b_aimbot_button = cs::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
 
 
-	//
-	// if we are holding triggerbot key, force head only
-	//
-	/*if (b_triggerbot_button)
-	{
-		config::aimbot_multibone = 0;
-	}*/
-
-
 	BOOL  ffa = cs::gamemode::is_ffa();
 	DWORD num_shots = cs::player::get_shots_fired(local_player);
 	vec2  aim_punch = cs::player::get_vec_punch(local_player);
