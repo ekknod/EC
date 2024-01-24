@@ -49,6 +49,8 @@ namespace cs
 		Pistol = 3,
 		Sniper = 4,
 		Rifle = 5,
+		Shotgun = 6,
+
 	} ;
 
 	typedef struct

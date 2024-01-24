@@ -938,7 +938,7 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 	/* pistol */
 	{
 		COMPARISON data[] = {
-			{"ssg08"}, // scout and deagle, in my opinion definitely belongs to same category
+			{"usp_silencer"},
 			{"hkp2000"},
 			{"deagle"},
 			{"p250"},
@@ -959,6 +959,7 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 	/* sniper */
 	{
 		COMPARISON data[] = {
+			{"ssg08"},
 			{"awp"},
 			{"scar20"},
 			{"g3sg1"},
@@ -968,6 +969,23 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 			if (!strcmpi_imp(index, data[i].weapon_name))
 			{
 				return cs::WEAPON_CLASS::Sniper;
+			}
+		}
+	}
+
+	/* shotgun */
+	{
+		COMPARISON data[] = {
+			{"nova"},
+			{"sawedoff"},
+			{"mag7"},
+			{"xm1014"},
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		{
+			if (!strcmpi_imp(index, data[i].weapon_name))
+			{
+				return cs::WEAPON_CLASS::Shotgun;
 			}
 		}
 	}
