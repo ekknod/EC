@@ -1,7 +1,7 @@
 #ifndef CS_H
 #define CS_H
 
-#include "../../library/vm.h"
+#include "../../library/vm/vm.h"
 #include "../../library/math.h"
 
 #ifndef _KERNEL_MODE
@@ -61,6 +61,8 @@ namespace cs
 		DWORD get_viewangles_address(void);
 		vec2  get_viewangles(void);
 		float get_sensitivity(void);
+		int   get_crosshairalpha(void);
+
 		BOOL  is_gamemode_ffa(void);
 		DWORD get_current_tick(void);
 		void  net_graphcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a);

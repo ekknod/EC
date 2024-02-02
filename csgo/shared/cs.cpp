@@ -35,6 +35,7 @@ namespace cs
 
 	static DWORD     VEngineCvar              = 0;
 	static DWORD     sensitivity              = 0;
+	static DWORD     cl_crosshairalpha        = 0;
 	static DWORD     net_graphproportionalfont = 0;
 	static DWORD     mp_teammates_are_enemies = 0;
 
@@ -115,6 +116,7 @@ void cs::reset_globals(void)
 	IInputSystem             = 0;
 	VEngineCvar              = 0;
 	sensitivity              = 0;
+	cl_crosshairalpha        = 0;
 	mp_teammates_are_enemies = 0;
 	C_BasePlayer             = 0;
 	g_TeamCount              = 0;
@@ -217,6 +219,11 @@ vec2 cs::engine::get_viewangles(void)
 float cs::engine::get_sensitivity(void)
 {
 	return get_convar_float(sensitivity);
+}
+
+int cs::engine::get_crosshairalpha(void)
+{
+	return get_convar_int(cl_crosshairalpha);
 }
 
 BOOL cs::engine::is_gamemode_ffa(void)
@@ -804,6 +811,17 @@ static BOOL cs::initialize(void)
 		goto cleanup;
 	}
 
+
+	cl_crosshairalpha = get_convar(S("cl_crosshairalpha"));
+	if (!cl_crosshairalpha)
+	{
+#ifdef DEBUG
+		LOG("[-] cl_crosshairalpha not found\n");
+#endif
+		goto cleanup;
+	}
+		
+
 	net_graphproportionalfont = get_convar(S("net_graphproportionalfont"));
 	if (!net_graphproportionalfont)
 	{
@@ -1183,6 +1201,15 @@ static BOOL cs::initialize(void)
 	{
 #ifdef DEBUG
 		LOG("[-] sensitivity not found\n");
+#endif
+		goto cleanup;
+	}
+
+	cl_crosshairalpha = get_convar(S("cl_crosshairalpha"));
+	if (!cl_crosshairalpha)
+	{
+#ifdef DEBUG
+		LOG("[-] cl_crosshairalpha not found\n");
 #endif
 		goto cleanup;
 	}

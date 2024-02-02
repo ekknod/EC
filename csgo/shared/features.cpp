@@ -35,6 +35,8 @@ namespace features
 		m_weapon_class = cs::WEAPON_CLASS::Invalid;
 	}
 
+	inline void update_settings(void);
+
 	static void     standalone_rcs(C_Player local_player);
 	static DWORD    get_incross_target(C_Player local_player);
 	static void     in_cross_triggerbot(C_Player local_player);
@@ -42,9 +44,136 @@ namespace features
 	static void     aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only);
 	static vec3     get_target_angle(C_Player local_player, vec3 position, DWORD bullet_count);
 	static C_Player get_best_target(C_Player local_player, DWORD bullet_count, C_Team* target_team);
-#ifdef _KERNEL_MODE
 	static void     esp(C_Player local_player, C_Player target_player);
-#endif
+}
+
+namespace config
+{
+	static BOOL  rcs;
+	static BOOL  aimbot_enabled;
+	static DWORD aimbot_button;
+	static float aimbot_fov;
+	static float aimbot_smooth;
+	static BOOL  aimbot_multibone;
+	static DWORD triggerbot_button;
+	static BOOL  visuals_enabled;
+}
+
+inline void features::update_settings(void)
+{
+	int crosshair_alpha = cs::engine::get_crosshairalpha();
+
+
+	//
+	// default global settings
+	//
+	config::rcs = 0;
+	config::aimbot_enabled = 1;
+	config::aimbot_multibone = 1;
+	config::visuals_enabled = 2;
+
+	switch (m_weapon_class)
+	{
+	case cs::WEAPON_CLASS::Knife:
+	case cs::WEAPON_CLASS::Grenade:
+		config::aimbot_enabled = 0;
+		break;
+	case cs::WEAPON_CLASS::Pistol:
+		config::aimbot_multibone = 0;
+		break;
+	}
+
+
+	switch (crosshair_alpha)
+	{
+	//
+	// mouse5 aimkey, mouse4 triggerkey
+	//
+	case 244:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 30.0f;
+		config::visuals_enabled   = 1;
+		break;
+	case 245:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 2.5f;
+		config::aimbot_smooth     = 25.0f;
+		break;
+	case 246:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 20.0f;
+		break;
+	case 247:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 3.5f;
+		config::aimbot_smooth     = 15.0f;
+		break;
+	case 248:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 10.0f;
+		break;
+	case 249:
+		config::aimbot_button     = 111;
+		config::triggerbot_button = 110;
+		config::aimbot_fov        = 4.5f;
+		config::aimbot_smooth     = 5.0f;
+		break;
+	//
+	// mouse1 aimkey, mouse5 triggerkey
+	//
+	case 250:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 30.0f;
+		config::visuals_enabled   = 1;
+		break;
+	case 251:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 2.5f;
+		config::aimbot_smooth     = 25.0f;
+		break;
+	case 252:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 3.0f;
+		config::aimbot_smooth     = 20.0f;
+		break;
+	case 253:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 3.5f;
+		config::aimbot_smooth     = 15.0f;
+		break;
+	case 254:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 4.0f;
+		config::aimbot_smooth     = 10.0f;
+		break;
+	case 255:
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 4.5f;
+		config::aimbot_smooth     = 5.0f;
+		break;
+	default:
+		config::visuals_enabled   = 0;
+		config::aimbot_button     = 107;
+		config::triggerbot_button = 111;
+		config::aimbot_fov        = 2.0f;
+		config::aimbot_smooth     = 5.0f;
+		break;
+	}
 }
 
 static QWORD get_random_number();
@@ -67,7 +196,7 @@ void features::run(void)
 		QWORD current_tick = cs::engine::get_current_tick();
 		if (current_tick > m_mouse_click_ticks)
 		{
-			input::mouse1_up();
+			client::mouse1_up();
 			m_mouse_down_tick = 0;
 			m_mouse_click_ticks = current_tick + random_number(25, 50);
 		}
@@ -78,7 +207,7 @@ void features::run(void)
 	{
 		if (m_mouse_down_tick)
 		{
-			input::mouse1_up();
+			client::mouse1_up();
 			m_mouse_down_tick = 0;
 		}
 
@@ -165,6 +294,8 @@ void features::run(void)
 		return;
 	}
 
+	update_settings();
+
 	m_viewangles = cs::player::get_viewangles(local_player);
 
 	if (aimbot_button || triggerbot_button)
@@ -244,7 +375,7 @@ void features::reset_mouse(void)
 {
 	if (m_mouse_down_tick)
 	{
-		input::mouse1_up();
+		client::mouse1_up();
 		m_mouse_down_tick = 0;
 	}
 }
@@ -283,7 +414,7 @@ static void features::standalone_rcs(C_Player local_player)
 		int final_angle_y = (int)((( -new_punch.x * 2.0f) / sensitivity) / 0.022f);
 
 		if (!m_aimbot_active)
-			input::mouse_move(final_angle_x, final_angle_y);
+			client::mouse_move(final_angle_x, final_angle_y);
 		// cs::input::mouse_move(final_angle_x, final_angle_y);
 	}
 	m_rcs_old_punch = current_punch;
@@ -374,7 +505,7 @@ void features::in_cross_triggerbot(C_Player local_player)
 	{
 		m_mouse_down_tick = current_tick;
 		m_mouse_click_ticks = tick_count_skip + m_mouse_down_tick;
-		input::mouse1_down();
+		client::mouse1_down();
 	}
 }
 
@@ -513,7 +644,7 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 		{
 			m_mouse_down_tick = current_tick;
 			m_mouse_click_ticks = tick_count_skip + m_mouse_down_tick;
-			input::mouse1_down();
+			client::mouse1_down();
 		}
 	}
 
@@ -522,11 +653,6 @@ static BOOL features::triggerbot(C_Player local_player, C_Player target_player, 
 
 static void features::aimbot(C_Player local_player, C_Player target_player, cs::WEAPON_CLASS weapon_class, DWORD bullet_count, BOOL head_only)
 {
-	if (config::aimbot_visibility_check && !cs::player::is_visible(local_player, target_player))
-	{
-		return;
-	}
-
 	//
 	// anti-shake for triggerbot (disables RCS from first 2 bullets)
 	//
@@ -740,7 +866,7 @@ static void features::aimbot(C_Player local_player, C_Player target_player, cs::
 	if (current_tick - m_previous_tick > aim_ticks)
 	{
 		m_previous_tick = current_tick;
-		input::mouse_move((int)sx, (int)sy);
+		client::mouse_move((int)sx, (int)sy);
 		// cs::input::mouse_move((int)sx, (int)sy);
 	}
 }
@@ -835,17 +961,9 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 				continue;
 			}
 
-#ifdef _KERNEL_MODE
-
 			if (config::visuals_enabled == 2)
 			{
 				esp(local_player, entity_address);
-			}
-#endif
-
-			if (config::aimbot_visibility_check && !cs::player::is_visible(local_player, entity_address))
-			{
-				continue;
 			}
 
 			matrix3x4_t matrix;
@@ -911,14 +1029,6 @@ static C_Player features::get_best_target(C_Player local_player, DWORD bullet_co
 	return target_address;
 }
 
-#ifdef _KERNEL_MODE
-namespace gdi
-{
-	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned b);
-}
-#endif
-
-#ifdef _KERNEL_MODE
 static void features::esp(C_Player local_player, C_Player target_player)
 {
 	UNREFERENCED_PARAMETER(local_player);
@@ -1016,9 +1126,8 @@ static void features::esp(C_Player local_player, C_Player target_player)
 		}
 	}
 
-	gdi::DrawRect((void *)(QWORD)cs::input::get_hwnd(),  x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawRect((void *)(QWORD)cs::input::get_hwnd(),  x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 }
-#endif
 
 //
 // not random really

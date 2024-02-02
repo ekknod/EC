@@ -7,7 +7,7 @@ int _fltused;
 
 extern "C"
 {
-	QWORD DxgkSubmitCommand;
+	QWORD NtUserPeekMessage;
 	QWORD _KeAcquireSpinLockAtDpcLevel;
 	QWORD _KeReleaseSpinLockFromDpcLevel;
 	QWORD _IofCompleteRequest;
@@ -16,9 +16,9 @@ extern "C"
 
 namespace km
 {
-	BOOLEAN initialize(void);
-	DWORD PsGetProcessDxgProcessOffset;
-	QWORD __fastcall PsGetProcessDxgProcessHook(QWORD rcx);
+	BOOLEAN initialize(QWORD ntoskrnl);
+	DWORD PsGetThreadWin32ThreadOffset;
+	QWORD __fastcall PsGetThreadWin32ThreadHook(QWORD rcx);
 }
 
 namespace mouse
@@ -27,7 +27,13 @@ namespace mouse
 	static BOOL open(void);
 }
 
-namespace input
+namespace gdi
+{
+	void DrawRect(void *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+}
+
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
@@ -36,18 +42,41 @@ namespace input
 
 	void mouse1_down(void)
 	{
-		if (cs::allow_triggerbot())
-		{
-			mouse::move(0, 0, 0x01);
-		}
+		mouse::move(0, 0, 0x01);
 	}
 
 	void mouse1_up(void)
 	{
-		if (cs::allow_triggerbot())
-		{
-			mouse::move(0, 0, 0x02);
-		}
+		mouse::move(0, 0, 0x02);
+	}
+
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	{
+		gdi::DrawRect(hwnd, x, y, w, h, r, g, b);
+	}
+
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	{
+		gdi::DrawFillRect(hwnd, x, y, w, h, r, g, b);
+	}
+}
+
+namespace km
+{
+	NTSTATUS (__fastcall *memcpy_safe)(void *, void *, DWORD);
+	BOOL memcpy_impl(void *dest, const void *src, QWORD size)
+	{
+		typedef struct {
+			QWORD dst_addr;
+			DWORD _0xffffffff;
+			char zero[17];
+			bool error;
+		} data ;
+		data call_data{};
+		call_data.dst_addr = (QWORD)dest;
+		call_data._0xffffffff = 0xffffffff;
+		memcpy_safe(&call_data, (void *)src, (DWORD)size);
+		return call_data.error == 0;
 	}
 }
 
@@ -86,7 +115,7 @@ typedef struct _MOUSE_OBJECT
 MOUSE_OBJECT gMouseObject{};
 
 extern "C" NTSYSCALLAPI PCSTR PsGetProcessImageFileName(PEPROCESS);
-extern "C" NTSYSCALLAPI QWORD PsGetProcessDxgProcess(QWORD);
+extern "C" NTSYSCALLAPI QWORD PsGetThreadWin32Thread(QWORD);
 extern "C" NTSYSCALLAPI POBJECT_TYPE* IoDriverObjectType;
 extern "C" NTSYSCALLAPI NTSTATUS ObReferenceObjectByName(
 	__in PUNICODE_STRING ObjectName,
@@ -99,53 +128,55 @@ extern "C" NTSYSCALLAPI NTSTATUS ObReferenceObjectByName(
 	__out PVOID* Object
 );
 
-QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
+//
+// SDL3.dll:PeekMessageW:NtUserPeekMessage:PsGetThreadWin32Thread
+//
+QWORD __fastcall km::PsGetThreadWin32ThreadHook(QWORD rcx)
 {
 	//
 	// get current thread
 	//
 	QWORD current_thread = __readgsqword(0x188);
+	if (current_thread != rcx)
+	{
+		return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
+	}
+
 
 	//
 	// previous mode == KernelMode
 	//
 	if (*(unsigned char*)(current_thread + 0x232) == 0)
 	{
-		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+		return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 	}
 
+
 	//
-	// is getting called from NtGdiDdDDISubmitCommand
+	// is getting called from NtUserPeekMessage
 	//
 	QWORD return_address = (QWORD)_ReturnAddress();
-	if (*(WORD*)(return_address - 0xC) != 0x8B4C)
+	if (NtUserPeekMessage == 0)
 	{
-		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
-	}
-
-	if (DxgkSubmitCommand == 0)
-	{
-		QWORD routine_address = GetExportByName(get_caller_base(return_address), "NtGdiDdDDISubmitCommand");
+		QWORD routine_address = GetExportByName(get_caller_base(return_address), "NtUserPeekMessage");
 		if (routine_address == 0)
 		{
-			return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+			return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 		}
-		DxgkSubmitCommand = routine_address;
+		NtUserPeekMessage = routine_address;
 	}
 
-	if (return_address < DxgkSubmitCommand)
+	if (return_address < NtUserPeekMessage)
 	{
-		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+		return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 	}
 
-	if (return_address > (DxgkSubmitCommand + 0x50))
+	if (return_address > (NtUserPeekMessage + 0x191))
 	{
-		return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+		return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 	}
 
-	//
-	// csgo process
-	//
+
 	PEPROCESS process = *(PEPROCESS*)(__readgsqword(0x188) + 0xB8);
 	const char* image_name = PsGetProcessImageFileName(process);
 	QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
@@ -170,7 +201,7 @@ QWORD __fastcall km::PsGetProcessDxgProcessHook(QWORD rcx)
 			csgo::run();
 		}
 	}
-	return *(QWORD*)(rcx + PsGetProcessDxgProcessOffset);
+	return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 }
 
 int get_relative_address_offset(QWORD hook, QWORD target)
@@ -189,22 +220,30 @@ inline QWORD get_relative_address(QWORD instruction, DWORD offset, DWORD instruc
 	return (QWORD)(instruction + instruction_size + rip_address);
 }
 
-BOOLEAN km::initialize(void)
+BOOLEAN km::initialize(QWORD ntoskrnl)
 {
-	PsGetProcessDxgProcessOffset = *(DWORD*)((QWORD)PsGetProcessDxgProcess + 3);
-	*(unsigned char*)((QWORD)PsGetProcessDxgProcess + 0) = 0xE9;
-
-	*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address_offset( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
-	if (get_relative_address((QWORD)PsGetProcessDxgProcess, 1, 5) != (QWORD)km::PsGetProcessDxgProcessHook)
+	QWORD addr = FindPattern(ntoskrnl, (BYTE*)"\x48\x89\x5C\x24\x00\x48\x89\x4C\x24\x00\x57\x48\x83\xEC\x20\x41", (BYTE*)"xxxx?xxxx?xxxxxx");
+	if (addr == 0)
 	{
-		*(int*)((QWORD)PsGetProcessDxgProcess + 1) = get_relative_address_offset2( (QWORD)km::PsGetProcessDxgProcessHook, (QWORD)PsGetProcessDxgProcess );
-		if (get_relative_address((QWORD)PsGetProcessDxgProcess, 1, 5) != (QWORD)km::PsGetProcessDxgProcessHook)
+		return 0;
+	}
+
+	*(QWORD*)&km::memcpy_safe = addr;
+
+	PsGetThreadWin32ThreadOffset = *(DWORD*)((QWORD)PsGetThreadWin32Thread + 3);
+	*(unsigned char*)((QWORD)PsGetThreadWin32Thread + 0) = 0xE9;
+
+	*(int*)((QWORD)PsGetThreadWin32Thread + 1) = get_relative_address_offset( (QWORD)km::PsGetThreadWin32ThreadHook, (QWORD)PsGetThreadWin32Thread );
+	if (get_relative_address((QWORD)PsGetThreadWin32Thread, 1, 5) != (QWORD)km::PsGetThreadWin32ThreadHook)
+	{
+		*(int*)((QWORD)PsGetThreadWin32Thread + 1) = get_relative_address_offset2( (QWORD)km::PsGetThreadWin32ThreadHook, (QWORD)PsGetThreadWin32Thread );
+		if (get_relative_address((QWORD)PsGetThreadWin32Thread, 1, 5) != (QWORD)km::PsGetThreadWin32ThreadHook)
 		{
 			return 0;
 		}
 	}
 	
-	DxgkSubmitCommand = 0;
+	NtUserPeekMessage = 0;
 	_KeAcquireSpinLockAtDpcLevel = (QWORD)KeAcquireSpinLockAtDpcLevel;
 	_KeReleaseSpinLockFromDpcLevel = (QWORD)KeReleaseSpinLockFromDpcLevel;
 	_IofCompleteRequest = (QWORD)IofCompleteRequest;

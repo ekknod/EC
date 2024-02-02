@@ -33,29 +33,17 @@ namespace features
 	void reset_mouse(void);
 }
 
+
 //
 // implemented by application/driver
 //
-namespace input
+namespace client
 {
 	extern void mouse_move(int x, int y);
 	extern void mouse1_down(void);
 	extern void mouse1_up(void);
-}
-
-
-//
-// implemented by application/driver
-//
-namespace config
-{
-	extern BOOL  rcs;
-	extern DWORD aimbot_button;
-	extern float aimbot_fov;
-	extern float aimbot_smooth;
-	extern BOOL  aimbot_visibility_check;
-	extern DWORD triggerbot_button;
-	extern BOOL  visuals_enabled;
+	extern void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b);
+	extern void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b);
 }
 
 namespace csgo

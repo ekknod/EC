@@ -238,8 +238,9 @@ BOOL pe_resolve_imports(QWORD ntoskrnl, QWORD base)
 					->Name);
 
 				if (import == 0)
+				{
 					return 0;
-
+				}
 				thunk->u1.Function = import;
 			}
 		}

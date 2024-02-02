@@ -1,6 +1,10 @@
 #include "../../csgo/shared/shared.h"
+#include <SDL3/SDL.h>
+#pragma comment(lib, "SDL3.lib")
 
-namespace input
+static SDL_Surface* sdl_surface;
+
+namespace client
 {
 	void mouse_move(int x, int y)
 	{
@@ -16,27 +20,70 @@ namespace input
 	{
 		mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 	}
-}
 
-namespace config
-{
-	BOOL  rcs = 0;
-	DWORD aimbot_button = 107;
-	float aimbot_fov = 2.0f;
-	float aimbot_smooth = 20.0f;
-	BOOL  aimbot_visibility_check = 0;
-	DWORD triggerbot_button = 111;
-	BOOL  visuals_enabled = 1;
+	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	{
+		UNREFERENCED_PARAMETER(hwnd);
+		SDL_Rect rect{};
+		rect.x = (int)x;
+		rect.y = (int)y;
+		rect.w = (int)w;
+		rect.h = (int)h;
+
+		SDL_FillSurfaceRect(sdl_surface, &rect, SDL_MapRGB(sdl_surface->format, r, g, b));
+	}
+
+	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
+	{
+		UNREFERENCED_PARAMETER(hwnd);	
+		SDL_Rect rect{};
+		rect.x = (int)x;
+		rect.y = (int)y;
+		rect.w = (int)w;
+		rect.h = (int)h;
+		SDL_FillSurfaceRect(sdl_surface, &rect, SDL_MapRGB(sdl_surface->format, r, g, b));
+	}
 }
 
 int main(void)
 {
-	cs::reset_globals();
-	while (1)
-	{
-		Sleep(1);
-		csgo::run();
+	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+		return 0;
 	}
+
+	SDL_Window *window = SDL_CreateWindow("EC", 640, 480, SDL_WINDOW_TRANSPARENT | SDL_WINDOW_BORDERLESS);
+	if (window == NULL)
+	{
+		return 0;
+	}
+
+	SDL_DisplayID id = SDL_GetDisplayForWindow(window);
+	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
+	SDL_SetWindowSize(window, disp->w, disp->h);
+	SDL_SetWindowPosition(window, 0, 0);
+
+	SDL_SetWindowAlwaysOnTop(window, SDL_TRUE);
+	SDL_SetWindowOpacity(window, 0.20f);
+	sdl_surface = SDL_GetWindowSurface(window);
+
+	BOOL quit = 0;
+	while (!quit)
+	{
+		SDL_Event e;
+		while ( SDL_PollEvent( &e ) )
+		{
+			if (e.type == SDL_EVENT_QUIT)
+			{
+				quit = 1;
+				break;
+			}
+		}
+		csgo::run();
+		SDL_UpdateWindowSurface(window);
+		SDL_FillSurfaceRect(sdl_surface, NULL, 0x000000);
+	}
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 	return 0;
 }
 

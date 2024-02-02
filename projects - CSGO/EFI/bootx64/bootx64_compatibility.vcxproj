@@ -42,6 +42,8 @@
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>km</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+    <ProjectName>bootx64</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -76,6 +78,7 @@
     <DriverType>KMDF</DriverType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
     <Driver_SpectreMitigation>false</Driver_SpectreMitigation>
+    <ALLOW_DATE_TIME>1</ALLOW_DATE_TIME>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -129,6 +132,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
+    <IncludePath>..\edk2\MdePkg\Include\X64;..\edk2\ShellPkg\Include;..\edk2\CryptoPkg\Include;..\edk2\MdePkg\Include;$(IncludePath)</IncludePath>
+    <TargetName>bootx64</TargetName>
+    <TargetExt>.efi</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -143,21 +149,24 @@
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Link>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
-    </Link>
+    <Link />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <GenerateMapFile>true</GenerateMapFile>
-      <AdditionalOptions>/EMITPOGOPHASEINFO /DEBUG:NONE %(AdditionalOptions)</AdditionalOptions>
-      <EntryPointSymbol>DriverEntry</EntryPointSymbol>
+      <AdditionalOptions>/EMITPOGOPHASEINFO /DEBUG:NONE /SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointSymbol>EfiMain</EntryPointSymbol>
       <Profile>false</Profile>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <SubSystem>EFI Application</SubSystem>
+      <SectionAlignment>4096</SectionAlignment>
     </Link>
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalOptions>/GR- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <DriverSign>
       <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
@@ -167,19 +176,21 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\csgo\shared\cs.cpp" />
-    <ClCompile Include="..\..\csgo\shared\features.cpp" />
-    <ClCompile Include="..\..\library\vm_kernelmode\vm.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\..\..\csgo\shared\cs.cpp" />
+    <ClCompile Include="..\..\..\csgo\shared\features.cpp" />
+    <ClCompile Include="..\..\..\library\vm\km_ctx\vm.cpp" />
+    <ClCompile Include="gdi.cpp" />
+    <ClCompile Include="kernel.cpp" />
+    <ClCompile Include="main_compatibility.cpp" />
+    <ClCompile Include="utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\csgo\shared\cs.h" />
+    <ClInclude Include="..\..\..\csgo\shared\shared.h" />
+    <ClInclude Include="globals.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="mouse.asm" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\csgo\shared\cs.h" />
-    <ClInclude Include="..\..\csgo\shared\shared.h" />
-    <ClInclude Include="..\..\library\math.h" />
-    <ClInclude Include="..\..\library\vm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
