@@ -239,7 +239,7 @@ BOOL kmbox::net::open()
 	if (LOBYTE(wsa_data.wVersion) != 1 || HIBYTE(wsa_data.wVersion) != 1)
 	{
 		WSACleanup();
-		net_socket = -1;
+		net_socket = 0;
 		return FALSE;
 	}
 
@@ -250,10 +250,10 @@ BOOL kmbox::net::open()
 		{
 			char h1 = src[2 * i];
 			char h2 = src[2 * i + 1];
-			unsigned char s1 = toupper(h1) - 0x30;
+			unsigned char s1 = (unsigned char)( toupper(h1) - 0x30 );
 			if (s1 > 9)
 				s1 -= 7;
-			unsigned char s2 = toupper(h2) - 0x30;
+			unsigned char s2 = (unsigned char)( toupper(h2) - 0x30 );
 			if (s2 > 9)
 				s2 -= 7;
 			dest[i] = s1 * 16 + s2;
@@ -265,7 +265,7 @@ BOOL kmbox::net::open()
 	net_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	address_srv.sin_addr.S_un.S_addr = inet_addr(ip);
 	address_srv.sin_family = AF_INET;
-	address_srv.sin_port = htons(atoi(port));
+	address_srv.sin_port = htons((u_short)atoi(port));
 	tx.head.mac = to_hex(uuid, 4);
 	tx.head.rand = rand();
 	tx.head.indexpts = 0;
@@ -384,3 +384,4 @@ BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 	SetupDiDestroyDeviceInfoList(deviceInfo);
 	return status;
 }
+
