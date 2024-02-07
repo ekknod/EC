@@ -577,7 +577,7 @@ BOOL cs::sdl::get_window_info(QWORD window, WINDOW_INFO *info)
 
 QWORD cs::sdl::get_window_data(QWORD window)
 {
-	return vm::read_i64(game_handle, window + 0x110);
+	return vm::read_i64(game_handle, window + 0x120);
 }
 
 QWORD cs::sdl::get_hwnd(QWORD window_data)
@@ -701,7 +701,7 @@ BOOL cs::entity::is_player(QWORD controller)
 		return 1;
 	}
 
-	QWORD vfunc = get_interface_function(controller, 145);
+	QWORD vfunc = get_interface_function(controller, 144);
 	if (vfunc == 0)
 		return 0;
 
