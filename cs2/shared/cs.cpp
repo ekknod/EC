@@ -160,7 +160,7 @@ static BOOL cs::initialize(void)
 
 	JZ(interfaces::cvar     = get_interface(vm::get_module(game_handle, get_tier0_name()), "VEngineCvar0"), E1);
 	JZ(interfaces::input    = get_interface(inputsystem, "InputSystemVersion0"), E1);
-	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + get_button_off() + 3);
+	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + get_button_off() + 5);
 
 
 	if (vm::get_target_os() == VmOs::Linux)
