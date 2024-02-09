@@ -876,39 +876,20 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 		return cs::WEAPON_CLASS::Invalid;
 	}
 
-	weapon = vm::read_i64(game_handle, weapon + 0x10);
-	if (weapon == 0)
-	{
-		return cs::WEAPON_CLASS::Invalid;
-	}
-
-	weapon = vm::read_i64(game_handle, weapon + 0x20);
-	if (weapon == 0)
-	{
-		return cs::WEAPON_CLASS::Invalid;
-	}
-
-	char weapon_buffer[260];
-	if (!vm::read(game_handle, weapon, weapon_buffer, sizeof(weapon_buffer)))
-	{
-		return cs::WEAPON_CLASS::Invalid;
-	}
-
-	char *index = (char *)weapon_buffer + 7;
-	typedef struct {
-		const char *weapon_name;
-	} COMPARISON ;
+	//
+	// C_EconEntity::m_AttributeManager + C_AttributeContainer::m_Item + C_EconItemView::m_iItemDefinitionIndex
+	//
+	WORD weapon_index = vm::read_i16(game_handle, weapon + 0x1098 + 0x50 + 0x1BA);
 
 	/* knife */
 	{
-		COMPARISON data[] = {
-			{"knife"},
-			{"knife_t"},
-			{"knifegg"},
+		WORD data[] = {
+			42, // {"knife"},
+			59,  //{"knife_t"},
 		};
-		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		for (int i = 0; i < sizeof(data) / sizeof(*data); i++)
 		{
-			if (!strcmpi_imp(index, data[i].weapon_name))
+			if (data[i] == weapon_index)
 			{
 				return cs::WEAPON_CLASS::Knife;
 			}
@@ -917,18 +898,18 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 
 	/* grenade */
 	{
-		COMPARISON data[] = {
-			{"hegrenade"},
-			{"flashbang"},
-			{"smokegrenade"},
-			{"decoy"},
-			{"molotov"},
-			{"incgrenade"},
-			{"c4"},
+		WORD data[] = {
+			44, // {"hegrenade"},
+			43, // {"flashbang"},
+			45, // {"smokegrenade"},
+			47, // {"decoy"},
+			46, // {"molotov"},
+			48, // {"incgrenade"},
+			49, // {"c4"},
 		};
-		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		for (int i = 0; i < sizeof(data) / sizeof(*data); i++)
 		{
-			if (!strcmpi_imp(index, data[i].weapon_name))
+			if (data[i] == weapon_index)
 			{
 				return cs::WEAPON_CLASS::Grenade;
 			}
@@ -937,19 +918,20 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 
 	/* pistol */
 	{
-		COMPARISON data[] = {
-			{"ssg08"}, // scout and deagle, in my opinion definitely belongs to same category
-			{"hkp2000"},
-			{"deagle"},
-			{"p250"},
-			{"elite"},
-			{"fiveseven"},
-			{"glock"},
-			{"tec9"},
+		WORD data[] = {
+			40, // {"ssg08"}, scout and deagle, in my opinion definitely belongs to same category
+			32, // {"hkp2000"},
+			61, // {"usp-s"},
+			1, // {"deagle"},
+			36, // {"p250"},
+			2, // {"elite"},
+			3, // {"fiveseven"},
+			4, // {"glock"},
+			30, // {"tec9"},
 		};
-		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		for (int i = 0; i < sizeof(data) / sizeof(*data); i++)
 		{
-			if (!strcmpi_imp(index, data[i].weapon_name))
+			if (data[i] == weapon_index)
 			{
 				return cs::WEAPON_CLASS::Pistol;
 			}
@@ -958,14 +940,14 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 
 	/* sniper */
 	{
-		COMPARISON data[] = {
-			{"awp"},
-			{"scar20"},
-			{"g3sg1"},
+		WORD data[] = {
+			9, // {"awp"},
+			38, // {"scar20"},
+			11, // {"g3sg1"},
 		};
-		for (int i = 0; i < sizeof(data) / sizeof(COMPARISON); i++)
+		for (int i = 0; i < sizeof(data) / sizeof(*data); i++)
 		{
-			if (!strcmpi_imp(index, data[i].weapon_name))
+			if (data[i] == weapon_index)
 			{
 				return cs::WEAPON_CLASS::Sniper;
 			}
