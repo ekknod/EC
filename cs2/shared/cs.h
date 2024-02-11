@@ -95,7 +95,6 @@ namespace cs
 	namespace input
 	{
 		BOOL  is_button_down(DWORD button);
-		void  move(int x, int y);
 	}
 
 	namespace gamemode

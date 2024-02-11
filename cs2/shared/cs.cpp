@@ -25,7 +25,6 @@ namespace cs
 		static QWORD view_angles;
 		static QWORD view_matrix;
 		static DWORD button_state;
-		static QWORD previous_xy;
 	}
 
 	namespace convars
@@ -122,8 +121,6 @@ static BOOL cs::initialize(void)
 	JZ(client_dll = vm::get_module(game_handle, get_client_name()), E1);
 	JZ(sdl = vm::get_module(game_handle, get_sdl3_name()), E1);
 	JZ(inputsystem = vm::get_module(game_handle, get_inputsystem_name()), E1);
-
-	direct::previous_xy = inputsystem + 0x3C760;
 
 	interfaces::resource = get_interface(vm::get_module(game_handle, get_engine_name()), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
@@ -753,19 +750,6 @@ BOOL cs::input::is_button_down(DWORD button)
 {
 	DWORD v = vm::read_i32(game_handle, (QWORD)(interfaces::input + (((QWORD(button) >> 5) * 4) + direct::button_state)));
 	return (v >> (button & 31)) & 1;
-}
-
-void cs::input::move(int x, int y)
-{
-	typedef struct 
-	{
-		float y, x;
-	} DATA; 
-
-	DATA data{};
-	data.x = (float)x;
-	data.y = (float)y;
-	vm::write(game_handle, direct::previous_xy, &data, sizeof(data));
 }
 
 DWORD cs::player::get_health(QWORD player)

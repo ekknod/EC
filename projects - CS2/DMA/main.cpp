@@ -76,8 +76,8 @@ namespace client
 	{
 		if (kmbox::is_kmbox)
 			kmbox::mouse_move(x, y);
-		else
-			cs::input::move(x, y);
+		// else
+		//	cs::input::move(x, y);
 	}
 
 	void mouse1_down(void)
