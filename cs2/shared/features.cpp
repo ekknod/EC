@@ -118,39 +118,39 @@ inline void features::update_settings(void)
 	// mouse5 aimkey, mouse4 triggerkey
 	//
 	case 244:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
 		config::visuals_enabled   = 0;
 		break;
 	case 245:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 2.5f;
 		config::aimbot_smooth     = 4.5f;
 		break;
 	case 246:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 3.0f;
 		config::aimbot_smooth     = 4.0f;
 		break;
 	case 247:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 3.5f;
 		config::aimbot_smooth     = 3.5f;
 		break;
 	case 248:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 4.0f;
 		config::aimbot_smooth     = 3.0f;
 		break;
 	case 249:
-		config::aimbot_button     = 318;
-		config::triggerbot_button = 317;
+		config::aimbot_button     = 321;
+		config::triggerbot_button = 320;
 		config::aimbot_fov        = 4.5f;
 		config::aimbot_smooth     = 2.5f;
 		break;
@@ -158,45 +158,45 @@ inline void features::update_settings(void)
 	// mouse1 aimkey, mouse5 triggerkey
 	//
 	case 250:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
 		config::visuals_enabled   = 0;
 		break;
 	case 251:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 2.5f;
 		config::aimbot_smooth     = 4.5f;
 		break;
 	case 252:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 3.0f;
 		config::aimbot_smooth     = 4.0f;
 		break;
 	case 253:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 3.5f;
 		config::aimbot_smooth     = 3.5f;
 		break;
 	case 254:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 4.0f;
 		config::aimbot_smooth     = 3.0f;
 		break;
 	case 255:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 4.5f;
 		config::aimbot_smooth     = 2.5f;
 		break;
 	default:
-		config::aimbot_button     = 314;
-		config::triggerbot_button = 318;
+		config::aimbot_button     = 317;
+		config::triggerbot_button = 321;
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
 		config::visuals_enabled   = 0;
