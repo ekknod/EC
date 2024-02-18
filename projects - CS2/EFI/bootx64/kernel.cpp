@@ -176,33 +176,29 @@ QWORD __fastcall km::PsGetThreadWin32ThreadHook(QWORD rcx)
 		return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 	}
 
-	//
-	// csgo process
-	//
 	PEPROCESS process = *(PEPROCESS*)(__readgsqword(0x188) + 0xB8);
 	const char* image_name = PsGetProcessImageFileName(process);
-	QWORD cr3 = *(QWORD*)((QWORD)process + 0x28);
-	if (cr3 == __readcr3())
-	{
-		//
-		// explorer.exe
-		//
-		if (!gMouseObject.use_mouse)
-		{
-			if (image_name && *(QWORD*)(image_name) == 0x7265726f6c707865)
-			{
-				mouse::open();
-			}
-		}
 
-		//
-		// cs2.exe
-		//
-		if (image_name && *(QWORD*)image_name == 0x6578652e327363)
+
+	//
+	// explorer.exe
+	//
+	if (!gMouseObject.use_mouse)
+	{
+		if (image_name && *(QWORD*)(image_name) == 0x7265726f6c707865)
 		{
-			cs2::run();
+			mouse::open();
 		}
 	}
+
+	//
+	// cs2.exe
+	//
+	if (image_name && *(QWORD*)image_name == 0x6578652e327363)
+	{
+		cs2::run();
+	}
+
 	return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 }
 
