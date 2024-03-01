@@ -80,7 +80,7 @@ inline const char *get_sdl3_name() { return vm::get_target_os() == VmOs::Windows
 inline const char *get_tier0_name() { return vm::get_target_os() == VmOs::Windows ? "tier0.dll" : "libtier0.so"; }
 inline const char *get_inputsystem_name() { return vm::get_target_os() == VmOs::Windows ? "inputsystem.dll" : "libinputsystem.so"; }
 inline int get_entity_off() { return vm::get_target_os() == VmOs::Windows ? 0x58 : 0x50; }
-inline int get_button_off() { return vm::get_target_os() == VmOs::Windows ? 0x0E : 0x11; }
+inline int get_button_off() { return vm::get_target_os() == VmOs::Windows ? 0x13 : 0x14; }
 inline int get_viewangles_off() { return vm::get_target_os() == VmOs::Windows ? 0x6140 : 0x4528; }
 
 #ifdef DEBUG
@@ -157,9 +157,12 @@ static BOOL cs::initialize(void)
 
 	JZ(interfaces::cvar     = get_interface(vm::get_module(game_handle, get_tier0_name()), "VEngineCvar0"), E1);
 	JZ(interfaces::input    = get_interface(inputsystem, "InputSystemVersion0"), E1);
-	direct::button_state    = vm::read_i32(game_handle, get_interface_function(interfaces::input, 18) + get_button_off() + 5);
-
-
+	direct::button_state    = vm::read_i32(game_handle,
+	vm::get_target_os() == VmOs::Windows ?
+		get_interface_function(interfaces::input, 18) :
+		get_interface_function(interfaces::input, 19)
+		+
+		get_button_off());
 	if (vm::get_target_os() == VmOs::Linux)
 	{
 		JZ(direct::local_player = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x83\x3D\x00\x00\x00\x00\x00\x0F\x95\xC0\xC3", "xxx????xxxxx", 12), E1);
@@ -347,8 +350,8 @@ static BOOL cs::initialize(void)
 			}
 			else if (!netvars::m_vOldOrigin && !strcmpi_imp(netvar_name, "m_vOldOrigin"))
 			{
-				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
-				netvars::m_vOldOrigin = *(int*)(entry + 0x10);
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
+				netvars::m_vOldOrigin = *(int*)(entry + 0x08);
 			}
 			else if (!netvars::m_pClippingWeapon && !strcmpi_imp(netvar_name, "m_pClippingWeapon"))
 			{
@@ -357,8 +360,8 @@ static BOOL cs::initialize(void)
 			}
 			else if (!netvars::v_angle && !strcmpi_imp(netvar_name, "v_angle"))
 			{
-				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
-				netvars::v_angle = *(int*)(entry + 0x10);
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
+				netvars::v_angle = *(int*)(entry + 0x08);
 			}
 		}
 		vm::free_module(dump_client);
