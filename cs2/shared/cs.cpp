@@ -764,6 +764,11 @@ QWORD cs::entity::get_player(QWORD controller)
 	return vm::read_i64(game_handle, v2 + 120 * (v1 & 0x1FF));
 }
 
+BOOL cs::entity::has_defuser(QWORD entity)
+{
+	return (BOOL)vm::read_i8(game_handle, entity + netvars::m_bPawnHasDefuser);
+}
+
 int cs::get_crosshairalpha(void)
 {
 	return vm::read_i32(game_handle, convars::cl_crosshairalpha + 0x40);
@@ -1005,11 +1010,6 @@ QWORD cs::player::get_weapon_address(QWORD player)
 BOOL cs::player::is_defusing(QWORD player)
 {
 	return (BOOL)vm::read_i8(game_handle, player + netvars::m_bIsDefusing);
-}
-
-BOOL cs::player::has_defuser(QWORD player)
-{
-	return (BOOL)vm::read_i8(game_handle, player + netvars::m_bPawnHasDefuser);
 }
 
 BOOL cs::player::is_valid(QWORD player, QWORD node)

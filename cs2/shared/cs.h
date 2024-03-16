@@ -86,6 +86,7 @@ namespace cs
 		QWORD get_client_entity(int index);
 		BOOL  is_player(QWORD controller);
 		QWORD get_player(QWORD controller);
+		BOOL  has_defuser(QWORD player);
 	}
 
 	int get_crosshairalpha(void);
@@ -124,7 +125,6 @@ namespace cs
 		QWORD get_node(QWORD player);
 		QWORD get_weapon_address(QWORD player);
 		BOOL  is_defusing(QWORD player);
-		BOOL  has_defuser(QWORD player);
 		BOOL  is_valid(QWORD player, QWORD node);
 
 	}
