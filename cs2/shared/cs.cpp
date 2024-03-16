@@ -59,6 +59,7 @@ namespace cs
 		static int m_bPawnHasDefuser = 0;
 		static int m_hActiveWeapon = 0;
 		static int m_pWeaponServices = 0;
+		static int m_sSanitizedPlayerName = 0;
 	}
 
 	static BOOL initialize(void);
@@ -549,12 +550,16 @@ static BOOL cs::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_hActiveWeapon = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
-
 				else if (
 					(netvars::m_pWeaponServices < 0x1000 || netvars::m_pWeaponServices > 0x2000) &&
 					!strcmpi_imp(netvar_name, "m_pWeaponServices"))
 				{
 					netvars::m_pWeaponServices = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_sSanitizedPlayerName && network_enable && !strcmpi_imp(netvar_name, "m_sSanitizedPlayerName"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_sSanitizedPlayerName = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
 			}
 		}
@@ -767,6 +772,11 @@ QWORD cs::entity::get_player(QWORD controller)
 BOOL cs::entity::has_defuser(QWORD entity)
 {
 	return (BOOL)vm::read_i8(game_handle, entity + netvars::m_bPawnHasDefuser);
+}
+
+QWORD cs::entity::get_name_address(QWORD player)
+{
+	return vm::read_i64(game_handle, player + netvars::m_sSanitizedPlayerName);
 }
 
 int cs::get_crosshairalpha(void)

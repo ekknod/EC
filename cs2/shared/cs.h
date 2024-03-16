@@ -87,6 +87,7 @@ namespace cs
 		BOOL  is_player(QWORD controller);
 		QWORD get_player(QWORD controller);
 		BOOL  has_defuser(QWORD player);
+		QWORD get_name_address(QWORD player);
 	}
 
 	int get_crosshairalpha(void);
