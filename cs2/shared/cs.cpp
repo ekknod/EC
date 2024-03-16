@@ -2,7 +2,7 @@
 
 namespace cs
 {
-	static vm_handle game_handle = 0;
+	vm_handle game_handle = 0;
 
 	namespace sdl
 	{
@@ -54,6 +54,11 @@ namespace cs
 		static int m_vOldOrigin = 0;
 		static int m_pClippingWeapon = 0;
 		static int v_angle = 0;
+
+		static int m_bIsDefusing = 0;
+		static int m_bPawnHasDefuser = 0;
+		static int m_hActiveWeapon = 0;
+		static int m_pWeaponServices = 0;
 	}
 
 	static BOOL initialize(void);
@@ -526,6 +531,31 @@ static BOOL cs::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
 					netvars::v_angle = *(int*)(dos_header + j + 0x10 );
 				}
+
+				else if (!netvars::m_bIsDefusing && network_enable && !strcmpi_imp(netvar_name, "m_bIsDefusing"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_bIsDefusing = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+
+				else if (!netvars::m_bPawnHasDefuser && network_enable && !strcmpi_imp(netvar_name, "m_bPawnHasDefuser"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_bPawnHasDefuser = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+
+				else if (!netvars::m_hActiveWeapon && !strcmpi_imp(netvar_name, "m_hActiveWeapon"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_hActiveWeapon = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
+
+				else if (
+					(netvars::m_pWeaponServices < 0x1000 || netvars::m_pWeaponServices > 0x2000) &&
+					!strcmpi_imp(netvar_name, "m_pWeaponServices"))
+				{
+					netvars::m_pWeaponServices = *(int*)(dos_header + j + 0x10);
+				}
 			}
 		}
 		vm::free_module(dump_client);
@@ -960,6 +990,26 @@ cs::WEAPON_CLASS cs::player::get_weapon_class(QWORD player)
 QWORD cs::player::get_node(QWORD player)
 {
 	return vm::read_i64(game_handle, player + netvars::m_pGameSceneNode);
+}
+
+QWORD cs::player::get_weapon_address(QWORD player)
+{
+	QWORD weapon_services = vm::read_i64(game_handle, player + netvars::m_pWeaponServices);
+	if (!weapon_services)
+		return 0;
+
+	int index = vm::read_i32(game_handle, weapon_services + netvars::m_hActiveWeapon) & 0xFFF;
+	return cs::entity::get_client_entity(index);
+}
+
+BOOL cs::player::is_defusing(QWORD player)
+{
+	return (BOOL)vm::read_i8(game_handle, player + netvars::m_bIsDefusing);
+}
+
+BOOL cs::player::has_defuser(QWORD player)
+{
+	return (BOOL)vm::read_i8(game_handle, player + netvars::m_bPawnHasDefuser);
 }
 
 BOOL cs::player::is_valid(QWORD player, QWORD node)
