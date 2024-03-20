@@ -96,6 +96,7 @@ view_matrix_t apex::engine::get_viewmatrix(void)
 	}
 
 	vm::read(game_handle, view_matrix, &matrix, sizeof(matrix));
+	
 	return matrix;
 }
 
@@ -382,12 +383,9 @@ static BOOL apex::initialize(void)
 	JZ(interfaces::IClientEntityList = vm::scan_pattern(apex_dump, "\x4C\x8B\x15\x00\x00\x00\x00\x33\xF6", "xxx????xx", 9), E2);
 	JZ(direct::C_BasePlayer = vm::scan_pattern(apex_dump, "\x48\x89\x05\x00\x00\x00\x00\x48\x85\xC9\x74\x0D", "xxx????xxxxx", 13), E2);
 	JZ(get_all_classes = vm::scan_pattern(apex_dump, "\x4C\x8B\xD8\xEB\x07\x4C\x8B\x1D", "xxxxxxxx", 9), E2);
-
-	//
-	// 40 53 48 83 EC 20 48 8B  0D ? ? ? ? 48 8B DA BA FF FF FF FF
-	//
 	JZ(direct::view_render = vm::scan_pattern(apex_dump, "\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\xDA\xBA\xFF\xFF\xFF\xFF",
 		"xxxxxxxxx????xxxxxxxx", 22), E2);
+	JZ(direct::view_matrix = vm::scan_pattern(apex_dump, "\x4C\x89\xB3\x00\x00\x00\x00\x48\x89\xAB", "xxx????xxx", 11), E2);
 
 	vm::free_module(apex_dump);
 
@@ -397,6 +395,7 @@ static BOOL apex::initialize(void)
 	get_all_classes               = vm::get_relative_address(game_handle, get_all_classes + 0x05, 3, 7);
 	JZ(get_all_classes            = vm::read_i64(game_handle, get_all_classes), E1);
 	direct::view_render           = vm::get_relative_address(game_handle, direct::view_render + 0x06, 3, 7);
+	JZ(direct::view_matrix        = vm::read_i32(game_handle, direct::view_matrix + 3), E1);
 	JZ(dump_netvars(get_all_classes), E1);
 	
 	//
@@ -422,7 +421,7 @@ static BOOL apex::initialize(void)
 	JZ(convars::gamepad_aim_speed = engine::get_convar("gamepad_aim_speed"), E1);
 
 
-	direct::view_matrix = 0x11a350;
+	// direct::view_matrix = 0x11a350;
 	
 
 	LOG("IClientEntityList:  %p\n", (PVOID)(interfaces::IClientEntityList - apex_base));

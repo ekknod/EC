@@ -30,9 +30,9 @@ namespace features
 	static BOOL event_state;
 
 	//
-	// visible time
+	// cached viewmatrix
 	//
-	float visible_time[100000];
+	static view_matrix_t view_matrix;
 
 	void reset(void)
 	{
@@ -217,6 +217,8 @@ void apex::features::run(void)
 		aimbot_target = 0;
 		aimbot_bone   = 0;
 	}
+
+	view_matrix = apex::engine::get_viewmatrix();
 
 	event_state = 0;
 
@@ -608,7 +610,6 @@ static void apex::features::esp(QWORD local_player, QWORD target_player, vec3 he
 
 
 	vec3 screen_bottom, screen_top;
-	view_matrix_t view_matrix = apex::engine::get_viewmatrix();
 
 	vec2 screen_size{};
 	screen_size.x = (float)window.w;
