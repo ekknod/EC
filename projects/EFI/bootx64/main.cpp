@@ -16,13 +16,6 @@ extern "C"
 	EFI_RUNTIME_SERVICES   *gRT = 0;
 	EFI_BOOT_SERVICES      *gBS = 0;
 
-
-	//
-	// SetVirtualMapEvent variable
-	//
-	VOID *EfiVirtualMapEvent;
-
-
 	//
 	// EFI image variables
 	//
@@ -50,7 +43,6 @@ extern "C"
 	EFI_EXIT_BOOT_SERVICES oExitBootServices;
 	EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle, UINTN MapKey);
 	EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMORY_TYPE MemoryType, UINTN Pages, EFI_PHYSICAL_ADDRESS *Memory);
-	VOID EFIAPI SetVirtualAddressMapEvent(IN EFI_EVENT Event, IN VOID* Context);
 
 
 	//
@@ -201,13 +193,6 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 	//
 	oAllocatePages = gBS->AllocatePages;
 	gBS->AllocatePages = AllocatePagesHook;
-
-
-	//
-	// register virtual address map event
-	//
-	EFI_GUID event_guid = { 0x13fa7698, 0xc831, 0x49c7, { 0x87, 0xea, 0x8f, 0x43, 0xfc, 0xc2, 0x51, 0x96 } } ;
-	gBS->CreateEventEx(EVT_NOTIFY_SIGNAL, TPL_NOTIFY, SetVirtualAddressMapEvent, 0, &event_guid, &EfiVirtualMapEvent);
 
 
 	gST->ConOut->ClearScreen(gST->ConOut);
@@ -554,61 +539,3 @@ extern "C" VOID *AllocateImage(QWORD ImageBase)
 
 	return (void *)target_addr;
 }
-
-//
-// we manipulate virtual map in this event
-//
-extern "C" VOID EFIAPI SetVirtualAddressMapEvent(IN EFI_EVENT Event, IN VOID* Context)
-{
-	//
-	// make sure we don't get called multiple times
-	//
-	EfiVirtualMapEvent = 0;
-
-
-	//
-	// crash test
-	//
-	// ((void(*)())(0x10A0))();
-
-
-	//
-	// find KeLoaderBlock
-	//
-	// QWORD loader_block = get_loader_block(winload_base);
-	
-}
-
-//
-// design:
-// 
-// 
-// make "RT" allocation by emulating gBS->AllocatePages()
-// or by disabling protection with gCPU protocol and
-// "allocating" that way
-// 
-// 
-// then we extend our descriptor table to contain our module
-// ; we are now EFI lol ;
-// 
-// 
-// 
-// - AllocatePages()
-// - hook EfiMemoryMap ; disable
-// - extend memory descriptors to contain our allocation
-// - enjoy :=)
-//
-// 
-// pml4 f8 image range but not inside a module
-//
-// 
-//
-
-
-//
-// CoreNotifySignalList (&gEfiEventMemoryMapChangeGuid);
-// 
-// jmp to end hk :D
-//
-//
-
