@@ -133,7 +133,7 @@ int main(void)
 		else
 		{
 			cs2::running();
-			csgo::running();
+			// csgo::running();
 			apex::running();
 		}
 
