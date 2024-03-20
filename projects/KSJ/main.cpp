@@ -11,8 +11,8 @@ namespace client
 	{
 		if (cs2::game_handle)
 			cs2::input::move(x, y);
-		else if (csgo::game_handle)
-			csgo::input::mouse_move(x, y);
+		// else if (csgo::game_handle)
+		//	csgo::input::mouse_move(x, y);
 		else
 			apex::input::mouse_move(x, y);
 	}
