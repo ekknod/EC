@@ -428,7 +428,7 @@ static BOOL apex::initialize(void)
 	LOG("input:              %p\n", (PVOID)(interfaces::input - apex_base));
 	LOG("engine:             %p\n", (PVOID)(interfaces::engine - apex_base));
 	LOG("view_render:        %p\n", (PVOID)(direct::view_render - apex_base));
-	LOG("view_matrix:        %p\n", (PVOID)(direct::view_matrix - apex_base));
+	LOG("view_matrix:        %p\n", (PVOID)direct::view_matrix);
 
 
 	LOG("m_iHealth:          %x\n", netvars::m_iHealth);
