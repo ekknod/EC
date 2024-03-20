@@ -1,5 +1,5 @@
 #include "../../cs2/shared/cs2game.h"
-#include "../../csgo/shared/csgogame.h"
+// #include "../../csgo/shared/csgogame.h"
 #include "../../apex/shared/apexgame.h"
 #include "../../library/SDL3/include/SDL3/SDL.h"
 
@@ -106,6 +106,7 @@ int main(void)
 				cs2::features::reset();
 			}
 		}
+		/*
 		else if (csgo::game_handle)
 		{
 			if (csgo::running())
@@ -117,6 +118,7 @@ int main(void)
 				csgo::features::reset();
 			}
 		}
+		*/
 		else if (apex::game_handle)
 		{
 			if (apex::running())
