@@ -7,6 +7,11 @@
 
 int _fltused;
 
+DWORD calculate_checksum(PVOID file, DWORD file_size);
+DWORD get_checksum(QWORD base);
+DWORD get_checksum_off(QWORD base);
+void  set_checksum(QWORD base, DWORD checksum);
+
 extern "C"
 {
 	QWORD NtUserPeekMessage;
@@ -429,11 +434,6 @@ km::FILE_PATCH km::hook(QWORD fbase, QWORD ntoskrnl, QWORD kernel_function, QWOR
 
 	return entry;
 }
-
-DWORD calculate_checksum(PVOID file, DWORD file_size);
-DWORD get_checksum(QWORD base);
-DWORD get_checksum_off(QWORD base);
-void  set_checksum(QWORD base, DWORD checksum);
 
 QWORD km::GetReadFile(void)
 {
