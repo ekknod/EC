@@ -1,0 +1,2 @@
+g++ -o tux main.cpp ../../apex/shared/apex.cpp ../../apex/shared/features.cpp ../../library/vm/proton/vm.cpp -L. -I../../library/SDL3/include -O3 -lSDL3
+sudo sh -c 'export LD_LIBRARY_PATH=$(pwd);./tux'
