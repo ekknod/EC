@@ -85,7 +85,7 @@ inline void apex::features::update_settings(void)
 	switch (controller_sensitivity)
 	{
 	//
-	// mouse2 aimkey
+	// mouse5 aimkey
 	//
 	case 1:
 		config::aimbot_button     = 111;
