@@ -7,7 +7,6 @@ link_directories( ${CMAKE_CURRENT_LIST_DIR} )
 
 add_executable ( ${OUT}
     main.cpp "../../cs2/shared/cs2.cpp" "../../cs2/shared/cs2features.cpp"
-    "../../csgo/shared/csgo.cpp" "../../csgo/shared/csgofeatures.cpp"
     "../../apex/shared/apex.cpp" "../../apex/shared/apexfeatures.cpp"  )
 
 set_target_properties(${OUT} PROPERTIES LINKER_LANGUAGE CXX)
