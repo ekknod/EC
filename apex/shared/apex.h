@@ -1,5 +1,5 @@
-#ifndef CS_H
-#define CS_H
+#ifndef APEX_H
+#define APEX_H
 
 #include "../../library/vm/vm.h"
 #include "../../library/math.h"
@@ -7,6 +7,10 @@
 //
 // enables global debug messages
 //
+#ifndef LOGGER
+#define LOGGER
+
+
 #define DEBUG
 #ifndef _KERNEL_MODE
 #include <stdio.h>
@@ -23,6 +27,9 @@
 #else
 #define LOG(...) // __VA_ARGS__
 #endif
+
+#endif
+
 
 #endif
 

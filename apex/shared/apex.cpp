@@ -45,7 +45,6 @@ namespace apex
 	}
 
 	static BOOL  initialize(void);
-	static QWORD get_interface_function(QWORD interface_address, DWORD index);
 	static BOOL  dump_netvars(QWORD classes);
 	static int   get_netvar(QWORD table, const char *name);
 }
@@ -57,10 +56,14 @@ BOOL apex::running(void)
 
 QWORD apex::engine::get_convar(PCSTR name)
 {
-	int len  = strlen_imp(name);
+	int len = (int)strlen_imp(name);
 	QWORD a0 = vm::read_i64(game_handle, interfaces::cvar + 0x50);
-	while ((a0 = vm::read_i64(game_handle, a0 + 0x8)))
+	while (1)
 	{
+		a0 = vm::read_i64(game_handle, a0 + 0x8);
+		if (a0 == 0)
+			break;
+
 		char buffer[260]{};
 		vm::read(game_handle, vm::read_i64(game_handle, a0 + 0x18), buffer, len);
 		if (!strcmpi_imp(buffer, name))
@@ -117,8 +120,8 @@ BOOL apex::engine::get_window_info(WINDOW_INFO *info)
 
 	info->x = 0;
 	info->y = 0;
-	info->w = win.w;
-	info->h = win.h;
+	info->w = (float)win.w;
+	info->h = (float)win.h;
 	return 1;
 }
 
@@ -584,10 +587,5 @@ static BOOL apex::dump_netvars(QWORD classes)
 		return 1;
 	}
 	return 0;
-}
-
-QWORD apex::get_interface_function(QWORD interface_address, DWORD index)
-{
-	return vm::read_i64(game_handle, vm::read_i64(game_handle, interface_address) + (index * 8));
 }
 

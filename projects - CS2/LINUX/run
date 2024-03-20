@@ -1,2 +1,0 @@
-g++ -o tux main.cpp ../../cs2/shared/cs.cpp ../../cs2/shared/features.cpp ../../library/vm/linux/vm.cpp -L. -I../../library/SDL3/include -O3 -lSDL3
-sudo sh -c 'export LD_LIBRARY_PATH=$(pwd);./tux'

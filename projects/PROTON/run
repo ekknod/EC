@@ -1,0 +1,2 @@
+g++ -o tux main.cpp ../../cs2/shared/cs2.cpp ../../cs2/shared/cs2features.cpp ../../csgo/shared/csgo.cpp ../../csgo/shared/csgofeatures.cpp ../../apex/shared/apex.cpp ../../apex/shared/apexfeatures.cpp ../../library/vm/proton/vm.cpp -L. -I../../library/SDL3/include -O3 -lSDL3
+sudo sh -c 'export LD_LIBRARY_PATH=$(pwd);./tux'
