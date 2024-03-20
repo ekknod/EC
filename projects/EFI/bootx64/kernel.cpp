@@ -454,56 +454,6 @@ BOOLEAN km::initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize)
 	}
 
 	*(QWORD*)&km::memcpy_safe = addr;
-
-	//
-	// 65 83 3C 25 ? ? ? ? ? 74 0C : cmp     dword ptr gs:2F08h, 5
-	// 
-	// +0x1E : call KiProcessNMI
-	// +0x83 : algn_14040A7A2
-	//
-
-	//
-	// E8 00 00 00 00
-	// call KiProcessNmiHook
-	// 
-	//
-
-
-	//
-	// KiProcesNmiHook(a1,a2)
-	// {
-	//	; do stuff ;
-	//	
-	// 
-	//	call KiProcesNmi ; push stack ret (not good)
-	// 
-	// 
-	//	
-	// 
-	// }
-	// 
-	//
-	//
-
-
-
-	//
-	// payload:
-	// sub  rsp,0x28
-	// push rcx
-	// push rdx
-	// call our_func
-	// pop  rdx
-	// pop  rcx
-	// call KiProcessNmi
-	// call our_func2
-	// add  rsp, 0x28
-	// ret
-	//
-
-	//
-	// 28 bytes (0x1C)
-	//
 	PsGetThreadWin32ThreadOffset = *(DWORD*)((QWORD)PsGetThreadWin32Thread + 3);
 	*(unsigned char*)((QWORD)PsGetThreadWin32Thread + 0) = 0xE9;
 	patch[0] = hook(
@@ -636,4 +586,3 @@ static void mouse::move(long x, long y, unsigned short button_flags)
 	MouseClassServiceCallback(gMouseObject.mouse_device, &mid, (PMOUSE_INPUT_DATA)&mid + 1, &input_data);
 	KeLowerIrql(irql);
 }
-
