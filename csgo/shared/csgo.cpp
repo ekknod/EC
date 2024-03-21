@@ -130,11 +130,6 @@ void csgo::reset_globals(void)
 	m_dwBoneMatrix           = 0;
 }
 
-BOOL csgo::allow_triggerbot(void)
-{
-	return (dwViewAngles != 0) | use_dormant_check;
-}
-
 C_Player csgo::teams::get_local_player(void)
 {
 	return vm::read_i32(game_handle, C_BasePlayer);
@@ -230,33 +225,17 @@ DWORD csgo::engine::get_current_tick(void)
 
 void csgo::engine::net_graphcolor(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-	if (use_dormant_check)
-	{
+	typedef struct {
+		unsigned char r, g, b, a;
+	} colors_t;
 
-		typedef struct {
-			unsigned char r,g,b,a;
-		} colors_t;
+	colors_t colors{};
 
-		colors_t colors{};
-
-		colors.r = r;
-		colors.g = g;
-		colors.b = b;
-		colors.a = a;
-		vm::write(game_handle, (QWORD)(g_pNetGraphPanel + 0x1A5), &colors, sizeof(colors_t));
-
-	}
-	else
-	{
-		if (r == GRAPH_RED && g == GRAPH_GREEN && b == GRAPH_BLUE)
-		{
-			net_graphfont(6);
-		}
-		else
-		{
-			net_graphfont(5);
-		}
-	}
+	colors.r = r;
+	colors.g = g;
+	colors.b = b;
+	colors.a = a;
+	vm::write(game_handle, (QWORD)(g_pNetGraphPanel + 0x1A5), &colors, sizeof(colors_t));
 
 }
 

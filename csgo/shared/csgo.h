@@ -58,7 +58,6 @@ namespace csgo
 
 	BOOL  running(void);
 	void  reset_globals(void);
-	BOOL  allow_triggerbot(void);
 
 	namespace teams
 	{
