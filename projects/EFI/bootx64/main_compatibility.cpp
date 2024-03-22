@@ -277,9 +277,6 @@ static QWORD RtlImageNtHeaderExHook(DWORD Flags, VOID* Base, QWORD Size, OUT QWO
 		}
 	}
 
-	//
-	// ntoskrnl executable section is starting from 0x200000
-	//
 	if (es < 0x100000)
 	{
 		return 0;
@@ -307,6 +304,10 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 			// hook routine for cloning ntoskrnl.exe file (Raw Version)
 			//
 			target_routine = GetExportByName(winload, "RtlImageNtHeaderEx");
+			if (target_routine == 0)
+			{
+				target_routine = FindPattern(winload, (unsigned char *)"\x45\x33\xD2\x4D\x8B\xD8\x4D\x85\xC9", (unsigned char*)"xxxxxxxxx");
+			}
 			*(QWORD*)(target_routine + 0x00) = 0x25FF;
 			*(QWORD*)(target_routine + 0x06) = (QWORD)RtlImageNtHeaderExHook;
 
