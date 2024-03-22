@@ -228,6 +228,11 @@ extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle, UINTN 
 	gST->ConOut->SetCursorPosition(gST->ConOut, 0, 1);
 	PressAnyKey();
 
+	if (!GlobalStatusVariable)
+	{
+		return 0;
+	}
+
 	return gBS->ExitBootServices(ImageHandle, MapKey);
 }
 
@@ -316,18 +321,20 @@ static QWORD RtlImageNtHeaderExHook(DWORD Flags, VOID* Base, QWORD Size, OUT QWO
 	//
 	// make sure RtlImageNtHeaderEx is not called for headers only
 	//
-	if (Size < 0x1000)
+	if (Size <= 0x1000)
 	{
 		return 0;
 	}
 
 	DWORD es = 0;
-	QWORD nt = get_nt_header((QWORD)Base);
+	QWORD nt = *OutHeaders;
 	QWORD sh = get_section_headers(nt);
 	for (WORD i = 0; i < *(WORD*)(nt + 6); i++)
 	{
 		QWORD section = sh + ((QWORD)i * 40);
-		if ((*(DWORD*)(section + 0x24) & 0x00000020))
+		unsigned char name[8];
+		MemCopy(name, (void*)(section), 8);
+		if (!strcmp_imp((const char*)name, "MINIEX"))
 		{
 			es = *(DWORD*)(section + 0x0C);
 			break;

@@ -446,6 +446,11 @@ QWORD km::GetReadFile(void)
 
 BOOLEAN km::initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize)
 {
+	if (calculate_checksum((PVOID)fbase, (DWORD)fsize) != *(DWORD*)(ntoskrnl + get_checksum_off(ntoskrnl)))
+	{
+		return 0;
+	}
+
 	QWORD addr = FindPattern(ntoskrnl,
 		(BYTE*)"\x48\x89\x5C\x24\x00\x48\x89\x4C\x24\x00\x57\x48\x83\xEC\x20\x41", (BYTE*)"xxxx?xxxx?xxxxxx");
 	if (addr == 0)
@@ -474,15 +479,15 @@ BOOLEAN km::initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize)
 	
 
 	DWORD checksum = calculate_checksum((PVOID)fbase, (DWORD)fsize);
-	set_checksum(ntoskrnl, checksum);
+	QWORD old_sum  = *(QWORD*)(ntoskrnl + get_checksum_off(ntoskrnl));
 
-	QWORD nval = *(QWORD*)(ntoskrnl + get_checksum_off(ntoskrnl));
-	QWORD oval = nval;
-	((DWORD*)&nval)[0] = checksum;
+	set_checksum(ntoskrnl, checksum);
+	QWORD new_sum = old_sum;
+	((DWORD*)&new_sum)[0] = checksum;
 
 	patch[2].offset         = get_checksum_off(ntoskrnl);
-	patch[2].value          = nval;
-	patch[2].original_value = oval;
+	patch[2].value          = new_sum;
+	patch[2].original_value = old_sum;
 
 	return TRUE;
 }

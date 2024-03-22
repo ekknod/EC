@@ -12,8 +12,8 @@
 #define LOGGER
 
 
-#define DEBUG
 #ifndef _KERNEL_MODE
+#define DEBUG
 #include <stdio.h>
 #ifdef DEBUG
 #define LOG(...) printf("[EC] " __VA_ARGS__)
@@ -23,6 +23,7 @@
 
 #else
 
+// #define DEBUG
 #ifdef DEBUG
 #define LOG(...) DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[EC] " __VA_ARGS__)
 #else
