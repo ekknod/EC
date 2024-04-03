@@ -26,14 +26,18 @@ namespace client
 
 	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
-		UNREFERENCED_PARAMETER(hwnd);
-		SDL_Rect rect{};
-		rect.x = (int)x;
-		rect.y = (int)y;
-		rect.w = (int)w;
-		rect.h = (int)h;
-
-		SDL_FillSurfaceRect(sdl_surface, &rect, SDL_MapRGB(sdl_surface->format, r, g, b));
+	    UNREFERENCED_PARAMETER(hwnd);
+	    SDL_Rect rect{x,y,w,h};
+	    constexpr static int thickness = 2;
+	
+	    SDL_FillSurfaceRect(sdl_surface, &rect, SDL_MapRGB(sdl_surface->format, r, g, b));
+	
+	    rect.x += thickness;
+	    rect.y += thickness;
+	    rect.w -= thickness * 2;
+	    rect.h -= thickness * 2;
+	
+	    SDL_FillSurfaceRect(sdl_surface, &rect, 0x0);
 	}
 
 	void DrawFillRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
