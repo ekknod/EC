@@ -129,13 +129,37 @@ int main(void)
 		return 0;
 	}
 	SDL_DisplayID id = SDL_GetDisplayForWindow(temp);
-	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
 	SDL_SetWindowPosition(temp, 0, 0);
+
+	int total_displays = 0;
+	SDL_GetDisplays(&total_displays);
+
+	int found_displays = 0;
+	int total_width = 0;
+	int max_height = 0;
+	for (int i = 0; i < 10; i++)
+	{
+		SDL_Rect rect;
+		SDL_GetDisplayBounds(i, &rect);
+		if (rect.w > 0 && rect.w < 50000)
+		{
+			total_width += rect.w;
+			if (rect.h > max_height)
+			{
+				max_height = rect.h;
+			}
+			found_displays++;
+		}
+		if (found_displays == total_displays)
+		{
+			break;
+		}
+	}
 
 	SDL_Window *window = SDL_CreatePopupWindow(temp, 0, 0, 640, 480,
 		SDL_WINDOW_TRANSPARENT | SDL_WINDOW_BORDERLESS | SDL_WINDOW_TOOLTIP);
 		
-	SDL_SetWindowSize(window, disp->w, disp->h);
+	SDL_SetWindowSize(window, total_width, max_height);
 	SDL_SetWindowPosition(window, 0, 0);
 
 	SDL_SetWindowAlwaysOnTop(window, SDL_TRUE);
