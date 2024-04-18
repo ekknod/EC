@@ -40,6 +40,7 @@ namespace cs2
 		static int m_flFOVSensitivityAdjust = 0;
 		static int m_pGameSceneNode = 0;
 		static int m_iHealth = 0;
+		static int m_fFlags = 0;
 		static int m_lifeState = 0;
 		static int m_iTeamNum = 0;
 		static int m_vecViewOffset = 0;
@@ -289,6 +290,11 @@ static BOOL cs2::initialize(void)
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 				netvars::m_iHealth = *(int*)(entry + 0x08 + 0x10);
 			}
+			else if ((netvars::m_fFlags < 0x1F4 || netvars::m_fFlags > 0xFFF || !netvars::m_fFlags) && !strcmpi_imp(netvar_name, "m_fFlags"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+				netvars::m_fFlags = *(int*)(entry + 0x08 + 0x10);
+			}
 			else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
 			{
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
@@ -452,6 +458,11 @@ static BOOL cs2::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iHealth = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
+				else if ((netvars::m_fFlags < 0x1F4 || netvars::m_fFlags > 0xFFF || !netvars::m_fFlags) && !strcmpi_imp(netvar_name, "m_fFlags"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_fFlags = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
 				else if (!netvars::m_iTeamNum && !strcmpi_imp(netvar_name, "m_iTeamNum") && network_enable)
 				{
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
@@ -569,6 +580,7 @@ static BOOL cs2::initialize(void)
 	JZ(netvars::m_flFOVSensitivityAdjust, E1);
 	JZ(netvars::m_pGameSceneNode, E1);
 	JZ(netvars::m_iHealth, E1);
+	JZ(netvars::m_fFlags, E1);
 	JZ(netvars::m_lifeState, E1);
 	JZ(netvars::m_iTeamNum, E1);
 	JZ(netvars::m_vecViewOffset, E1);
@@ -818,6 +830,11 @@ DWORD cs2::player::get_health(QWORD player)
 	return vm::read_i32(game_handle, player + netvars::m_iHealth);
 }
 
+DWORD cs2::player::get_flags(QWORD player)
+{
+	return vm::read_i32(game_handle, player + netvars::m_fFlags);
+}
+
 DWORD cs2::player::get_team_num(QWORD player)
 {
 	return vm::read_i32(game_handle, player + netvars::m_iTeamNum);
@@ -926,6 +943,29 @@ cs2::WEAPON_CLASS cs2::player::get_weapon_class(QWORD player)
 	//
 	WORD weapon_index = vm::read_i16(game_handle, weapon + 0x1098 + 0x50 + 0x1BA);
 
+		/* shotgun */
+	{
+		WORD data[] = {
+			27,		// mag7
+			29,		//sawnoff
+			35,		//nova
+			25,		//xm1014
+		};
+		for (int i = 0; i < sizeof(data) / sizeof(*data); i++)
+		{
+			if (data[i] == weapon_index)
+			{
+				return cs2::WEAPON_CLASS::Shotgun;
+			}
+		}
+	}
+
+	/* zues */
+	if (weapon_index == 31)
+	{
+		return cs2::WEAPON_CLASS::Zues;		//zues 31
+	}
+	
 	/* knife */
 	{
 		WORD data[] = {
