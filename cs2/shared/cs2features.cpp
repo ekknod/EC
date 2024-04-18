@@ -63,6 +63,7 @@ namespace features
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
+	static void render_normal_position(vec3 pos, int size, float r, float g, float b); //can be used for things too
 }
 }
 
@@ -76,6 +77,7 @@ namespace config
 	static BOOL  aimbot_multibone;
 	static DWORD triggerbot_button;
 	static BOOL  visuals_enabled;
+	static BOOL  visualize_hitbox;
 }
 
 inline DWORD random_number(DWORD min, DWORD max)
@@ -192,17 +194,20 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 3.0f;
 		break;
 	case 255:
+		config::visualize_hitbox = 1;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
 		config::aimbot_fov        = 4.5f;
 		config::aimbot_smooth     = 2.5f;
+		config::visuals_enabled   = 1;
 		break;
 	default:
+		config::visualize_hitbox = 1;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
-		config::visuals_enabled   = 0;
+		config::visuals_enabled   = 1; //walls > no walls
 		break;
 	}
 }
@@ -496,6 +501,11 @@ void cs2::features::run(void)
 		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
 	}
 
+	if (config::visualize_hitbox)
+	{
+		render_normal_position(aimbot_pos, 5, 0, 150, 255);
+	}
+	
 	if (event_state == 0)
 	{
 		if (aimbot_fov != 360.0f)
@@ -866,3 +876,67 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 #endif
 }
 
+static void cs2::features::render_normal_position(vec3 pos, int size, float r, float g, float b)
+{
+	QWORD sdl_window = cs2::sdl::get_window();
+
+	if (sdl_window == 0)
+		return;
+
+	cs2::WINDOW_INFO window{};
+
+	if (!cs2::sdl::get_window_info(sdl_window, &window))
+		return;
+
+	vec3 top_origin = pos;
+	vec3 origin = pos;
+	top_origin.z += size/2;
+	origin.z -= size/2;
+
+	vec3 screen_bottom, screen_top;
+	view_matrix_t view_matrix = cs2::engine::get_viewmatrix();
+
+	vec2 screen_size{};
+	screen_size.x = (float)window.w;
+	screen_size.y = (float)window.h;
+
+
+	if (!math::world_to_screen(screen_size, origin,/*out*/ screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top_origin, /*out*/ screen_top, view_matrix))
+	{
+		return;
+	}
+
+	int box_height = (int)(screen_bottom.y - screen_top.y);
+
+	int x = (int)window.x + (int)(screen_top.x - box_height / 2);
+	int y = (int)window.y + (int)(screen_top.y);
+
+	//if box off screen dont draw
+	if (x > (int)(window.x + screen_size.x - (box_height)))
+	{
+		return;
+	}
+	else if (x < window.x)
+	{
+		return;
+	}
+	if (y > (int)(screen_size.y + window.y - (box_height)))
+	{
+		return;
+	}
+	else if (y < window.y)
+	{
+		return;
+	}
+
+
+#ifdef __linux__
+	client::DrawRect((void*)0, x, y, box_height, box_height, r, g, b);
+#else
+	QWORD sdl_window_data = cs2::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
+	QWORD hwnd = cs2::sdl::get_hwnd(sdl_window_data);
+	client::DrawFillRect((void*)hwnd, x, y, box_height, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#endif
+}
