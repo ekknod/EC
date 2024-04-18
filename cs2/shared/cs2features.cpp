@@ -63,6 +63,7 @@ namespace features
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
+	static void render_normal_position(vec3 pos, int size, float r, float g, float b); //can be used for things too
 }
 }
 
@@ -75,6 +76,7 @@ namespace config
 	static float aimbot_smooth;
 	static BOOL  aimbot_multibone;
 	static DWORD triggerbot_button;
+	static BOOL  trigger_aim;
 	static BOOL  visuals_enabled;
 }
 
@@ -186,23 +188,29 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 3.5f;
 		break;
 	case 254:
+		config::trigger_aim	  = 1;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
 		config::aimbot_fov        = 4.0f;
 		config::aimbot_smooth     = 3.0f;
 		break;
 	case 255:
+		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
 		config::aimbot_fov        = 4.5f;
 		config::aimbot_smooth     = 2.5f;
+		config::visuals_enabled   = 1;
+		config::visualize_hitbox  = 1;
 		break;
 	default:
+		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
-		config::visuals_enabled   = 0;
+		config::visuals_enabled   = 1; //esp > legit
+		config::visualize_hitbox  = 1;
 		break;
 	}
 }
@@ -238,7 +246,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 		}
 	}
 
-	if (b_triggerbot_button && config::aimbot_enabled && mouse_down_ms == 0 && event_state == 0)
+	if (b_triggerbot_button && mouse_down_ms == 0 && event_state == 0)
 	{
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs2::WEAPON_CLASS::Pistol)
@@ -261,6 +269,42 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 				2.800000f, {-0.200000f, 1.100000f,  0.000000f},  {3.600000f,  0.100000f, 0.000000f}
 			};
 
+			//these values could be optimized more i kinda guestimated them but i tested that they work
+			switch (aimbot_bone)
+			{
+			case 1:
+				coll = {
+					7.800000f, {-0.300000f, 1.800000f,  0.000000f},  {10.600000f,  0.150000f, 0.000000f}
+				};
+				break;
+				//body
+			case 2:
+				coll = {
+					7.800000f, {-0.300000f, 1.800000f,  0.000000f},  {10.600000f,  0.150000f, 0.000000f}
+				};
+				break;
+				//stomach
+			case 3:
+				coll = {
+					7.800000f, {-0.300000f, 1.800000f,  0.000000f},  {10.600000f,  0.150000f, 0.000000f}
+				};
+				break;
+			case 4:
+				coll = {
+					7.800000f, {-0.300000f, 1.800000f,  0.000000f},  {10.600000f,  0.150000f, 0.000000f}
+				};
+				break;
+			case 5:
+				coll = {
+					3.80000f, {-0.300000f, 1.800000f,  0.000000f},  {10.600000f,  0.120000f, 0.000000f}
+				};
+				break;
+			case 6: //head
+				coll = {
+					2.800000f, {-0.200000f, 1.100000f,  0.000000f},  {3.600000f,  0.100000f, 0.000000f}
+				};
+				break;
+			}
 			vec3 dir = math::vec_atd(vec3{view_angle.x, view_angle.y, 0});
 			vec3 eye = cs2::player::get_eye_position(local_player);
 
@@ -340,7 +384,7 @@ void cs2::features::run(void)
 	// update buttons
 	//
 	b_triggerbot_button = cs2::input::is_button_down(config::triggerbot_button);
-	b_aimbot_button     = cs2::input::is_button_down(config::aimbot_button) | b_triggerbot_button;
+	b_aimbot_button = (cs2::input::is_button_down(config::aimbot_button) | (b_triggerbot_button & config::trigger_aim));
 	
 
 	//
@@ -374,24 +418,13 @@ void cs2::features::run(void)
 	event_state = 0;
 
 	QWORD best_target = 0;
-	if (config::visuals_enabled == 2)
-	{
-		get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
-	}
-	else
-	{
-		//
-		// optimize: find target only when button not pressed
-		//
-		if (!b_aimbot_button)
-		{
-			get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);
-		}
-	}
+	
+	get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &best_target);	//its just better to always call this i always want wallhacks
 
 	//
 	// no previous target found, lets update target
 	//
+
 	if (aimbot_target == 0)
 	{
 		aimbot_bone   = 0;
@@ -497,6 +530,11 @@ void cs2::features::run(void)
 		aimbot_fov   = math::get_fov(view_angle, aimbot_angle);
 	}
 
+	if (config::visualize_hitbox)
+	{
+		render_normal_position(aimbot_pos, 5, 0, 150, 255);
+	}
+
 	if (event_state == 0)
 	{
 		if (aimbot_fov != 360.0f)
@@ -594,7 +632,8 @@ static vec3 cs2::features::get_target_angle(QWORD local_player, vec3 position, D
 	{
 		if (weapon_class == cs2::WEAPON_CLASS::Sniper)
 			goto skip_recoil;
-
+		if (weapon_class == cs2::WEAPON_CLASS::Shotgun)
+			goto skip_recoil;
 		if (weapon_class == cs2::WEAPON_CLASS::Pistol)
 		{
 			if (num_shots < 2)
@@ -618,6 +657,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 	float best_fov = 360.0f;
 	vec3  angle{};
 	vec3  aimpos{};
+	QWORD best_node;
 	
 	for (int i = 1; i < 32; i++)
 	{
@@ -677,17 +717,59 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		
 		if (fov < best_fov)
 		{
-			best_fov = fov;
-			*target  = player;
-			aimpos   = head;
-			angle    = best_angle;
+			*target = player;
+			aimpos = head;
+			angle = best_angle;
+			best_node = node;
 		}
 	}
 	
-	if (best_fov != 360.0f)
+	if (b_triggerbot_button && !b_aimbot_button)
 	{
-		event_state = 1;
-		features::has_target_event(local_player, *target, best_fov, aim_punch, angle, va, aimpos);
+
+		vec3 pos{};
+		vec3 best_pos{};
+		for (int i = 1; i < 7; i++)
+		{
+			//bone pos
+			if (!best_node)
+			{
+				return;
+			}
+	
+			if (!cs2::node::get_bone_position(best_node, i, &pos))
+			{
+				continue;
+			}
+			vec3 best_angle = get_target_angle(local_player, pos, num_shots, aim_punch);
+			float fov = math::get_fov(va, *(vec3*)&best_angle);
+			if (fov <= best_fov)
+			{
+				best_fov = fov;
+				aimpos = pos;
+				aimbot_bone = i;
+				angle = best_angle;
+				best_pos = pos;
+			}
+		}
+		if (config::visualize_hitbox)
+		{
+			render_normal_position(best_pos, 8, 255, 0, 0);
+		}
+		if (best_fov != 360.0f)
+		{
+			event_state = 1;
+			features::has_target_event(local_player, *target, best_fov, aim_punch, angle, va, aimpos);
+		}
+	}
+	else
+	{
+		if (best_fov != 360.0f)
+		{
+			event_state = 1;
+			features::has_target_event(local_player, *target, best_fov, aim_punch, angle, va, aimpos);
+		}
+	
 	}
 }
 
@@ -800,7 +882,19 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 
 	vec3 origin = cs2::player::get_origin(target_player);
 	vec3 top_origin = origin;
-	top_origin.z += 75.0f;
+	
+	//get crouched flag and set correct box height
+	BOOL crouched;
+	if (cs2::player::get_flags(target_player) & (1 << 1))
+	{
+		top_origin.z += 57;
+		crouched = 1;
+	}
+	else
+	{
+		top_origin.z += 75;
+		crouched = 0;
+	}
 
 
 	vec3 screen_bottom, screen_top;
@@ -833,8 +927,17 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 	}
 
 	int box_height = (int)(screen_bottom.y - screen_top.y);
-	int box_width = box_height / 2;
+	int box_width;
 
+	//correct bounding width without calculating for it 57/75(ratio of box heights) * 2(box width) = 1.52
+	if (crouched)
+	{
+		box_width = box_height / 1.52;
+	}
+	else
+	{
+		box_width = box_height / 2;
+	}
 	int x = (int)window.x + (int)(screen_top.x - box_width / 2);
 	int y = (int)window.y + (int)(screen_top.y);
 
@@ -867,3 +970,67 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 #endif
 }
 
+static void cs2::features::render_normal_position(vec3 pos, int size, float r, float g, float b)
+{
+	QWORD sdl_window = cs2::sdl::get_window();
+
+	if (sdl_window == 0)
+		return;
+
+	cs2::WINDOW_INFO window{};
+
+	if (!cs2::sdl::get_window_info(sdl_window, &window))
+		return;
+
+	vec3 top_origin = pos;
+	vec3 origin = pos;
+	top_origin.z += size/2;
+	origin.z -= size/2;
+
+	vec3 screen_bottom, screen_top;
+	view_matrix_t view_matrix = cs2::engine::get_viewmatrix();
+
+	vec2 screen_size{};
+	screen_size.x = (float)window.w;
+	screen_size.y = (float)window.h;
+
+
+	if (!math::world_to_screen(screen_size, origin,/*out*/ screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top_origin, /*out*/ screen_top, view_matrix))
+	{
+		return;
+	}
+
+	int box_height = (int)(screen_bottom.y - screen_top.y);
+
+	int x = (int)window.x + (int)(screen_top.x - box_height / 2);
+	int y = (int)window.y + (int)(screen_top.y);
+
+	//if box off screen dont draw
+	if (x > (int)(window.x + screen_size.x - (box_height)))
+	{
+		return;
+	}
+	else if (x < window.x)
+	{
+		return;
+	}
+	if (y > (int)(screen_size.y + window.y - (box_height)))
+	{
+		return;
+	}
+	else if (y < window.y)
+	{
+		return;
+	}
+
+
+#ifdef __linux__
+	client::DrawRect((void*)0, x, y, box_height, box_height, r, g, b);
+#else
+	QWORD sdl_window_data = cs2::sdl::get_window_data(sdl_window);
+	if (sdl_window_data == 0)
+		return;
+	QWORD hwnd = cs2::sdl::get_hwnd(sdl_window_data);
+	client::DrawFillRect((void*)hwnd, x, y, box_height, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#endif
+}
