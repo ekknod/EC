@@ -322,7 +322,8 @@ void cs2::features::run(void)
 	}
 
 	weapon_class = cs2::player::get_weapon_class(local_player);
-	if (weapon_class == cs2::WEAPON_CLASS::Invalid)
+	//only return for this if the player is alive
+	if ((weapon_class == cs2::WEAPON_CLASS::Invalid) && (cs2::player::get_life_state(local_player) == 256))
 	{
 		return;
 	}
