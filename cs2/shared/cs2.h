@@ -48,6 +48,8 @@ namespace cs2
 		Pistol = 3,
 		Sniper = 4,
 		Rifle = 5,
+		Zues = 6,
+		Shotgun = 7,
 	} ;
 
 	typedef struct
@@ -106,6 +108,7 @@ namespace cs2
 
 	namespace player
 	{
+		DWORD get_flags(QWORD player);
 		DWORD get_health(QWORD player);
 		DWORD get_team_num(QWORD player);
 		int   get_life_state(QWORD player);
