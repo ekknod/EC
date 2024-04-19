@@ -85,6 +85,7 @@ if ((val) == 0)  \
 LOG(__FILE__ ": line %d\n", __LINE__); \
 goto field; \
 } \
+
 #else
 #define JZ(val,field) \
 	if ((val) == 0) goto field;
