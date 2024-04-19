@@ -9,6 +9,17 @@ static SDL_Surface* sdl_surface;
 
 namespace client
 {
+
+	void key_down(BYTE virtual_key_code)
+	{
+		// Simulate a key press
+		keybd_event(virtual_key_code, 0, 0, 0);
+	}
+	
+	void key_up(BYTE virtual_key_code)
+	{
+		keybd_event(virtual_key_code, 0, KEYEVENTF_KEYUP, 0);
+	}
 	void mouse_move(int x, int y)
 	{
 		mouse_event(MOUSEEVENTF_MOVE, (DWORD)x, (DWORD)y, 0, 0);
@@ -91,6 +102,7 @@ int main(void)
 			if (cs2::running())
 			{
 				cs2::features::run();
+				cs2::bhop::run();
 			}
 			else
 			{
