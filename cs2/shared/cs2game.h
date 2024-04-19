@@ -17,6 +17,11 @@ namespace cs2
 		void run(void);
 		void reset(void);
 	}
+	namespace bhop
+	{
+		void run(void);
+		void reset(void);
+	}
 }
 
 //
