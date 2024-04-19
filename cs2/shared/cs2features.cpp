@@ -6,6 +6,9 @@
 
 namespace cs2
 {
+//global variable for bhop
+QWORD local_player_gb = 0;
+
 namespace features
 {
 	//
@@ -69,6 +72,7 @@ namespace features
 
 namespace config
 {
+	static BOOL  bhop;
 	static BOOL  rcs;
 	static BOOL  aimbot_enabled;
 	static DWORD aimbot_button;
@@ -182,12 +186,14 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 4.0f;
 		break;
 	case 253:
-		config::aimbot_button     = 317;
+		config::bhop = 1;
+		config::aimbot_button     = 82;
 		config::triggerbot_button = 321;
-		config::aimbot_fov        = 3.5f;
-		config::aimbot_smooth     = 3.5f;
+		config::aimbot_fov        = 10.0f;
+		config::aimbot_smooth     = 0.01f;
 		break;
 	case 254:
+		config::bhop = 1;
 		config::trigger_aim	  = 1;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
@@ -195,6 +201,7 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 3.0f;
 		break;
 	case 255:
+		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
@@ -204,6 +211,7 @@ inline void cs2::features::update_settings(void)
 		config::visualize_hitbox  = 1;
 		break;
 	default:
+		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
 		config::triggerbot_button = 321;
@@ -334,6 +342,14 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 void cs2::features::run(void)
 {
+	if (config::bhop)
+	{
+		bhop_enabled = 1;
+	}	
+	else if (!config::bhop)
+	{
+		bhop_enabled = 0;
+	}
 	//
 	// reset triggerbot input
 	//
@@ -366,7 +382,9 @@ void cs2::features::run(void)
 	{
 		goto NOT_INGAME;
 	}
-
+	
+	local_player_gb = local_player;
+	
 	weapon_class = cs2::player::get_weapon_class(local_player);
 	//only return for this if the player is alive
 	if ((weapon_class == cs2::WEAPON_CLASS::Invalid) && (cs2::player::get_life_state(local_player) == 256))
