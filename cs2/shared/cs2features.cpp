@@ -34,7 +34,7 @@ namespace features
 	//
 	// aimbot
 	//
-	DWORD target_distance;
+	float target_distance;
 	static DWORD lock_delay;
 	static BOOL	 locked;
 	static BOOL  locked_onshot;
@@ -262,7 +262,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 		}
 	}
 
-	if (b_triggerbot_button && mouse_down_ms == 0 && event_state == 0)
+	if (b_triggerbot_button && mouse_down_ms == 0)
 	{
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs2::WEAPON_CLASS::Pistol)
@@ -505,11 +505,6 @@ void cs2::features::run(void)
 		return;
 	}
 
-	if (!b_aimbot_button)
-	{
-		return;
-	}
-
 	QWORD node = cs2::player::get_node(aimbot_target);
 	if (node == 0)
 	{
@@ -521,6 +516,11 @@ void cs2::features::run(void)
 	vec3  aimbot_angle{};
 	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
+
+	if (!b_aimbot_button)
+	{
+		return;
+	}
 
 	if (config::aimbot_multibone)
 	{
@@ -779,6 +779,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		
 		if (fov < best_fov)
 		{
+			best_fov = fov;
 			*target = player;
 			aimpos = head;
 			angle = best_angle;
@@ -994,7 +995,7 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 	//correct bounding width without calculating for it 57/75(ratio of box heights) * 2(box width) = 1.52
 	if (crouched)
 	{
-		box_width = box_height / 1.52;
+		box_width = box_height / (int)1.52;
 	}
 	else
 	{
