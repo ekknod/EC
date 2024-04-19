@@ -76,6 +76,7 @@ namespace features
 
 namespace config
 {
+	static BOOL  visualize_hitbox;
 	static BOOL  bhop;
 	static BOOL  rcs;
 	static BOOL  aimbot_enabled;
