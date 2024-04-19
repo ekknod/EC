@@ -12,6 +12,9 @@ extern "C" int _fltused;
 //
 namespace cs2
 {
+	extern QWORD local_player_gb;
+	extern BOOL bhop_enabled;
+
 	namespace features
 	{
 		void run(void);
@@ -43,6 +46,7 @@ namespace cs2
 		if (cs2::running())
 		{
 			features::run();
+			bhop::run();
 		}
 		else
 		{
