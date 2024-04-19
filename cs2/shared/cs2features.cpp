@@ -36,6 +36,8 @@ namespace features
 	//
 	DWORD target_distance;
 
+	static BOOL	 locked;
+	static BOOL  locked_onshot;
 	static BOOL  aimbot_active;
 	static QWORD aimbot_target;
 	static int   aimbot_bone;
@@ -439,11 +441,13 @@ void cs2::features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (!b_aimbot_button)
+	if (!b_aimbot_button || !b_triggerbot_button)
 	{
 		//
 		// reset target
 		//
+		locked = 0;
+		locked_onshot = 0;
 		aimbot_target = 0;
 		aimbot_bone   = 0;
 	}
@@ -460,23 +464,25 @@ void cs2::features::run(void)
 
 	if (aimbot_target == 0)
 	{
-		aimbot_bone   = 0;
+		locked = 0;
+		locked_onshot = 0;
+		aimbot_bone = 0;
 		aimbot_target = best_target;
 	}
-	else
-	{
-		if (!cs2::player::is_valid(aimbot_target, cs2::player::get_node(aimbot_target)))
+	else 
+	{	if (!cs2::player::is_valid(aimbot_target, cs2::player::get_node(aimbot_target)))
 		{
 			aimbot_target = best_target;
-
 			if (aimbot_target == 0)
 			{
+				locked = 0;
+				locked_onshot = 0;
+				aimbot_target = 0;
 				aimbot_bone = 0;
 				get_best_target(ffa, local_player_controller, local_player, num_shots, aim_punch, &aimbot_target);
 			}
 		}
 	}
-
 
 	aimbot_active = 0;
 
@@ -578,6 +584,11 @@ void cs2::features::run(void)
 
 	if (aimbot_fov > config::aimbot_fov)
 	{
+		//reset target if out of FOV
+		aimbot_target = 0;
+		aimbot_bone = 0;
+		locked_onshot = 0;
+		locked = 0;
 		return;
 	}
 
@@ -628,11 +639,20 @@ void cs2::features::run(void)
 		ms = (DWORD)(config::aimbot_smooth / 100.0f) + 1;
 		ms = ms * 16;
 	}
-	else
+	else	//rage aiming
 	{
-		smooth_x  = x;
-		smooth_y  = y;
-		ms        = 16;
+		//aiming
+		if (locked == 0)
+		{
+			smooth_x = x;
+			smooth_y = y;
+			ms = 16;
+		}
+		//locked
+		else if (locked == 1)
+		{
+			ms = 2;
+		}
 	}
 
 	DWORD current_ms = cs2::engine::get_current_ms();
@@ -640,6 +660,11 @@ void cs2::features::run(void)
 	{
 		aimbot_ms = current_ms;
 		client::mouse_move((int)smooth_x, (int)smooth_y);
+		if (locked_onshot == 0)
+		{ 
+			lock_delay = current_ms + 32; 
+			locked_onshot = 1;
+		}
 	}
 }
 
