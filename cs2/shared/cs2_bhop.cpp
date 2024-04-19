@@ -15,6 +15,11 @@ namespace cs2
 		BOOL onshot = 1;					//do something once untill being reset
 	}
 }
+namespace client
+{
+	extern void key_down(BYTE virtual_key_code);
+	extern void key_up(BYTE virtual_key_code);
+}
 //UM version (uses windows api calls)
 void cs2::bhop::run(void)
 {
