@@ -445,7 +445,7 @@ void cs2::features::run(void)
 		standalone_rcs(num_shots, aim_punch, sensitivity);
 	}
 	
-	if (!b_aimbot_button || !b_triggerbot_button)
+	if (!b_aimbot_button)
 	{
 		//
 		// reset target
