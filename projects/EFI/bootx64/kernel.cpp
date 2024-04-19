@@ -100,6 +100,16 @@ namespace client
 	{
 		mouse::move(0, 0, 0x02);
 	}
+	//just using the mouse4 down since IDK how to make keyboard.asm (this is not optimal because if the cheat lags at all then your viewangle will be a little snappy while its pressing)
+	void key_down(void)
+	{
+		mouse::move(0, 0, 0x0040);
+	}
+	void key_up(void)
+	{
+		mouse::move(0, 0, 0x0080);
+	}
+
 
 	void DrawRect(void *hwnd, int x, int y, int w, int h, unsigned char r, unsigned char g, unsigned char b)
 	{
