@@ -194,7 +194,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\cs2\shared\cs2.h" />
     <ClInclude Include="..\..\..\cs2\shared\cs2game.h" />
-    <ClCompile Include="..\..\..\cs2\shared\cs2_bhop_efi.cpp" />
 
     <ClInclude Include="..\..\..\csgo\shared\csgo.h" />
     <ClInclude Include="..\..\..\csgo\shared\csgogame.h" />
