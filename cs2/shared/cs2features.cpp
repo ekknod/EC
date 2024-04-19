@@ -8,7 +8,7 @@ namespace cs2
 {
 //global variable for bhop
 QWORD local_player_gb = 0;
-
+BOOL bhop_enabled;
 namespace features
 {
 	//
@@ -35,7 +35,7 @@ namespace features
 	// aimbot
 	//
 	DWORD target_distance;
-
+	static DWORD lock_delay;
 	static BOOL	 locked;
 	static BOOL  locked_onshot;
 	static BOOL  aimbot_active;
@@ -51,6 +51,9 @@ namespace features
 
 	void reset(void)
 	{
+		lock_delay = 0;
+		locked = 0;
+		locked_onshot = 0;
 		mouse_down_ms    = 0;
 		mouse_up_ms      = 0;
 		rcs_old_punch    = {};
@@ -320,7 +323,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 				bone.z += 2;
 				break;
 			}
-			dir = math::vec_atd(vec3{view_angle.x, view_angle.y, 0});
+			vec3 dir = math::vec_atd(vec3{view_angle.x, view_angle.y, 0});
 			vec3 eye = cs2::player::get_eye_position(local_player);
 
 			matrix3x4_t matrix{};
