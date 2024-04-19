@@ -34,6 +34,8 @@ namespace features
 	//
 	// aimbot
 	//
+	DWORD target_distance;
+
 	static BOOL  aimbot_active;
 	static QWORD aimbot_target;
 	static int   aimbot_bone;
@@ -323,10 +325,21 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 			matrix[1][3] = bone.y;
 			matrix[2][3] = bone.z;
 
-			if (math::vec_min_max(eye, dir,
+			//for zuesbot
+			if (weapon_class == cs2::WEAPON_CLASS::Zues)
+			{
+				vec3 target_origin = cs2::player::get_origin(target_player);
+				vec3 local_origin = cs2::player::get_origin(local_player);
+				target_distance = math::qsqrt(((target_origin.x - local_origin.x) * (target_origin.x - local_origin.x)) + ((target_origin.y - local_origin.y) * (target_origin.y - local_origin.y)));
+			}
+			else
+			{
+				target_distance = 0;
+			}
+			if ((math::vec_min_max(eye, dir,
 				math::vec_transform(coll.min, matrix),
 				math::vec_transform(coll.max, matrix),
-				coll.radius))
+				coll.radius)) && (target_distance < 180))
 			{
 				DWORD current_ms = cs2::engine::get_current_ms();
 				if (current_ms > mouse_up_ms)
