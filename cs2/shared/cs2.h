@@ -70,6 +70,15 @@ namespace cs2
 		BOOL  get_mouse_button(QWORD sdl_mouse);
 	}
 
+	namespace offsets
+	{
+		BOOL get_BombDropped();
+		BOOL get_BombPlanted();
+
+		DWORD get_map();
+		DWORD get_map_name();
+	}
+
 	namespace engine
 	{
 		QWORD get_convar(const char *name);
