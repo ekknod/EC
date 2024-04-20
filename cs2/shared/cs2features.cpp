@@ -197,17 +197,17 @@ inline void cs2::features::update_settings(void)
 		config::bhop = 1;
 		config::trigger_aim	  = 1;
 		config::aimbot_button     = 317;
-		config::triggerbot_button = 321;
+		config::triggerbot_button = 82;
 		config::aimbot_fov        = 4.0f;
-		config::aimbot_smooth     = 3.0f;
+		config::aimbot_smooth     = 3.5f;
 		break;
 	case 255:
 		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
-		config::triggerbot_button = 321;
-		config::aimbot_fov        = 4.5f;
-		config::aimbot_smooth     = 2.5f;
+		config::triggerbot_button = 82;
+		config::aimbot_fov        = 3.5f;
+		config::aimbot_smooth     = 4.0f;
 		config::visuals_enabled   = 1;
 		config::visualize_hitbox  = 1;
 		break;
@@ -215,7 +215,7 @@ inline void cs2::features::update_settings(void)
 		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
-		config::triggerbot_button = 321;
+		config::triggerbot_button = 82; //left alt
 		config::aimbot_fov        = 2.0f;
 		config::aimbot_smooth     = 5.0f;
 		config::visuals_enabled   = 1; //esp > legit
@@ -1071,8 +1071,8 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 		}
 		if (!oneshot_rising)
 		{
-			float bar_length((float)(defuse_time - currentms) / (float)total_diffuse_time);
-			int width = (int)(40 * (float)(bar_length));
+			float bar_length = ((float)(defuse_time - currentms) / (float)total_diffuse_time);
+			int width = (int)((float)40 * (bar_length));
 			head.z += 20;
 			render_normal_position(head, width, 3, 50, 50, 255);
 		}
@@ -1099,7 +1099,7 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 	//correct bounding width without calculating for it 57/75(ratio of box heights) * 2(box width) = 1.52
 	if (crouched)
 	{
-		box_width = box_height / (int)1.52;
+		box_width = (int)((float)box_height / (float)1.52);
 	}
 	else
 	{
