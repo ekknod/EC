@@ -26,6 +26,8 @@ namespace cs2
 
 		QWORD game_rules;
 		QWORD globalvars;
+
+		QWORD clientdll;
 	}
 	namespace direct
 	{
@@ -120,6 +122,7 @@ static BOOL cs2::initialize(void)
 	}
 	QWORD client_dll, sdl, inputsystem;
 	JZ(client_dll = vm::get_module(game_handle, get_client_name()), E1);
+	offsets::clientdll = client_dll;
 	JZ(sdl = vm::get_module(game_handle, get_sdl3_name()), E1);
 	JZ(inputsystem = vm::get_module(game_handle, get_inputsystem_name()), E1);
 	JZ(direct::previous_xy = vm::scan_pattern_direct(game_handle, inputsystem, "\xF3\x0F\x10\x0D", "xxxx", 4), E1);
@@ -180,8 +183,10 @@ static BOOL cs2::initialize(void)
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles     += get_viewangles_off();
 
+	/*
 	vm::read(game_handle, client_dll + offsets::dwGameRules, &offsets::game_rules, sizeof(offsets::game_rules));
 	vm::read(game_handle, client_dll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
+	*/
 
 	if (vm::get_target_os() == VmOs::Linux)
 	{
@@ -763,12 +768,14 @@ void cs2::input::move(int x, int y)
 //0x180 and 0x188 are from the stuct
 DWORD cs2::offsets::get_map_name()
 {
+	vm::read(game_handle, offsets::clientdll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
 	DWORD mapname;
 	vm::read(game_handle, globalvars + 0x188, &mapname, sizeof(mapname));
 	return mapname;
 }
 DWORD cs2::offsets::get_map()
 {
+	vm::read(game_handle, offsets::clientdll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
 	DWORD map;
 	vm::read(game_handle, globalvars + 0x180, &map, sizeof(map));
 	return map;
@@ -776,12 +783,14 @@ DWORD cs2::offsets::get_map()
 
 BOOL cs2::offsets::get_BombPlanted()
 {
+	vm::read(game_handle, offsets::clientdll + offsets::dwGameRules, &offsets::game_rules, sizeof(offsets::game_rules));
 	bool bomb_down;
 	vm::read(game_handle, game_rules + m_bBombPlanted, &bomb_down, sizeof(bomb_down));
 	return bomb_down;
 }
 BOOL cs2::offsets::get_BombDropped()
 {
+	vm::read(game_handle, offsets::clientdll + offsets::dwGameRules, &offsets::game_rules, sizeof(offsets::game_rules));
 	bool bomb_down;
 	vm::read(game_handle, game_rules + m_bBombDropped, &bomb_down, sizeof(bomb_down));
 	return bomb_down;
