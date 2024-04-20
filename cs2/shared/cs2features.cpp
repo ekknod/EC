@@ -365,6 +365,72 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 void cs2::features::run(void)
 {
+		//bomb timer esp
+	if (cs2::offsets::get_BombPlanted() & 1)
+	{
+		DWORD current_ms = cs2::engine::get_current_ms();
+		if (!bomb_planted)
+		{
+			bomb_time = current_ms + 40000;
+			bomb_planted = 1;
+		}
+		QWORD sdl_window = cs2::sdl::get_window();
+		if (sdl_window == 0)
+			return;
+
+		cs2::WINDOW_INFO window{};
+		if (!cs2::sdl::get_window_info(sdl_window, &window))
+			return;
+
+		vec2 screen_size{};
+		screen_size.x = (float)window.w;
+		screen_size.y = (float)window.h;
+		float timeleft = bomb_time - current_ms;
+		int box_width = (int)((float)screen_size.x * (float)((float)(timeleft) / (float)40000));
+		int y = screen_size.y - 8;
+
+		int r = 0;
+		int g = 100;
+		int b = 255;
+		if (timeleft < 20000)
+		{
+			r = 150;
+			b = 100;
+			g = 100;
+		}
+		if (timeleft < 10000)
+		{
+			r = 255;
+			b = 100;
+			g = 0;
+		}
+		if (timeleft < 5000)
+		{
+			r = 255;
+			b = 0;
+			g = 0;
+		}
+		if (timeleft < 1)
+		{
+			return;
+		}
+
+#ifdef __linux__
+		client::DrawfillRect((void*)0, 0, y, box_width, 8, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#else
+		QWORD sdl_window_data = cs2::sdl::get_window_data(sdl_window);
+		if (sdl_window_data == 0)
+			return;
+		QWORD hwnd = cs2::sdl::get_hwnd(sdl_window_data);
+		client::DrawFillRect((void*)hwnd, 0, y, box_width, 8, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+#endif
+	}
+	
+	if (!cs2::offsets::get_BombPlanted() && (bomb_planted == 1))
+	{
+		bomb_planted = 0;
+	}
+	
 	//reset diffuse esp
 	if (!cs2::player::is_defusing(diffusing_player) && !oneshot_rising)
 	{
