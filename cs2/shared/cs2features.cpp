@@ -53,6 +53,9 @@ namespace features
 	QWORD diffusing_player;
 	DWORD total_diffuse_time = 10000;
 
+	BOOL bomb_planted;
+	DWORD bomb_time;
+
 	void reset(void)
 	{
 		lock_delay = 0;
@@ -105,7 +108,6 @@ inline void cs2::features::update_settings(void)
 {
 	int crosshair_alpha = cs2::get_crosshairalpha();
 
-
 	//
 	// default global settings
 	//
@@ -119,19 +121,6 @@ inline void cs2::features::update_settings(void)
 #else
 	config::visuals_enabled = 1;
 #endif
-
-
-	switch (weapon_class)
-	{
-	case cs2::WEAPON_CLASS::Knife:
-	case cs2::WEAPON_CLASS::Grenade:
-		config::aimbot_enabled = 0;
-		break;
-	case cs2::WEAPON_CLASS::Pistol:
-		config::aimbot_multibone = 0;
-		break;
-	}
-
 
 	switch (crosshair_alpha)
 	{
@@ -233,6 +222,23 @@ inline void cs2::features::update_settings(void)
 		config::visualize_hitbox  = 1;
 		break;
 	}
+
+	switch (weapon_class)
+	{
+	case cs2::WEAPON_CLASS::Zues:
+		config::trigger_aim = 1;
+		config::aimbot_multibone = 1;
+		break;
+	case cs2::WEAPON_CLASS::Knife:
+	case cs2::WEAPON_CLASS::Grenade:
+		config::aimbot_enabled = 0;
+		break;
+	case cs2::WEAPON_CLASS::Pistol:
+		config::aimbot_multibone = 0;
+		config::trigger_aim = 1;
+		break;
+	}
+
 }
 
 //
@@ -365,13 +371,14 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 void cs2::features::run(void)
 {
-		//bomb timer esp
+
+	//bomb timer esp
 	if (cs2::offsets::get_BombPlanted() & 1)
 	{
 		DWORD current_ms = cs2::engine::get_current_ms();
 		if (!bomb_planted)
 		{
-			bomb_time = current_ms + 40000;
+			bomb_time = current_ms + 41100;
 			bomb_planted = 1;
 		}
 		QWORD sdl_window = cs2::sdl::get_window();
@@ -385,13 +392,8 @@ void cs2::features::run(void)
 		vec2 screen_size{};
 		screen_size.x = (float)window.w;
 		screen_size.y = (float)window.h;
-		float timeleft = bomb_time - current_ms;
-		
-		if (timeleft < 1)
-		{
-			return;
-		}
-		
+		float timeleft = (float)(bomb_time - current_ms);
+
 		int r = 0;
 		int g = 100;
 		int b = 255;
@@ -410,8 +412,7 @@ void cs2::features::run(void)
 		}
 
 		int box_width = (int)((float)screen_size.x * (float)((float)(timeleft) / (float)41200));
-		int y = screen_size.y - 8;
-
+		int y = (int)screen_size.y - 8;
 
 #ifdef __linux__
 		client::DrawfillRect((void*)0, 0, y, box_width, 8, (unsigned char)r, (unsigned char)g, (unsigned char)b);
@@ -428,13 +429,15 @@ void cs2::features::run(void)
 	{
 		bomb_planted = 0;
 	}
-	
+
+
 	//reset diffuse esp
 	if (!cs2::player::is_defusing(diffusing_player) && !oneshot_rising)
 	{
 		oneshot_rising = 1;
 		diffusing_player = 0;
 	}
+	//bhop on or off
 	if (config::bhop)
 	{
 		bhop_enabled = 1;
@@ -793,7 +796,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 	float best_fov = 360.0f;
 	vec3  angle{};
 	vec3  aimpos{};
-	QWORD best_node;
+	QWORD best_node = 0;
 	
 	for (int i = 1; i < 32; i++)
 	{
