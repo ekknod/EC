@@ -15,6 +15,18 @@ namespace cs2
 		static QWORD input;
 		static QWORD player;
 	}
+	namespace offsets
+	{
+		//offsets from a2x dumper but i could probably add it in later
+		DWORD m_bBombPlanted = 0x9DD;				// bool
+		DWORD m_bBombDropped = 0x9DC;				// bool
+		DWORD dwGameRules = 0x191ECA0;				//pointer
+
+		DWORD dwGlobalVars = 0x1729BA0;				//pointer
+
+		QWORD game_rules;
+		QWORD globalvars;
+	}
 	namespace direct
 	{
 		static QWORD local_player;
@@ -167,6 +179,10 @@ static BOOL cs2::initialize(void)
 	direct::view_angles     = vm::get_relative_address(game_handle, get_interface_function(direct::view_angles, 16), 3, 7);
 	JZ(direct::view_angles  = vm::read_i64(game_handle, direct::view_angles), E1);
 	direct::view_angles     += get_viewangles_off();
+
+	vm::read(game_handle, client_dll + offsets::dwGameRules, &offsets::game_rules, sizeof(offsets::game_rules));
+	vm::read(game_handle, client_dll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
+
 	if (vm::get_target_os() == VmOs::Linux)
 	{
 		//
@@ -742,6 +758,36 @@ void cs2::input::move(int x, int y)
 	data.y = (float)x;
 	vm::write(game_handle, direct::previous_xy - 4, &data, sizeof(data));
 }
+
+
+//0x180 and 0x188 are from the stuct
+DWORD cs2::offsets::get_map_name()
+{
+	DWORD mapname;
+	vm::read(game_handle, globalvars + 0x188, &mapname, sizeof(mapname));
+	return mapname;
+}
+DWORD cs2::offsets::get_map()
+{
+	DWORD map;
+	vm::read(game_handle, globalvars + 0x180, &map, sizeof(map));
+	return map;
+}
+
+BOOL cs2::offsets::get_BombPlanted()
+{
+	bool bomb_down;
+	vm::read(game_handle, game_rules + m_bBombPlanted, &bomb_down, sizeof(bomb_down));
+	return bomb_down;
+}
+BOOL cs2::offsets::get_BombDropped()
+{
+	bool bomb_down;
+	vm::read(game_handle, game_rules + m_bBombDropped, &bomb_down, sizeof(bomb_down));
+	return bomb_down;
+}
+
+
 DWORD cs2::player::get_health(QWORD player)
 {
 	return vm::read_i32(game_handle, player + netvars::m_iHealth);
