@@ -386,34 +386,32 @@ void cs2::features::run(void)
 		screen_size.x = (float)window.w;
 		screen_size.y = (float)window.h;
 		float timeleft = bomb_time - current_ms;
-		int box_width = (int)((float)screen_size.x * (float)((float)(timeleft) / (float)40000));
-		int y = screen_size.y - 8;
-
+		
+		if (timeleft < 1)
+		{
+			return;
+		}
+		
 		int r = 0;
 		int g = 100;
 		int b = 255;
-		if (timeleft < 20000)
+
+		if (timeleft < 11100)
 		{
-			r = 150;
-			b = 100;
-			g = 100;
-		}
-		if (timeleft < 10000)
-		{
-			r = 255;
-			b = 100;
+			r = 210;
+			b = 120;
 			g = 0;
 		}
-		if (timeleft < 5000)
+		if (timeleft < 6100)
 		{
 			r = 255;
 			b = 0;
 			g = 0;
 		}
-		if (timeleft < 1)
-		{
-			return;
-		}
+
+		int box_width = (int)((float)screen_size.x * (float)((float)(timeleft) / (float)41200));
+		int y = screen_size.y - 8;
+
 
 #ifdef __linux__
 		client::DrawfillRect((void*)0, 0, y, box_width, 8, (unsigned char)r, (unsigned char)g, (unsigned char)b);
