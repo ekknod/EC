@@ -48,6 +48,10 @@ namespace features
 	//
 	static BOOL event_state;
 
+	DWORD defuse_time;
+	BOOL oneshot_rising;
+	QWORD diffusing_player;
+	DWORD total_diffuse_time = 10000;
 
 	void reset(void)
 	{
@@ -73,7 +77,7 @@ namespace features
 	static void get_best_target(BOOL ffa, QWORD local_controller, QWORD local_player, DWORD num_shots, vec2 aim_punch, QWORD *target);
 	static void standalone_rcs(DWORD shots_fired, vec2 vec_punch, float sensitivity);
 	static void esp(QWORD local_player, QWORD target_player, vec3 head);
-	static void render_normal_position(vec3 pos, int size, float r, float g, float b); //can be used for things too
+	static void render_normal_position(vec3 pos,int width, int height, float r, float g, float b); //can be used for things too
 }
 }
 
@@ -361,6 +365,12 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 void cs2::features::run(void)
 {
+	//reset diffuse esp
+	if (!cs2::player::is_defusing(diffusing_player) && !oneshot_rising)
+	{
+		oneshot_rising = 1;
+		diffusing_player = 0;
+	}
 	if (config::bhop)
 	{
 		bhop_enabled = 1;
@@ -575,7 +585,7 @@ void cs2::features::run(void)
 
 	if (config::visualize_hitbox)
 	{
-		render_normal_position(aimbot_pos, 5, 0, 150, 255);
+		render_normal_position(aimbot_pos,6, 6, 255, 0, 0);
 	}
 
 	if (event_state == 0)
@@ -817,7 +827,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		}
 		if (config::visualize_hitbox)
 		{
-			render_normal_position(best_pos, 8, 255, 0, 0);
+			render_normal_position(best_pos,8 , 8, 255, 0, 0);
 		}
 		if (best_fov != 360.0f)
 		{
@@ -972,7 +982,34 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 	{
 		return;
 	}
+	
+	//defusal progress esp
+	if (cs2::player::is_defusing(target_player))
+	{
+		diffusing_player = target_player;
 
+		DWORD currentms = cs2::engine::get_current_ms();
+
+		if (cs2::entity::has_defuser(target_player) & oneshot_rising)
+		{
+			total_diffuse_time = 4000;
+			defuse_time = currentms + total_diffuse_time;
+			oneshot_rising = 0;
+		}
+		else if (oneshot_rising)
+		{
+			total_diffuse_time = 10000;
+			defuse_time = currentms + total_diffuse_time;
+			oneshot_rising = 0;
+		}
+		if (!oneshot_rising)
+		{
+			float bar_length((float)(defuse_time - currentms) / (float)total_diffuse_time);
+			int width = (int)(40 * (float)(bar_length));
+			head.z += 20;
+			render_normal_position(head, width, 3, 50, 50, 255);
+		}
+	}
 
 	float target_health = ((float)cs2::player::get_health(target_player) / 100.0f) * 255.0f;
 	float r = 255.0f - target_health;
@@ -1033,7 +1070,7 @@ static void cs2::features::esp(QWORD local_player, QWORD target_player, vec3 hea
 #endif
 }
 
-static void cs2::features::render_normal_position(vec3 pos, int size, float r, float g, float b)
+static void cs2::features::render_normal_position(vec3 pos, int width, int height, float r, float g, float b)
 {
 	QWORD sdl_window = cs2::sdl::get_window();
 
@@ -1047,8 +1084,7 @@ static void cs2::features::render_normal_position(vec3 pos, int size, float r, f
 
 	vec3 top_origin = pos;
 	vec3 origin = pos;
-	top_origin.z += size/2;
-	origin.z -= size/2;
+	top_origin.z += height;
 
 	vec3 screen_bottom, screen_top;
 	view_matrix_t view_matrix = cs2::engine::get_viewmatrix();
@@ -1057,19 +1093,19 @@ static void cs2::features::render_normal_position(vec3 pos, int size, float r, f
 	screen_size.x = (float)window.w;
 	screen_size.y = (float)window.h;
 
-
 	if (!math::world_to_screen(screen_size, origin,/*out*/ screen_bottom, view_matrix) || !math::world_to_screen(screen_size, top_origin, /*out*/ screen_top, view_matrix))
 	{
 		return;
 	}
 
 	int box_height = (int)(screen_bottom.y - screen_top.y);
+	int box_width = box_height * (width / height);
 
-	int x = (int)window.x + (int)(screen_top.x - box_height / 2);
+	int x = (int)window.x + (int)(screen_top.x - box_width / 2);
 	int y = (int)window.y + (int)(screen_top.y);
 
 	//if box off screen dont draw
-	if (x > (int)(window.x + screen_size.x - (box_height)))
+	if (x > (int)(window.x + screen_size.x - (box_width)))
 	{
 		return;
 	}
@@ -1086,14 +1122,13 @@ static void cs2::features::render_normal_position(vec3 pos, int size, float r, f
 		return;
 	}
 
-
 #ifdef __linux__
-	client::DrawRect((void*)0, x, y, box_height, box_height, r, g, b);
+	client::DrawfillRect((void*)0, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #else
 	QWORD sdl_window_data = cs2::sdl::get_window_data(sdl_window);
 	if (sdl_window_data == 0)
 		return;
 	QWORD hwnd = cs2::sdl::get_hwnd(sdl_window_data);
-	client::DrawFillRect((void*)hwnd, x, y, box_height, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
+	client::DrawFillRect((void*)hwnd, x, y, box_width, box_height, (unsigned char)r, (unsigned char)g, (unsigned char)b);
 #endif
 }
