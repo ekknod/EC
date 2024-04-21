@@ -118,6 +118,7 @@ namespace cs2
 	namespace player
 	{
 		DWORD get_flags(QWORD player);
+		BOOL get_buy_menu(QWORD player);
 		DWORD get_health(QWORD player);
 		DWORD get_team_num(QWORD player);
 		int   get_life_state(QWORD player);
