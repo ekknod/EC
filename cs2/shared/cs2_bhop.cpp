@@ -11,7 +11,6 @@ namespace cs2
 
 		//DWORD jump = 65537;				//onground
 		//DWORD dontjump = 256;				//in air
-
 		BOOL onshot = 1;					//do something once untill being reset
 	}
 }
@@ -31,7 +30,7 @@ void cs2::bhop::run(void)
 	if (cs2::input::is_button_down(66))
 	{
 		//check if player is on ground
-		if (cs2::player::get_flags(local_player_gb) & 1)
+		if ((cs2::player::get_flags(local_player_gb) & 1) || (cs2::player::get_MoveType(local_player_gb) == 2313))
 		{
 			if (onshot)
 			{
