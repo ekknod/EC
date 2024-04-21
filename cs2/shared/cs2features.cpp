@@ -503,14 +503,15 @@ void cs2::features::run(void)
 	b_aimbot_button = (cs2::input::is_button_down(config::aimbot_button) | (b_triggerbot_button & config::trigger_aim));
 	
 
-	//
+	/*
 	// if we are holding triggerbot key, force head only
 	//
 	if (b_triggerbot_button)
 	{
-		config::aimbot_multibone = 0;
+		//LOG("MAP: %d      MAPNAME: %d \n", cs2::offsets::get_map(), cs2::offsets::get_map_name());
+		//config::aimbot_multibone = 0;
 	}
-
+	*/
 
 	BOOL  ffa         = cs2::gamemode::is_ffa();
 	DWORD num_shots   = cs2::player::get_shots_fired(local_player);
@@ -568,7 +569,7 @@ void cs2::features::run(void)
 	aimbot_active = 0;
 
 
-	if (!config::aimbot_enabled)
+	if (!config::aimbot_enabled || (cs2::player::get_buy_menu(local_player)))
 	{
 		return;
 	}
@@ -594,7 +595,7 @@ void cs2::features::run(void)
 	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
 
-	if (!b_aimbot_button)
+	if (!b_aimbot_button )//|| !)
 	{
 		return;
 	}
