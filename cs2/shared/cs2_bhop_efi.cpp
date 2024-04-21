@@ -32,7 +32,7 @@ void cs2::bhop::run(void)
 		currentms = cs2::engine::get_current_ms();
 
 		//check if player is on ground
-		if (cs2::player::get_flags(local_player_gb) & 1)
+		if ((cs2::player::get_flags(local_player_gb) & 1)|| (cs2::player::get_MoveType(local_player_gb) == 2313)
 		{
 			if (onshot == 0 && (delay < currentms))
 			{
