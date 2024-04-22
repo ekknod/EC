@@ -46,6 +46,7 @@ namespace cs2
 	namespace netvars
 	{
 		static int m_MoveType = 0;
+		static int m_bInBuyZone = 0;
 		static int m_bIsBuyMenuOpen = 0;
 		static int m_flFOVSensitivityAdjust = 0;
 		static int m_pGameSceneNode = 0;
@@ -291,6 +292,11 @@ static BOOL cs2::initialize(void)
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 				netvars::m_MoveType = *(int*)(entry + 0x08 + 0x10);
 			}
+			else if (!netvars::m_bInBuyZone && !strcmpi_imp(netvar_name, "m_bInBuyZone"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
+				netvars::m_bInBuyZone = *(int*)(entry + 0x10);
+			}
 			else if (!netvars::m_bIsBuyMenuOpen && !strcmpi_imp(netvar_name, "m_bIsBuyMenuOpen"))
 			{
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
@@ -461,6 +467,11 @@ static BOOL cs2::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_MoveType = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
+				else if (!netvars::m_bInBuyZone && !strcmpi_imp(netvar_name, "m_bInBuyZone"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_bInBuyZone = *(int*)(dos_header + j + 0x10);
+				}
 				else if (!netvars::m_bIsBuyMenuOpen && !strcmpi_imp(netvar_name, "m_bIsBuyMenuOpen"))
 				{
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
@@ -581,6 +592,7 @@ static BOOL cs2::initialize(void)
 	JZ(netvars::m_iHealth, E1);
 	JZ(netvars::m_fFlags, E1);
 	JZ(netvars::m_MoveType, E1);
+	JZ(netvars::m_bInBuyZone, E1);
 	JZ(netvars::m_bIsBuyMenuOpen, E1);
 	JZ(netvars::m_lifeState, E1);
 	JZ(netvars::m_iTeamNum, E1);
@@ -839,6 +851,11 @@ DWORD cs2::player::get_MoveType(QWORD player)
 BOOL cs2::player::get_buy_menu(QWORD player)
 {
 	return vm::read_i32(game_handle, player + netvars::m_bIsBuyMenuOpen);
+}
+
+BOOL cs2::player::get_buy_zone(QWORD player)
+{
+	return vm::read_i32(game_handle, player + netvars::m_bInBuyZone);
 }
 
 DWORD cs2::player::get_team_num(QWORD player)
