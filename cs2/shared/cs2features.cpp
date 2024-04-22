@@ -274,6 +274,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 	if (b_triggerbot_button && mouse_down_ms == 0)
 	{
+
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs2::WEAPON_CLASS::Pistol)
 		{
@@ -569,7 +570,7 @@ void cs2::features::run(void)
 	aimbot_active = 0;
 
 
-	if (!config::aimbot_enabled || (cs2::player::get_buy_menu(local_player)))
+	if (!config::aimbot_enabled || ((cs2::player::get_buy_menu(local_player)) && (cs2::player::get_buy_zone(local_player) == 257)))
 	{
 		return;
 	}
