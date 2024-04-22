@@ -47,6 +47,12 @@ void cs2::bhop::run(void)
 			}
 		}
 	}
+	else if (!cs2::input::is_button_down(66) && !onshot)
+	{
+		Sleep(20);
+		client::key_up(VK_NUMLOCK);				// vm::write(game_handle, (clientdll_base + jump_offset), &dontjump, sizeof(dontjump)); // write -jump
+		onshot = 1;
+	}
 }
 
 void cs2::bhop::reset(void)
