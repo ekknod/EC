@@ -1007,7 +1007,6 @@ cs2::WEAPON_CLASS cs2::player::get_weapon_class(QWORD player)
 	/* pistol */
 	{
 		WORD data[] = {
-			40, // {"ssg08"}, scout and deagle, in my opinion definitely belongs to same category
 			32, // {"hkp2000"},
 			61, // {"usp-s"},
 			1, // {"deagle"},
@@ -1028,6 +1027,7 @@ cs2::WEAPON_CLASS cs2::player::get_weapon_class(QWORD player)
 	/* sniper */
 	{
 		WORD data[] = {
+			40, // {"ssg08"}, actully the ssg-08 is a sniper and not a pistol
 			9, // {"awp"},
 			38, // {"scar20"},
 			11, // {"g3sg1"},
