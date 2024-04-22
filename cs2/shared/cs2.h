@@ -119,6 +119,7 @@ namespace cs2
 	{
 		DWORD get_flags(QWORD player);
 		DWORD get_MoveType(QWORD player);
+		BOOL get_buy_zone(QWORD player);
 		BOOL get_buy_menu(QWORD player);
 		DWORD get_health(QWORD player);
 		DWORD get_team_num(QWORD player);
