@@ -4,14 +4,7 @@ namespace cs2
 {
 	namespace bhop
 	{
-		//
-		//write memory for +jump/-jump
-		//
-		//QWORD jump_offset = 0x172F570;	//Jump  OLD dwForceJump = 0x1730530
-
-		//DWORD jump = 65537;				//onground
-		//DWORD dontjump = 256;				//in air
-		BOOL onshot = 1;					//do something once untill being reset
+		BOOL onshot = 1;		//do something once untill being reset
 	}
 }
 namespace client
@@ -48,6 +41,7 @@ void cs2::bhop::run(void)
 		{
 			if (!onshot)
 			{
+				Sleep(20);
 				client::key_up(VK_NUMLOCK);				// vm::write(game_handle, (clientdll_base + jump_offset), &dontjump, sizeof(dontjump)); // write -jump
 				onshot = 1;
 			}
