@@ -86,6 +86,8 @@ namespace features
 
 namespace config
 {
+	static BOOL  aimbot_visible_check;
+	static BOOL  triggerbot_visible_check;
 	static BOOL  visualize_hitbox;
 	static BOOL  bhop;
 	static BOOL  rcs;
@@ -187,6 +189,7 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 4.0f;
 		break;
 	case 253:
+		config::aimbot_visible_check = 0;
 		config::bhop = 1;
 		config::aimbot_button     = 82;
 		config::triggerbot_button = 321;
@@ -194,6 +197,7 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 0.01f;
 		break;
 	case 254:
+		config::aimbot_visible_check = 1;
 		config::bhop = 1;
 		config::trigger_aim	  = 1;
 		config::aimbot_button     = 317;
@@ -202,6 +206,7 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 3.5f;
 		break;
 	case 255:
+		config::aimbot_visible_check = 1;
 		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
@@ -212,6 +217,8 @@ inline void cs2::features::update_settings(void)
 		config::visualize_hitbox  = 1;
 		break;
 	default:
+		config::aimbot_visible_check = 1;
+		config::triggerbot_visible_check = 0;
 		config::bhop = 1;
 		config::trigger_aim	  = 0;
 		config::aimbot_button     = 317;
@@ -274,7 +281,6 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 	if (b_triggerbot_button && mouse_down_ms == 0)
 	{
-
 		float accurate_shots_fl = -0.08f;
 		if (weapon_class == cs2::WEAPON_CLASS::Pistol)
 		{
@@ -569,12 +575,10 @@ void cs2::features::run(void)
 
 	aimbot_active = 0;
 
-
 	if (!config::aimbot_enabled || ((cs2::player::get_buy_menu(local_player)) && (cs2::player::get_buy_zone(local_player) == 257)))
 	{
 		return;
 	}
-
 
 	//
 	// no valid target found
@@ -840,7 +844,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		{
 			continue;
 		}
-
+		
 		vec3 head{};
 		if (!cs2::node::get_bone_position(node, 6, &head))
 		{
@@ -850,6 +854,11 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		if (config::visuals_enabled)
 		{
 			esp(local_player, player, head);
+		}
+
+		if (((config::aimbot_visible_check && b_aimbot_button) || (config::triggerbot_visible_check && b_triggerbot_button)) && (cs2::player::get_spottedByMask(player) ^ 1))
+		{
+			continue;
 		}
 
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
