@@ -600,7 +600,7 @@ void cs2::features::run(void)
 	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
 
-	if (!b_aimbot_button )//|| !)
+	if ((!b_aimbot_button) || ((config::aimbot_visible_check && b_aimbot_button) && (cs2::player::get_spottedByMask(aimbot_target) == 0)))
 	{
 		return;
 	}
@@ -855,12 +855,16 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 		{
 			esp(local_player, player, head);
 		}
-
-		if (((config::aimbot_visible_check && b_aimbot_button) || (config::triggerbot_visible_check && b_triggerbot_button)) && (cs2::player::get_spottedByMask(player) ^ 1))
+		
+		if ((config::aimbot_visible_check && b_aimbot_button) && (cs2::player::get_spottedByMask(player) == 0))
 		{
 			continue;
 		}
-
+		if ((config::triggerbot_visible_check && b_triggerbot_button) && (cs2::player::get_spottedByMask(player) == 0))
+		{
+			continue;
+		}
+		
 		vec3 best_angle = get_target_angle(local_player, head, num_shots, aim_punch);
 
 		float fov = math::get_fov(va, *(vec3*)&best_angle);
