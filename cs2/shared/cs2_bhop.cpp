@@ -4,7 +4,7 @@ namespace cs2
 {
 	namespace bhop
 	{
-		BOOL onshot = 1;		//do something once untill being reset
+		BOOL onshot = 1;					//do something once untill being reset
 	}
 }
 namespace client
@@ -35,13 +35,13 @@ void cs2::bhop::run(void)
 				client::key_up(VK_NUMLOCK);				// vm::write(game_handle, (clientdll_base + jump_offset), &dontjump, sizeof(dontjump)); // write -jump
 				onshot = 1;
 			}
-			Sleep(17);
+			Sleep(18);
 		}
 		else
 		{
 			if (!onshot)
 			{
-				Sleep(20);
+				Sleep(24);
 				client::key_up(VK_NUMLOCK);				// vm::write(game_handle, (clientdll_base + jump_offset), &dontjump, sizeof(dontjump)); // write -jump
 				onshot = 1;
 			}
@@ -49,7 +49,7 @@ void cs2::bhop::run(void)
 	}
 	else if (!cs2::input::is_button_down(66) && !onshot)
 	{
-		Sleep(20);
+		Sleep(24);
 		client::key_up(VK_NUMLOCK);				// vm::write(game_handle, (clientdll_base + jump_offset), &dontjump, sizeof(dontjump)); // write -jump
 		onshot = 1;
 	}
