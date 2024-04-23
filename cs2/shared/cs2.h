@@ -117,6 +117,8 @@ namespace cs2
 
 	namespace player
 	{
+		DWORD get_spottedByMask(QWORD player);
+		BOOL get_spotted(QWORD player);
 		DWORD get_flags(QWORD player);
 		DWORD get_MoveType(QWORD player);
 		BOOL get_buy_zone(QWORD player);
