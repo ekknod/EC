@@ -45,6 +45,9 @@ namespace cs2
 	}
 	namespace netvars
 	{
+		static int m_entitySpottedState = 0;//m_entitySpottedState = 0x1698;
+		static int m_bSpotted = 0; //m_bSpotted = 0x8;
+		static int m_bSpottedByMask = 0; // m_bSpottedByMask = 0xC;
 		static int m_MoveType = 0;
 		static int m_bInBuyZone = 0;
 		static int m_bIsBuyMenuOpen = 0;
@@ -282,6 +285,21 @@ static BOOL cs2::initialize(void)
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
 				netvars::m_iHealth = *(int*)(entry + 0x08 + 0x10);
 			}
+			else if ((netvars::m_entitySpottedState < 0x1388 || netvars::m_entitySpottedState > 0x1770 || !netvars::m_entitySpottedState) && !strcmpi_imp(netvar_name, "m_entitySpottedState"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x10));
+				netvars::m_entitySpottedState = *(int*)(entry + 0x10);
+			}
+			else if (!netvars::m_bSpotted && !strcmpi_imp(netvar_name, "m_bSpotted"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08));
+				netvars::m_bSpotted = *(int*)(entry + 0x08);
+			}
+			else if (!netvars::m_bSpottedByMask && !strcmpi_imp(netvar_name, "m_bSpottedByMask"))
+			{
+				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
+				netvars::m_bSpottedByMask = *(int*)(entry + 0x08 + 0x10);
+			}
 			else if ((netvars::m_fFlags < 0x1F4 || netvars::m_fFlags > 0xFFF || !netvars::m_fFlags) && !strcmpi_imp(netvar_name, "m_fFlags"))
 			{
 				LOG("%s, %x\n", netvar_name, *(int*)(entry + 0x08 + 0x10));
@@ -457,6 +475,21 @@ static BOOL cs2::initialize(void)
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
 					netvars::m_iHealth = *(int*)(dos_header + j + 0x08 + 0x10);
 				}
+				else if ((netvars::m_entitySpottedState < 0x1388 || netvars::m_entitySpottedState > 0x1770 || !netvars::m_entitySpottedState) && !strcmpi_imp(netvar_name, "m_entitySpottedState"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_entitySpottedState = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_bSpotted && !strcmpi_imp(netvar_name, "m_bSpotted"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x10));
+					netvars::m_bSpotted = *(int*)(dos_header + j + 0x10);
+				}
+				else if (!netvars::m_bSpottedByMask && !strcmpi_imp(netvar_name, "m_bSpottedByMask"))
+				{
+					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
+					netvars::m_bSpottedByMask = *(int*)(dos_header + j + 0x08 + 0x10);
+				}
 				else if ((netvars::m_fFlags < 0x1F4 || netvars::m_fFlags > 0xFFF || !netvars::m_fFlags) && !strcmpi_imp(netvar_name, "m_fFlags"))
 				{
 					LOG("%s, %x\n", netvar_name, *(int*)(dos_header + j + 0x08 + 0x10));
@@ -590,6 +623,9 @@ static BOOL cs2::initialize(void)
 	JZ(netvars::m_flFOVSensitivityAdjust, E1);
 	JZ(netvars::m_pGameSceneNode, E1);
 	JZ(netvars::m_iHealth, E1);
+	JZ(netvars::m_entitySpottedState, E1);
+	JZ(netvars::m_bSpotted, E1);
+	JZ(netvars::m_bSpottedByMask, E1);
 	JZ(netvars::m_fFlags, E1);
 	JZ(netvars::m_MoveType, E1);
 	JZ(netvars::m_bInBuyZone, E1);
@@ -836,6 +872,16 @@ BOOL cs2::offsets::get_BombDropped()
 DWORD cs2::player::get_health(QWORD player)
 {
 	return vm::read_i32(game_handle, player + netvars::m_iHealth);
+}
+
+DWORD cs2::player::get_spottedByMask(QWORD player)
+{
+	return vm::read_i32(game_handle, player + netvars::m_entitySpottedState + netvars::m_bSpottedByMask);
+}
+
+BOOL cs2::player::get_spotted(QWORD player)
+{
+	return vm::read_i8(game_handle, player + netvars::m_entitySpottedState + netvars::m_bSpotted);
 }
 
 DWORD cs2::player::get_flags(QWORD player)
