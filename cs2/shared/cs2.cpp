@@ -17,15 +17,34 @@ namespace cs2
 	}
 	namespace offsets
 	{
+		//struct was gifted by glock
+		struct globalvars_t
+		{
+			float real_time;
+			DWORD frame_count;
+			UINT8 padding_0[0x8];
+			DWORD max_clients;
+			float interval_per_tick;
+			UINT8 padding_1[0x14];
+			float current_time;
+			float current_time_2;
+			UINT8 padding_2[0xC];
+			DWORD tick_count;
+			float interval_per_tick_2;
+			UINT8 padding_3[0x138];
+			QWORD current_map;
+			QWORD current_map_name;
+		};
+
 		//offsets from a2x dumper but i could probably add it in later
 		DWORD m_bBombPlanted = 0x9DD;				// bool
 		DWORD m_bBombDropped = 0x9DC;				// bool
-		DWORD dwGameRules = 0x191ECA0;				//pointer
+		DWORD dwGameRules = 0x191EC40;				//pointer
 
-		DWORD dwGlobalVars = 0x1729BA0;				//pointer
+		DWORD dwGlobalVars = 0x1729B80;				//pointer
 
 		QWORD game_rules;
-		QWORD globalvars;
+		QWORD global_vars;
 
 		QWORD clientdll;
 	}
@@ -836,22 +855,13 @@ void cs2::input::move(int x, int y)
 	vm::write(game_handle, direct::previous_xy - 4, &data, sizeof(data));
 }
 
-
-//0x180 and 0x188 are from the stuct
-DWORD cs2::offsets::get_map_name()
+QWORD cs2::offsets::get_map()
 {
-	vm::read(game_handle, offsets::clientdll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
-	DWORD mapname;
-	vm::read(game_handle, globalvars + 0x188, &mapname, sizeof(mapname));
-	return mapname;
-}
-DWORD cs2::offsets::get_map()
-{
-	vm::read(game_handle, offsets::clientdll + offsets::dwGlobalVars, &offsets::globalvars, sizeof(offsets::globalvars));
-	DWORD map;
-	vm::read(game_handle, globalvars + 0x180, &map, sizeof(map));
-	return map;
-}
+	vm::read(game_handle, offsets::clientdll + offsets::dwGlobalVars, &offsets::global_vars, sizeof(offsets::global_vars));
+	globalvars_t globalvars;
+	vm::read(game_handle, offsets::global_vars, &globalvars, sizeof(globalvars));
+	return globalvars.current_map;
+} 
 
 BOOL cs2::offsets::get_BombPlanted()
 {
@@ -860,6 +870,7 @@ BOOL cs2::offsets::get_BombPlanted()
 	vm::read(game_handle, game_rules + m_bBombPlanted, &bomb_down, sizeof(bomb_down));
 	return bomb_down;
 }
+
 BOOL cs2::offsets::get_BombDropped()
 {
 	vm::read(game_handle, offsets::clientdll + offsets::dwGameRules, &offsets::game_rules, sizeof(offsets::game_rules));
