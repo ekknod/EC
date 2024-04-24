@@ -75,8 +75,7 @@ namespace cs2
 		BOOL get_BombDropped();
 		BOOL get_BombPlanted();
 
-		DWORD get_map();
-		DWORD get_map_name();
+		QWORD get_map();
 	}
 
 	namespace engine
@@ -154,4 +153,3 @@ namespace cs2
 }
 
 #endif /* cs2.h */
-
