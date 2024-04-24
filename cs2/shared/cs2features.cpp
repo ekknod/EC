@@ -42,7 +42,7 @@ namespace features
 	static QWORD aimbot_target;
 	static int   aimbot_bone;
 	static DWORD aimbot_ms;
-
+	static int local_player_index;
 	//
 	// infov event state
 	//
@@ -206,6 +206,7 @@ inline void cs2::features::update_settings(void)
 		config::aimbot_smooth     = 3.5f;
 		break;
 	case 255:
+		config::triggerbot_visible_check = 0;
 		config::aimbot_visible_check = 1;
 		config::bhop = 1;
 		config::trigger_aim	  = 0;
@@ -263,6 +264,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 
 	if (config::visuals_enabled)
 	{
+
 		if (fov < 5.0f)
 		{
 			//
@@ -297,7 +299,7 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 				vec3  min;
 				vec3  max;
 			} COLL;
-
+			
 			COLL coll = {
 				2.800000f, {-0.200000f, 1.100000f,  0.000000f},  {3.600000f,  0.100000f, 0.000000f}
 			};
@@ -359,7 +361,8 @@ static void cs2::features::has_target_event(QWORD local_player, QWORD target_pla
 			{
 				target_distance = 0;
 			}
-			if ((math::vec_min_max(eye, dir,
+			
+			if ( (math::vec_min_max(eye, dir,
 				math::vec_transform(coll.min, matrix),
 				math::vec_transform(coll.max, matrix),
 				coll.radius)) && (target_distance < 180))
@@ -515,7 +518,7 @@ void cs2::features::run(void)
 	//
 	if (b_triggerbot_button)
 	{
-		//LOG("MAP: %d      MAPNAME: %d \n", cs2::offsets::get_map(), cs2::offsets::get_map_name());
+		LOG("MAP: %o \n", cs2::offsets::get_map());
 		//config::aimbot_multibone = 0;
 	}
 	*/
@@ -600,7 +603,7 @@ void cs2::features::run(void)
 	vec3  aimbot_pos{};
 	float aimbot_fov = 360.0f;
 
-	if ((!b_aimbot_button) || ((config::aimbot_visible_check && b_aimbot_button) && (cs2::player::get_spottedByMask(aimbot_target) == 0)))
+	if ((!b_aimbot_button) || ((config::aimbot_visible_check) && (~cs2::player::get_spottedByMask(best_target) & (1 << (local_player_index - 1)))))
 	{
 		return;
 	}
@@ -826,6 +829,12 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 			continue;
 		}
 
+		if (player == local_player)
+		{
+			features::local_player_index = i;
+			continue;
+		}
+
 		if (ffa == 0)
 		{
 			if (cs2::player::get_team_num(player) == cs2::player::get_team_num(local_player))
@@ -856,11 +865,11 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 			esp(local_player, player, head);
 		}
 		
-		if ((config::aimbot_visible_check && b_aimbot_button) && (cs2::player::get_spottedByMask(player) == 0))
+		if ((config::aimbot_visible_check && b_aimbot_button) && (~cs2::player::get_spottedByMask(player) & (1 << (local_player_index - 1))))
 		{
 			continue;
 		}
-		if ((config::triggerbot_visible_check && b_triggerbot_button) && (cs2::player::get_spottedByMask(player) == 0))
+		if ((config::triggerbot_visible_check && b_triggerbot_button) && (~cs2::player::get_spottedByMask(player) & (1 << (local_player_index - 1))))
 		{
 			continue;
 		}
