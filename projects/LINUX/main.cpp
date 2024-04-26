@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include "../../library/SDL3/include/SDL3/SDL.h"
 
@@ -129,14 +130,35 @@ int main(void)
 		return 0;
 	}
 	SDL_DisplayID id = SDL_GetDisplayForWindow(temp);
-	const SDL_DisplayMode *disp = SDL_GetCurrentDisplayMode(id);
 	SDL_SetWindowPosition(temp, 0, 0);
+
+	int total_displays = 0;
+	SDL_DisplayID* display_ids = SDL_GetDisplays(&total_displays);
+
+	int display_min_x = INT_MAX;
+	int display_min_y = INT_MAX;
+	int display_max_x = 0;
+	int display_max_y = 0;
+	for (int i = 0; i < total_displays && display_ids[i] != 0; i++)
+	{
+		SDL_Rect rect;
+		if (SDL_GetDisplayBounds(display_ids[i], &rect) == 0) {
+			display_min_x = SDL_min(display_min_x, rect.x);
+			display_min_y = SDL_min(display_min_y, rect.y);
+			display_max_x = SDL_max(display_max_x, rect.x + rect.w);
+			display_max_y = SDL_max(display_max_y, rect.y + rect.h);
+		}
+	}
+	if (display_min_x == INT_MAX) {
+		return 0;
+	}
+	SDL_free(display_ids);
 
 	SDL_Window *window = SDL_CreatePopupWindow(temp, 0, 0, 640, 480,
 		SDL_WINDOW_TRANSPARENT | SDL_WINDOW_BORDERLESS | SDL_WINDOW_TOOLTIP);
 		
-	SDL_SetWindowSize(window, disp->w, disp->h);
-	SDL_SetWindowPosition(window, 0, 0);
+	SDL_SetWindowSize(window, display_max_x - display_min_x, display_max_y - display_min_y);
+	SDL_SetWindowPosition(window, display_min_x, display_min_y);
 
 	SDL_SetWindowAlwaysOnTop(window, SDL_TRUE);
 
