@@ -578,7 +578,7 @@ static BOOL cs2::initialize(void)
 	JZ(netvars::m_modelState, E1);
 	JZ(netvars::m_aimPunchCache, E1);
 	JZ(netvars::m_iShotsFired, E1);
-	JZ(netvars::m_angEyeAngles, E1);
+	// JZ(netvars::m_angEyeAngles, E1);
 	JZ(netvars::m_iIDEntIndex, E1);
 	JZ(netvars::m_vOldOrigin, E1);
 
