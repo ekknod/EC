@@ -421,8 +421,8 @@ static BOOL apex::initialize(void)
 	// initialize vtable list interfaces
 	//
 	interfaces::input  = vm::get_relative_address(game_handle, vtable_list - 0x0007, 3, 7);
-	interfaces::cvar   = vm::get_relative_address(game_handle, vtable_list - 0x011B, 3, 7);
-	interfaces::engine = vm::get_relative_address(game_handle, vtable_list + 0x003A, 3, 7);
+	interfaces::cvar   = vm::get_relative_address(game_handle, vtable_list - 0x011D, 3, 7);
+	interfaces::engine = vm::get_relative_address(game_handle, vtable_list + 0x0035, 3, 7);
 
 	//
 	// initialize bullet information
