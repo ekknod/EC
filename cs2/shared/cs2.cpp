@@ -736,7 +736,7 @@ BOOL cs2::entity::is_player(QWORD controller)
 		return 1;
 	}
 
-	QWORD vfunc = get_interface_function(controller, 144);
+	QWORD vfunc = get_interface_function(controller, 150);
 	if (vfunc == 0)
 		return 0;
 
