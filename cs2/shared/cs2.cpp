@@ -43,14 +43,14 @@ namespace cs2
 		static int m_lifeState = 0;
 		static int m_iTeamNum = 0;
 		static int m_vecViewOffset = 0;
-		static int m_vecOrigin = 0;
+		static int m_vecOrigin = 0x88;
 		static int m_bDormant = 0;
 		static int m_hPawn = 0;
 		static int m_modelState = 0;
 		static int m_aimPunchCache = 0;
 		static int m_iShotsFired = 0;
 		static int m_angEyeAngles = 0;
-		static int m_iIDEntIndex = 0;
+		static int m_iIDEntIndex = 0x13A8;
 		static int m_vOldOrigin = 0;
 		static int m_pClippingWeapon = 0;
 		static int v_angle = 0;
