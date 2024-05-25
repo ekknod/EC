@@ -1,6 +1,4 @@
 #include "../../cs2/shared/cs2game.h"
-#include "../../csgo/shared/csgogame.h"
-#include "../../apex/shared/apexgame.h"
 
 #include <SDL3/SDL.h>
 #pragma comment(lib, "SDL3.lib")
@@ -86,44 +84,13 @@ int main(void)
 			}
 		}
 
-		if (cs2::game_handle)
+		if (cs2::running())
 		{
-			if (cs2::running())
-			{
-				cs2::features::run();
-			}
-			else
-			{
-				cs2::features::reset();
-			}
-		}
-		else if (csgo::game_handle)
-		{
-			if (csgo::running())
-			{
-				csgo::features::run();
-			}
-			else
-			{
-				csgo::features::reset();
-			}
-		}
-		else if (apex::game_handle)
-		{
-			if (apex::running())
-			{
-				apex::features::run();
-			}
-			else
-			{
-				apex::features::reset();
-			}
+			cs2::features::run();
 		}
 		else
 		{
-			cs2::running();
-			csgo::running();
-			apex::running();
+			cs2::features::reset();
 		}
 
 		SDL_UpdateWindowSurface(window);
