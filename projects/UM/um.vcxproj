@@ -149,26 +149,12 @@
   <ItemGroup>
     <ClCompile Include="..\..\cs2\shared\cs2.cpp" />
     <ClCompile Include="..\..\cs2\shared\cs2features.cpp" />
-
-    <ClCompile Include="..\..\csgo\shared\csgo.cpp" />
-    <ClCompile Include="..\..\csgo\shared\csgofeatures.cpp" />
-
-    <ClCompile Include="..\..\apex\shared\apex.cpp" />
-    <ClCompile Include="..\..\apex\shared\apexfeatures.cpp" />
-
     <ClCompile Include="..\..\library\vm\um\vm.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\cs2\shared\cs2.h" />
     <ClInclude Include="..\..\cs2\shared\cs2game.h" />
-
-    <ClInclude Include="..\..\csgo\shared\csgo.h" />
-    <ClInclude Include="..\..\csgo\shared\csgogame.h" />
-
-    <ClInclude Include="..\..\apex\shared\apex.h" />
-    <ClInclude Include="..\..\apex\shared\apexgame.h" />
-    
     <ClInclude Include="..\..\library\math.h" />
     <ClInclude Include="..\..\library\vm\vm.h" />
   </ItemGroup>
