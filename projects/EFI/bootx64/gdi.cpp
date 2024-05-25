@@ -48,7 +48,7 @@ namespace gdi
 	bool FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr);
 	void DrawRect(VOID* hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
-	bool Line(HDC hDC, CONST POINT *start, POINT *end, HBRUSH hbr);
+	bool Line(HDC hDC, CONST POINT* start, POINT* end, COLORREF color, int thickness);
 	void DrawLine(VOID* hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_y, unsigned char r, unsigned char g, unsigned char b);
 }
 
@@ -237,21 +237,18 @@ bool gdi::FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr)
 
 	return Ret;
 }
-bool gdi::Line(HDC hDC, CONST POINT* start, POINT* end, HBRUSH hbr) 
+bool gdi::Line(HDC hDC, CONST POINT* start, POINT* end, COLORREF color, int thickness) 
 {
 	BOOL Ret;
-	HBRUSH prevhbr = NULL;
 
+	HPEN pen = CreatePen(PS_SOLID, 2, color);
+	if (pen == NULL) return;
 
-	prevhbr = NtGdiSelectBrush(hDC, hbr);
-
+	HPEN prevpen = (HPEN)SelectObject(hDC, pen);
 	MoveToEx(hDC, start->x, start->y, NULL);
-
 	Ret = LineTo(hDC, end->x, end->y);
-
-	/* Select old brush */
-	if (prevhbr)
-		NtGdiSelectBrush(hDC, prevhbr);
+	SelectObject(hDC, prevpen);
+	NtGdiDeleteObjectApp(pen);
 
 	return Ret;
 }
@@ -267,15 +264,14 @@ void gdi::DrawLine(VOID *hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_
 	}
 	HDC hdc = NtUserGetDCEx(0x0, 0, 1);
 	if (!hdc) return;
-	HBRUSH brush = NtGdiCreateSolidBrush(RGB(r, g, b), NULL);
-	if (!brush) return;
+
+	COLORREF color = RGB(r, g, b);
 
 	POINT start = { start_x, start_y };
 	POINT end = { end_x, end_y };
 
-	Line(hdc, &start, &end, brush);
+	Line(hdc, &start, &end, color, 2);
 	NtUserReleaseDC(hdc);
-	NtGdiDeleteObjectApp(brush);
 }
 
 
@@ -309,7 +305,7 @@ void gdi::DrawRect(
 	NtGdiDeleteObjectApp(brush);
 }
 
-void gdi::DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b)
+void gdi::DrawFillRect(VOID* hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b)
 {
 	if (!gdi::init())
 	{
