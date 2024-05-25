@@ -46,10 +46,10 @@ namespace gdi
 	BOOL init();
 	bool FrameRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr, int thickness);
 	bool FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr);
-	bool Line(HDC hDC, CONST POINT *start, POINT *end, HBRUSH hbr);
-	void DrawLine(VOID* hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_y, unsigned char r, unsigned char g, unsigned char b);
 	void DrawRect(VOID* hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+	bool Line(HDC hDC, CONST POINT *start, POINT *end, HBRUSH hbr);
+	void DrawLine(VOID* hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_y, unsigned char r, unsigned char g, unsigned char b);
 }
 
 
