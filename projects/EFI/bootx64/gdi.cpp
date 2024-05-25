@@ -11,6 +11,12 @@ namespace gdi
 	typedef HDC(*GetDC_t)(HWND hwnd);//verified
 	typedef HDC(*GetDCEx_t)(HWND hwnd, HANDLE region, ULONG flags);//verified
 	typedef BOOL(*PatBlt_t)(HDC hdcDest, INT x, INT y, INT cx, INT cy, DWORD dwRop);//verified
+
+	typedef HPEN(*CreatePen_t)(INT iStyle, INT cWidth, COLORREF color);
+	typedef BOOL(*LineTo_t)(HDC hdc, INT x, INT y);
+	typedef HGDIOBJ(*SelectObject_t)(HDC hdc, HGDIOBJ h);
+	typedef BOOL(*MoveToEx_t)(HDC hdc, INT x, INT y, LPPOINT lppt);
+
 	typedef HBRUSH (*SelectBrush_t)(HDC hdc, HBRUSH hbrush); //verified
 	typedef int (*ReleaseDC_t)(HDC hdc); //verified
 	typedef HBRUSH (*CreateSolidBrush_t)( COLORREF cr, HBRUSH hbr); //verified
@@ -36,6 +42,13 @@ namespace gdi
 	SelectBrush_t NtGdiSelectBrush = NULL;
 	PatBlt_t NtGdiPatBlt = NULL;
 	ReleaseDC_t NtUserReleaseDC = NULL;
+
+	CreatePen_t NtGdiCreatePen = NULL;
+	LineTo_t NtGdiLineTo = NULL;
+	SelectObject_t NtGdiSelectObject = NULL;
+	MoveToEx_t NtGdiMoveToEx = NULL;
+
+
 	CreateSolidBrush_t NtGdiCreateSolidBrush = NULL;
 	DeleteObjectApp_t NtGdiDeleteObjectApp = NULL;
 	ExtTextOutW_t NtGdiExtTextOutW = NULL;
@@ -197,6 +210,19 @@ BOOL gdi::init()
 		return 0;
 	}
 	
+	NtGdiCreatePen = (CreatePen_t)GetProcAddressQ(win32kbase, "NtGdiCreatePen");
+	if (!NtGdiCreatePen) return 0;
+
+	NtGdiLineTo = (LineTo_t)GetProcAddressQ(win32kbase, "NtGdiLineTo");
+	if (!NtGdiLineTo) return 0;
+
+	NtGdiSelectObject = (SelectObject_t)GetProcAddressQ(win32kfull, "NtGdiSelectObject");
+	if (!NtGdiSelectObject) return 0;
+
+	NtGdiMoveToEx = (MoveToEx_t)GetProcAddressQ(win32kfull, "NtGdiMoveToEx");
+	if (!NtGdiMoveToEx) return 0;
+
+
 	init_status = 1;
 
 	return init_status;
@@ -241,13 +267,13 @@ bool gdi::Line(HDC hDC, CONST POINT* start, POINT* end, COLORREF color, int thic
 {
 	BOOL Ret;
 
-	HPEN pen = CreatePen(PS_SOLID, 2, color);
-	if (pen == NULL) return;
+	HPEN pen = NtGdiCreatePen(PS_SOLID, thickness, color);
+	if (pen == NULL) return false;
 
-	HPEN prevpen = (HPEN)SelectObject(hDC, pen);
-	MoveToEx(hDC, start->x, start->y, NULL);
-	Ret = LineTo(hDC, end->x, end->y);
-	SelectObject(hDC, prevpen);
+	HPEN prevpen = (HPEN)NtGdiSelectObject(hDC, pen);
+	NtGdiMoveToEx(hDC, start->x, start->y, NULL);
+	Ret = NtGdiLineTo(hDC, end->x, end->y);
+	if (prevpen) NtGdiSelectObject(hDC, prevpen);
 	NtGdiDeleteObjectApp(pen);
 
 	return Ret;
