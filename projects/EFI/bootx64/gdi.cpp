@@ -46,7 +46,9 @@ namespace gdi
 	BOOL init();
 	bool FrameRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr, int thickness);
 	bool FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr);
-	void DrawRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
+	bool Line(HDC hDC, CONST POINT *start, POINT *end, HBRUSH hbr);
+	void DrawLine(VOID* hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_y, unsigned char r, unsigned char g, unsigned char b);
+	void DrawRect(VOID* hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 	void DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char r, unsigned char g, unsigned char b);
 }
 
@@ -235,6 +237,47 @@ bool gdi::FillRect(HDC hDC, CONST RECT *lprc, HBRUSH hbr)
 
 	return Ret;
 }
+bool gdi::Line(HDC hDC, CONST POINT* start, POINT* end, HBRUSH hbr) 
+{
+	BOOL Ret;
+	HBRUSH prevhbr = NULL;
+
+
+	prevhbr = NtGdiSelectBrush(hDC, hbr);
+
+	MoveToEx(hDC, start->x, start->y, NULL);
+
+	Ret = LineTo(hDC, end->x, end->y);
+
+	/* Select old brush */
+	if (prevhbr)
+		NtGdiSelectBrush(hDC, prevhbr);
+
+	return Ret;
+}
+void gdi::DrawLine(VOID *hwnd, LONG start_x, LONG start_y, LONG end_x, LONG end_y, unsigned char r, unsigned char g, unsigned char b)
+{
+	if (!gdi::init()) 
+	{
+		return;
+	}
+	if (NtUserGetForegroundWindow() != (HWND)hwnd)
+	{
+		return;
+	}
+	HDC hdc = NtUserGetDCEx(0x0, 0, 1);
+	if (!hdc) return;
+	HBRUSH brush = NtGdiCreateSolidBrush(RGB(r, g, b), NULL);
+	if (!brush) return;
+
+	POINT start = { start_x, start_y };
+	POINT end = { end_x, end_y };
+
+	Line(hdc, &start, &end, brush);
+	NtUserReleaseDC(hdc);
+	NtGdiDeleteObjectApp(brush);
+}
+
 
 
 void gdi::DrawRect(
@@ -293,4 +336,3 @@ void gdi::DrawFillRect(VOID *hwnd, LONG x, LONG y, LONG w, LONG h, unsigned char
 	NtUserReleaseDC(hdc);
 	NtGdiDeleteObjectApp(brush);
 }
-
