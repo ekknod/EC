@@ -71,6 +71,7 @@ int main(void)
 	SDL_SetWindowOpacity(window, 0.90f);
 	sdl_surface = SDL_GetWindowSurface(window);
 
+	BOOL consoleHidden = false;
 	BOOL quit = 0;
 	while (!quit)
 	{
@@ -91,6 +92,12 @@ int main(void)
 		else
 		{
 			cs2::features::reset();
+		}
+
+		if (!consoleHidden && GetAsyncKeyState(VK_SPACE) & 0x8000)
+		{
+		    ShowWindow(GetConsoleWindow(), SW_HIDE);
+		    consoleHidden = true;
 		}
 
 		SDL_UpdateWindowSurface(window);
