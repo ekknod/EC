@@ -561,9 +561,9 @@ BOOL cs2::sdl::get_window_info(QWORD window, WINDOW_INFO* info) {
     int x, y, w, h;
   } wvec4;
 
-  wvec4 buffer{};
-  if (!vm::read(game_handle, window + 0x20, &buffer, sizeof(buffer)))
-    return 0;
+	wvec4 buffer{};
+	if (!vm::read(game_handle, window + 0x18, &buffer, sizeof(buffer)))
+		return 0;
 
   info->x = (float)buffer.x;
   info->y = (float)buffer.y;
