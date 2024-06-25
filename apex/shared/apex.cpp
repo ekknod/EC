@@ -400,7 +400,6 @@ static BOOL apex::initialize(void)
 	JZ(get_all_classes = vm::scan_pattern(apex_dump, "\x4C\x8B\xD8\xEB\x07\x4C\x8B\x1D", "xxxxxxxx", 9), E2);
 	JZ(direct::view_render = vm::scan_pattern(apex_dump, "\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\xDA\xBA\xFF\xFF\xFF\xFF",
 		"xxxxxxxxx????xxxxxxxx", 22), E2);
-	JZ(direct::view_matrix = vm::scan_pattern(apex_dump, "\x4C\x89\xB3\x00\x00\x00\x00\x48\x89\xAB", "xxx????xxx", 11), E2);
 	JZ(direct::camera_origin = vm::scan_pattern(apex_dump, "\x48\x8B\xF9\x0F\x2E\x89\x00\x00\x00\x00\x7A", "xxxxxx????x", 11), E2);
 	JZ(interfaces::window_info = vm::scan_pattern(apex_dump, "\x89\x05\xCC\xCC\xCC\xCC\x32\xC0\x89\x0D", "xx????xxxx", 10), E2);
 
@@ -412,7 +411,7 @@ static BOOL apex::initialize(void)
 	get_all_classes               = vm::get_relative_address(game_handle, get_all_classes + 0x05, 3, 7);
 	JZ(get_all_classes            = vm::read_i64(game_handle, get_all_classes), E1);
 	direct::view_render           = vm::get_relative_address(game_handle, direct::view_render + 0x06, 3, 7);
-	JZ(direct::view_matrix        = vm::read_i32(game_handle, direct::view_matrix + 3), E1);
+	direct::view_matrix = 0x11a350;
 	direct::camera_origin         = vm::read_i32(game_handle, direct::camera_origin + 6);
 	interfaces::window_info       = vm::get_relative_address(game_handle, interfaces::window_info, 2, 6);
 	JZ(dump_netvars(get_all_classes), E1);
