@@ -412,7 +412,7 @@ static BOOL apex::initialize(void)
 	get_all_classes               = vm::get_relative_address(game_handle, get_all_classes + 0x05, 3, 7);
 	JZ(get_all_classes            = vm::read_i64(game_handle, get_all_classes), E1);
 	direct::view_render           = vm::get_relative_address(game_handle, direct::view_render + 0x06, 3, 7);
-	JZ(direct::view_matrix        = vm::read_i32(game_handle, direct::view_matrix + 3), E1);
+	JZ(direct::view_matrix        = 0x11A350;
 	direct::camera_origin         = vm::read_i32(game_handle, direct::camera_origin + 6);
 	interfaces::window_info       = vm::get_relative_address(game_handle, interfaces::window_info, 2, 6);
 	JZ(dump_netvars(get_all_classes), E1);
