@@ -191,11 +191,10 @@ static BOOL cs2::initialize(void)
 	if (vm::get_target_os() == VmOs::Linux)
 	{
 		//
-		// viewmatrix: 48 63 c6 48 c1 E0 06 48 03 05 ? ? ? ? C3 90
+		// viewmatrix: 48 8d 05 ? ? ? ? 4c 8d 05 ? ? ? ? 48 8d 0d
 		//
-		JZ(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x63\xc6\x48\xc1\xE0\x06\x48\x03\x05", "xxxxxxxxxx", 10), E1);
-		direct::view_matrix    = vm::get_relative_address(game_handle, direct::view_matrix + 0x07, 3, 7);
-		JZ(direct::view_matrix = vm::read_i64(game_handle, direct::view_matrix), E1);
+		JZ(direct::view_matrix = vm::scan_pattern_direct(game_handle, client_dll, "\x48\x8D\x05\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\x48\x8D\x0D", "xxx????xxx????xxx", 17), E1);
+		direct::view_matrix    = vm::get_relative_address(game_handle, direct::view_matrix + 0x7, 3, 7);
 	}
 	else
 	{
