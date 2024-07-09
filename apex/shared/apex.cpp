@@ -400,7 +400,7 @@ static BOOL apex::initialize(void)
 	JZ(get_all_classes = vm::scan_pattern(apex_dump, "\x4C\x8B\xD8\xEB\x07\x4C\x8B\x1D", "xxxxxxxx", 9), E2);
 	JZ(direct::view_render = vm::scan_pattern(apex_dump, "\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\xDA\xBA\xFF\xFF\xFF\xFF",
 		"xxxxxxxxx????xxxxxxxx", 22), E2);
-	JZ(direct::view_matrix = vm::scan_pattern(apex_dump, "\x4C\x89\xB3\x00\x00\x00\x00\x48\x89\xAB", "xxx????xxx", 11), E2);
+	JZ(direct::view_matrix = vm::scan_pattern(apex_dump, "\x49\x8B\xB5\x00\x00\x00\x00\x49\x8B\x9D\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxx????xxx????x????", 19), E2);
 	JZ(direct::camera_origin = vm::scan_pattern(apex_dump, "\x48\x8B\xF9\x0F\x2E\x89\x00\x00\x00\x00\x7A", "xxxxxx????x", 11), E2);
 	JZ(interfaces::window_info = vm::scan_pattern(apex_dump, "\x89\x05\xCC\xCC\xCC\xCC\x32\xC0\x89\x0D", "xx????xxxx", 10), E2);
 
