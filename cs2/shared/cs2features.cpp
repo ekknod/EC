@@ -618,7 +618,7 @@ static void cs2::features::get_best_target(BOOL ffa, QWORD local_controller, QWO
 	vec3  angle{};
 	vec3  aimpos{};
 	
-	for (int i = 1; i < 32; i++)
+	for (int i = 1; i < 64; i++)
 	{
 		QWORD ent = cs2::entity::get_client_entity(i);
 		if (ent == 0 || (ent == local_controller))
