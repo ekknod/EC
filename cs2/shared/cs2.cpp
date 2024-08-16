@@ -584,7 +584,7 @@ BOOL cs2::sdl::get_window_info(QWORD window, WINDOW_INFO *info)
 
 QWORD cs2::sdl::get_window_data(QWORD window)
 {
-	return vm::read_i64(game_handle, window + 0x128);
+	return vm::read_i64(game_handle, window + 0x178);
 }
 
 QWORD cs2::sdl::get_hwnd(QWORD window_data)
