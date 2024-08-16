@@ -156,9 +156,10 @@ NTSTATUS system_thread(void)
 		}
 		else
 		{
-			cs2::running();
-			csgo::running();
-			apex::running();
+			BOOL is_running = 0;
+			if (!is_running) is_running = cs2::running();
+			if (!is_running) is_running = csgo::running();
+			if (!is_running) is_running = apex::running();
 		}
 	}
 	return STATUS_SUCCESS;
