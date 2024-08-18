@@ -150,7 +150,7 @@ QWORD apex::entity::get_client_entity(int index)
 {
 	index = index + 1;
 	index = index << 0x5;
-	return vm::read_i64(game_handle, (index + interfaces::IClientEntityList) - 0x280050);
+	return vm::read_i64(game_handle, (index + interfaces::IClientEntityList));
 }
 
 float apex::mouse::get_sensitivity(void)
@@ -393,9 +393,9 @@ static BOOL apex::initialize(void)
 	JZ(vtable_list = vm::scan_pattern(apex_dump, "\x48\x0F\x44\xCE\x48\x89\x05", "xxxxxxx", 8), E2);
 	JZ(bullet_vars = vm::scan_pattern(
 		apex_dump,
-		"\xF3\x0F\x10\x8B\x00\x00\x00\x00\xF3\x0F\x10\x83\x00\x00\x00\x00\x48\x8B\x05", "xxxx??xxxxxx??xxxxx", 20), E2);
+		"\xF3\x0F\x10\x8E\xC4\x1E\x00\x00\xF3\x0F\x10\x86\xFC\x1C\x00\x00", "xxxxxxxxxxxxxxxx", 17), E2);
 	JZ(visible_time = vm::scan_pattern(apex_dump, "\x74\x44\x48\x8B\x93\x00\x00\x00\x00\x48\x85\xD2", "xxxxx????xxx", 13), E2);
-	JZ(interfaces::IClientEntityList = vm::scan_pattern(apex_dump, "\x4C\x8B\x15\x00\x00\x00\x00\x33\xF6", "xxx????xx", 9), E2);
+	JZ(interfaces::IClientEntityList = vm::scan_pattern(apex_dump, "\x48\x8D\x35\x00\x00\x00\x00\x48\x8B\xD9\x83\xF8\xFF\x74\x63\x0F\xB7\xC8", "xxx????xxxxxxxxxxx", 18), E2);
 	JZ(direct::C_BasePlayer = vm::scan_pattern(apex_dump, "\x48\x89\x05\x00\x00\x00\x00\x48\x85\xC9\x74\x0D", "xxx????xxxxx", 13), E2);
 	JZ(get_all_classes = vm::scan_pattern(apex_dump, "\x4C\x8B\xD8\xEB\x07\x4C\x8B\x1D", "xxxxxxxx", 9), E2);
 	JZ(direct::view_render = vm::scan_pattern(apex_dump, "\x40\x53\x48\x83\xEC\x20\x48\x8B\x0D\x00\x00\x00\x00\x48\x8B\xDA\xBA\xFF\xFF\xFF\xFF",
@@ -407,7 +407,7 @@ static BOOL apex::initialize(void)
 	vm::free_module(apex_dump);
 
 
-	interfaces::IClientEntityList = vm::get_relative_address(game_handle, interfaces::IClientEntityList, 3, 7) + 0x08;
+	interfaces::IClientEntityList = vm::get_relative_address(game_handle, interfaces::IClientEntityList, 3, 7);
 	direct::C_BasePlayer      = vm::get_relative_address(game_handle, direct::C_BasePlayer, 3, 7) + 0x08;
 	get_all_classes               = vm::get_relative_address(game_handle, get_all_classes + 0x05, 3, 7);
 	JZ(get_all_classes            = vm::read_i64(game_handle, get_all_classes), E1);
