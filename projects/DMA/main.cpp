@@ -408,8 +408,8 @@ BOOL kmbox::scan_devices(LPCSTR deviceName, LPSTR lpOut)
 
 	while (SetupDiEnumDeviceInfo(deviceInfo, count++, &dev_info_data))
 	{
-		BYTE buffer[256];
-		if (SetupDiGetDeviceRegistryProperty(deviceInfo, &dev_info_data, SPDRP_FRIENDLYNAME, NULL, buffer, sizeof(buffer), NULL))
+		BYTE buffer[256]{};
+		if (SetupDiGetDeviceRegistryPropertyA(deviceInfo, &dev_info_data, SPDRP_FRIENDLYNAME, NULL, buffer, sizeof(buffer), NULL))
 		{
 			DWORD i = (DWORD)strlen(lpOut);
 			LPCSTR lp_pos = strstr((LPCSTR)buffer, com);
