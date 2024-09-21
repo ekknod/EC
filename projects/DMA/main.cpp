@@ -309,6 +309,10 @@ BOOL kmbox::net::open()
 		return dest[0] << 24 | dest[1] << 16 | dest[2] << 8 | dest[3];
 	};
 
+	GetPrivateProfileStringA("kmboxnet", "ip", "", ip, 14, "./kmboxnet.txt");
+	GetPrivateProfileStringA("kmboxnet", "port", "", port, 5, "./kmboxnet.txt");
+	GetPrivateProfileStringA("kmboxnet", "uuid", "", uuid, 9, "./kmboxnet.txt");
+
 	srand((unsigned)time(NULL));
 	net_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	address_srv.sin_addr.S_un.S_addr = inet_addr(ip);
