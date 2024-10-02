@@ -25,7 +25,6 @@ namespace cs2
 		static QWORD view_angles;
 		static QWORD view_matrix;
 		static DWORD button_state;
-		static QWORD previous_xy;
 	}
 
 	namespace convars
@@ -125,11 +124,10 @@ static BOOL cs2::initialize(void)
 	JZ(client_dll = vm::get_module(game_handle, get_client_name()), E1);
 	JZ(sdl = vm::get_module(game_handle, get_sdl3_name()), E1);
 	JZ(inputsystem = vm::get_module(game_handle, get_inputsystem_name()), E1);
-	JZ(direct::previous_xy = vm::scan_pattern_direct(game_handle, inputsystem, "\xF3\x0F\x10\x0D", "xxxx", 4), E1);
-	direct::previous_xy = vm::get_relative_address(game_handle, direct::previous_xy, 4, 8);
 	interfaces::resource = get_interface(vm::get_module(game_handle, get_engine_name()), "GameResourceServiceClientV0");
 	if (interfaces::resource == 0)
 	{
+		LOG(__FILE__ ": line %d\n", __LINE__);
 	E1:
 		vm::close(game_handle);
 		game_handle = 0;
@@ -776,15 +774,9 @@ BOOL cs2::input::is_button_down(DWORD button)
 
 void cs2::input::move(int x, int y)
 {
-	typedef struct 
-	{
-		float y, x;
-	} DATA; 
-
-	DATA data{};
-	data.x = (float)y;
-	data.y = (float)x;
-	vm::write(game_handle, direct::previous_xy - 4, &data, sizeof(data));
+	// remove compiler warning
+	x = 0;
+	y = 0;
 }
 
 DWORD cs2::player::get_health(QWORD player)
