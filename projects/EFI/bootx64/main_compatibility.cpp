@@ -30,8 +30,6 @@ extern "C"
 	QWORD EfiBaseAddress        = 0;
 	QWORD EfiBaseSize           = 0;
 	DWORD GlobalStatusVariable  = 0;
-	QWORD ntoskrnl_fbase        = 0;
-	QWORD ntoskrnl_fsize        = 0;
 
 	//
 	// EFI global variables
@@ -119,16 +117,6 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 
 
 	//
-	// allocate space for ntoskrnl file
-	//
-	if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiBootServicesData, EFI_SIZE_TO_PAGES(SIZE_32MB), &ntoskrnl_fbase)))
-	{
-		Print(FILENAME L" Failed to start " SERVICE_NAME L" service.");
-		return 0;
-	}
-
-
-	//
 	// save our new EFI address information
 	//
 	EfiBaseAddress  = (QWORD)rwx;
@@ -166,7 +154,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 
 namespace km
 {
-	BOOLEAN initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize);
+	BOOLEAN initialize(QWORD ntoskrnl);
 }
 
 extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle, UINTN MapKey)
@@ -216,7 +204,7 @@ unsigned __int64 __fastcall RtlFindExportedRoutineByName(QWORD BaseAddress, cons
 		if (!EFI_ERROR(status))
 		{
 			SwapMemory2(EfiBaseAddress, EfiBaseVirtualAddress);
-			GlobalStatusVariable = km::initialize(BaseAddress, ntoskrnl_fbase, ntoskrnl_fsize);
+			GlobalStatusVariable = km::initialize(BaseAddress);
 			SwapMemory2(EfiBaseVirtualAddress, EfiBaseAddress);
 		}
 	}
@@ -243,55 +231,10 @@ inline QWORD get_nt_header(QWORD image)
 	return nt_header;
 }
 
-static QWORD RtlImageNtHeaderExHook(DWORD Flags, VOID* Base, QWORD Size, OUT QWORD *OutHeaders)
-{
-	*OutHeaders = get_nt_header((QWORD)Base);
-	//
-	// file copied already
-	//
-	if (ntoskrnl_fsize != 0)
-	{
-		return 0;
-	}
-
-	//
-	// make sure RtlImageNtHeaderEx is not called for headers only
-	//
-	if (Size <= 0x1000)
-	{
-		return 0;
-	}
-
-	DWORD es = 0;
-	QWORD nt = *OutHeaders;
-	QWORD sh = get_section_headers(nt);
-	for (WORD i = 0; i < *(WORD*)(nt + 6); i++)
-	{
-		QWORD section = sh + ((QWORD)i * 40);
-		unsigned char name[8];
-		MemCopy(name, (void*)(section), 8);
-		if (!strcmp_imp((const char*)name, "MINIEX"))
-		{
-			es = *(DWORD*)(section + 0x0C);
-			break;
-		}
-	}
-
-	if (es < 0x100000)
-	{
-		return 0;
-	}
-
-	MemCopy((void*)ntoskrnl_fbase, (void *)Base, Size);
-	ntoskrnl_fsize = Size;
-
-	return 0;
-}
-
 extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMORY_TYPE MemoryType, UINTN Pages, EFI_PHYSICAL_ADDRESS *Memory)
 {
 	QWORD return_address = (QWORD)_ReturnAddress();
-	if (*(DWORD*)(return_address) == 0x48001F0F)
+	if (*(DWORD*)(return_address) == 0x48001F0F && *(DWORD*)(return_address) != 0x83F88B48)
 	{
 		QWORD winload = get_caller_base(return_address);
 		QWORD target_routine = GetExportByName(winload, "RtlFindExportedRoutineByName");
@@ -299,18 +242,6 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 		{
 			*(QWORD*)(target_routine + 0x00) = 0x25FF;
 			*(QWORD*)(target_routine + 0x06) = (QWORD)RtlFindExportedRoutineByName;
-
-			//
-			// hook routine for cloning ntoskrnl.exe file (Raw Version)
-			//
-			target_routine = GetExportByName(winload, "RtlImageNtHeaderEx");
-			if (target_routine == 0)
-			{
-				target_routine = FindPattern(winload, (unsigned char *)"\x45\x33\xD2\x4D\x8B\xD8\x4D\x85\xC9", (unsigned char*)"xxxxxxxxx");
-			}
-			*(QWORD*)(target_routine + 0x00) = 0x25FF;
-			*(QWORD*)(target_routine + 0x06) = (QWORD)RtlImageNtHeaderExHook;
-
 			gBS->AllocatePages = oAllocatePages;
 		}
 	}

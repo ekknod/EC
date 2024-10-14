@@ -582,7 +582,7 @@ BOOL cs2::sdl::get_window_info(QWORD window, WINDOW_INFO *info)
 
 QWORD cs2::sdl::get_window_data(QWORD window)
 {
-	return vm::read_i64(game_handle, window + 0x178);
+	return vm::read_i64(game_handle, window + 0x168);
 }
 
 QWORD cs2::sdl::get_hwnd(QWORD window_data)
@@ -875,7 +875,7 @@ cs2::WEAPON_CLASS cs2::player::get_weapon_class(QWORD player)
 	//
 	// C_EconEntity::m_AttributeManager + C_AttributeContainer::m_Item + C_EconItemView::m_iItemDefinitionIndex
 	//
-	WORD weapon_index = vm::read_i16(game_handle, weapon + 0x1090 + 0x50 + 0x1BA);
+	WORD weapon_index = vm::read_i16(game_handle, weapon + 0x1140 + 0x50 + 0x1BA);
 
 	/* knife */
 	{

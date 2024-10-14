@@ -7,11 +7,6 @@
 
 int _fltused;
 
-DWORD calculate_checksum(PVOID file, DWORD file_size);
-DWORD get_checksum(QWORD base);
-DWORD get_checksum_off(QWORD base);
-void  set_checksum(QWORD base, DWORD checksum);
-
 extern "C"
 {
 	QWORD NtUserPeekMessage;
@@ -23,53 +18,11 @@ extern "C"
 
 namespace km
 {
-	QWORD   GetReadFile(void);
-	BOOLEAN initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize);
+	BOOLEAN initialize(QWORD ntoskrnl);
 	DWORD PsGetThreadWin32ThreadOffset;
 	QWORD __fastcall PsGetThreadWin32ThreadHook(QWORD rcx);
 
-	NTSTATUS (__fastcall *oIopReadFile)(
-		__int64 a1,
-		__int64 a2,
-		__int32 a3,
-		__int64 a4,
-		__int64 a5,
-		__int64 a6,
-		__int32 a7,
-		__int64 a8,
-		__int64 a9,
-		__int64 a10,
-		__int64 a11,
-		__int64 a12,
-		__int64 a13,
-		__int64 a14);
-
-	NTSTATUS __fastcall IopReadFileHook(
-		__int64 a1,
-		__int64 a2,
-		__int32 a3,
-		__int64 a4,
-		__int64 a5,
-		__int64 a6,
-		__int32 a7,
-		__int64 a8,
-		__int64 a9,
-		__int64 a10,
-		__int64 a11,
-		__int64 a12,
-		__int64 a13,
-		__int64 a14);
-
-	typedef struct
-	{
-		DWORD offset;
-		QWORD value, original_value;
-	} FILE_PATCH ;
-
-	FILE_PATCH patch[3];
-	FILE_PATCH hook(
-		QWORD fbase,
-		QWORD ntoskrnl, QWORD kernel_function, QWORD detour_routine, QWORD *original_function);
+	BOOL hook(QWORD kernel_function, QWORD detour_routine, QWORD *original_function);
 }
 
 namespace mouse
@@ -180,7 +133,7 @@ extern "C" NTSYSCALLAPI NTSTATUS ObReferenceObjectByName(
 );
 
 //
-// SDL3.dll:PeekMessageW:NtUserPeekMessage:PsGetThreadWin32Thread
+// SDL3.dll:PeekMessageW:NtUserPeekMessage:xxxInternalGetMessage:PsGetThreadWin32Thread
 //
 QWORD __fastcall km::PsGetThreadWin32ThreadHook(QWORD rcx)
 {
@@ -260,131 +213,6 @@ QWORD __fastcall km::PsGetThreadWin32ThreadHook(QWORD rcx)
 	return *(QWORD*)(rcx + PsGetThreadWin32ThreadOffset);
 }
 
-NTSTATUS __fastcall km::IopReadFileHook(
-	__int64 a1,
-	__int64 a2,
-	__int32 a3,
-	__int64 a4,
-	__int64 a5,
-	__int64 a6,
-	__int32 a7,
-	__int64 a8,
-	__int64 a9,
-	__int64 a10,
-	__int64 a11,
-	__int64 a12,
-	__int64 a13,
-	__int64 a14
-	)
-{
-	LARGE_INTEGER read_offset = a8 ?
-		*(LARGE_INTEGER*)a8 :
-		((PFILE_OBJECT)a1)->CurrentByteOffset;
-
-
-
-	NTSTATUS status = oIopReadFile(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14);
-	if (!NT_SUCCESS(status))
-	{
-		return status;
-	}
-
-
-	//
-	// check if someone is reading file from byte patch range
-	//
-	BOOL in_range = 0;
-	for (int i = sizeof(patch) / sizeof(*patch); i--;)
-	{
-		if ((patch[i].offset + sizeof(QWORD)) > read_offset.LowPart &&
-			(patch[i].offset) < (read_offset.LowPart + a7))
-		{
-			in_range = 1;
-			break;
-		}
-	}
-
-
-	//
-	// we dont have to do anything
-	//
-	if (!in_range)
-	{
-		return status;
-	}
-
-
-	//
-	// get file path by file object
-	//
-	WCHAR                   buffer[260]{};
-	ULONG                   return_length = 0;
-	OBJECT_NAME_INFORMATION info{ {0, 0, buffer} };
-	if (!NT_SUCCESS(ObQueryNameString((PVOID)a1, &info, sizeof(buffer), &return_length)))
-	{
-		return status;
-	}
-
-
-	//
-	// if file path contains ntoskrnl (optional)
-	//
-	if (!wcsstr((WCHAR*)buffer, L"ntoskrnl"))
-	{
-		return status;
-	}
-
-
-	//
-	// lets apply our patches
-	//
-	DWORD read_size   = a7;
-	QWORD read_buffer = a6;
-	for (int i = sizeof(patch) / sizeof(*patch); i--;)
-	{
-		if ((patch[i].offset + sizeof(QWORD)) > read_offset.LowPart &&
-			(patch[i].offset) < (read_offset.LowPart + a7))
-		{
-			//
-			// relative offset / offset
-			//
-			int   rof = read_offset.LowPart - patch[i].offset;
-			DWORD off = 0;
-
-
-			if (rof > 0)
-			{
-				off = (patch[i].offset + rof) - read_offset.LowPart;
-			}
-			else
-			{
-				rof = 0;
-				off = patch[i].offset - read_offset.LowPart;
-			}
-
-			QWORD max_size = (sizeof(QWORD) - rof);
-			DWORD data_left = (read_offset.LowPart + read_size) - (patch[i].offset + rof);
-			if (data_left < max_size)
-			{
-				max_size = data_left;
-			}
-
-			//
-			// LOG("patching: %lx, %ld, data left: %ld, hyp: %ld\n", patch[i].offset + rof, max_size, data_left, rof);
-			//
-			memcpy(
-				(void*)(read_buffer + off),
-				(const void*)((unsigned char*)&patch[i].value + rof),
-				max_size
-			);
-
-		}
-
-	}
-
-	return status;
-}
-
 int get_relative_address_offset(QWORD hook, QWORD target)
 {
 	return (hook > target ? (int)(hook - target) : (int)(target - hook)) - 5;
@@ -400,16 +228,9 @@ inline QWORD get_relative_address(QWORD instruction, DWORD offset, DWORD instruc
 	INT32 rip_address = *(INT32*)(instruction + offset);
 	return (QWORD)(instruction + instruction_size + rip_address);
 }
-DWORD get_file_offset(QWORD base, QWORD address);
 
-km::FILE_PATCH km::hook(QWORD fbase, QWORD ntoskrnl, QWORD kernel_function, QWORD detour_routine, QWORD *original_function)
+BOOL km::hook(QWORD kernel_function, QWORD detour_routine, QWORD *original_function)
 {
-	km::FILE_PATCH entry{};
-
-
-	entry.offset         = get_file_offset(ntoskrnl, kernel_function);
-	entry.original_value = *(QWORD*)kernel_function;
-
 	if (original_function)
 		*original_function = get_relative_address((QWORD)kernel_function, 1, 5);
 
@@ -419,38 +240,15 @@ km::FILE_PATCH km::hook(QWORD fbase, QWORD ntoskrnl, QWORD kernel_function, QWOR
 		*(int*)((QWORD)kernel_function + 1) = get_relative_address_offset2( (QWORD)detour_routine, (QWORD)kernel_function );
 		if (get_relative_address((QWORD)kernel_function, 1, 5) != (QWORD)detour_routine)
 		{
-			return {};
+			return 0;
 		}
 	}
 
-	entry.value = *(QWORD*)kernel_function;
-
-
-	//
-	// apply patch to fbase ntoskrnl [raw]
-	//
-	*(QWORD*)(fbase + entry.offset) = entry.value;
-
-
-	return entry;
+	return 1;
 }
 
-QWORD km::GetReadFile(void)
+BOOLEAN km::initialize(QWORD ntoskrnl)
 {
-	QWORD begin = (QWORD)NtReadFile;
-	while (*(QWORD*)begin != 0xCCCCCCCCCCCCCCCC) begin++;
-	while (*(WORD*)begin != 0xCCC3) begin--;
-	while (*(BYTE*)begin != 0xE8) begin--;
-	return begin;
-}
-
-BOOLEAN km::initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize)
-{
-	if (calculate_checksum((PVOID)fbase, (DWORD)fsize) != *(DWORD*)(ntoskrnl + get_checksum_off(ntoskrnl)))
-	{
-		return 0;
-	}
-
 	QWORD addr = FindPattern(ntoskrnl,
 		(BYTE*)"\x48\x89\x5C\x24\x00\x48\x89\x4C\x24\x00\x57\x48\x83\xEC\x20\x41", (BYTE*)"xxxx?xxxx?xxxxxx");
 	if (addr == 0)
@@ -461,33 +259,16 @@ BOOLEAN km::initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize)
 	*(QWORD*)&km::memcpy_safe = addr;
 	PsGetThreadWin32ThreadOffset = *(DWORD*)((QWORD)PsGetThreadWin32Thread + 3);
 	*(unsigned char*)((QWORD)PsGetThreadWin32Thread + 0) = 0xE9;
-	patch[0] = hook(
-		fbase,
-		ntoskrnl, (QWORD)PsGetThreadWin32Thread, (QWORD)PsGetThreadWin32ThreadHook, 0);
-
-	patch[1] = hook(
-		fbase,
-		ntoskrnl, GetReadFile(), (QWORD)IopReadFileHook, (QWORD*)&oIopReadFile);
-
-	for (int i = 0; i < 2; i++) if (patch[i].original_value == 0) return 0;
+	if (!hook((QWORD)PsGetThreadWin32Thread, (QWORD)PsGetThreadWin32ThreadHook, 0))
+	{
+		return 0;
+	}
 
 	NtUserPeekMessage = 0;
 	_KeAcquireSpinLockAtDpcLevel = (QWORD)KeAcquireSpinLockAtDpcLevel;
 	_KeReleaseSpinLockFromDpcLevel = (QWORD)KeReleaseSpinLockFromDpcLevel;
 	_IofCompleteRequest = (QWORD)IofCompleteRequest;
 	_IoReleaseRemoveLockEx = (QWORD)IoReleaseRemoveLockEx;
-	
-
-	DWORD checksum = calculate_checksum((PVOID)fbase, (DWORD)fsize);
-	QWORD old_sum  = *(QWORD*)(ntoskrnl + get_checksum_off(ntoskrnl));
-
-	set_checksum(ntoskrnl, checksum);
-	QWORD new_sum = old_sum;
-	((DWORD*)&new_sum)[0] = checksum;
-
-	patch[2].offset         = get_checksum_off(ntoskrnl);
-	patch[2].value          = new_sum;
-	patch[2].original_value = old_sum;
 
 	return TRUE;
 }

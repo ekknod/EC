@@ -24,8 +24,6 @@ extern "C"
 	DWORD GlobalStatusVariable  = 0;
 	QWORD winload_base          = 0;
 	QWORD ntoskrnl_base         = 0;
-	QWORD ntoskrnl_fbase        = 0;
-	QWORD ntoskrnl_fsize        = 0;
 
 
 	//
@@ -139,16 +137,6 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 
 
 	//
-	// allocate space for ntoskrnl file
-	//
-	if (EFI_ERROR(gBS->AllocatePages(AllocateAnyPages, EfiBootServicesData, EFI_SIZE_TO_PAGES(SIZE_32MB), &ntoskrnl_fbase)))
-	{
-		Print(FILENAME L" Failed to start " SERVICE_NAME L" service.");
-		return 0;
-	}
-
-
-	//
 	// allocate space for SwapMemory
 	//
 	VOID *rwx = AllocateImage((QWORD)current_image->ImageBase);
@@ -206,7 +194,7 @@ extern "C" EFI_STATUS EFIAPI EfiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TA
 
 namespace km
 {
-	BOOLEAN initialize(QWORD ntoskrnl, QWORD fbase, QWORD fsize);
+	BOOLEAN initialize(QWORD ntoskrnl);
 }
 
 extern "C" EFI_STATUS EFIAPI ExitBootServicesHook(EFI_HANDLE ImageHandle, UINTN MapKey)
@@ -247,11 +235,7 @@ static __int64 __fastcall BlMmMapPhysicalAddressExHook(__int64 *a1, __int64 a2, 
 	{
 		QWORD EfiBaseVirtualAddress = *(QWORD*)(a1) - (EfiBaseAddress - a2);
 		SwapMemory2(EfiBaseAddress, EfiBaseVirtualAddress);
-		GlobalStatusVariable = km::initialize(
-			ntoskrnl_base,
-			ntoskrnl_fbase,
-			ntoskrnl_fsize
-		);
+		GlobalStatusVariable = km::initialize(ntoskrnl_base);
 		SwapMemory2(EfiBaseVirtualAddress, EfiBaseAddress);
 	}
 	else
@@ -307,56 +291,11 @@ static DWORD *__fastcall GetMemoryAttributesTable(unsigned __int64 *a1)
 	return 0i64;
 }
 
-static QWORD RtlImageNtHeaderExHook(DWORD Flags, VOID* Base, QWORD Size, OUT QWORD *OutHeaders)
-{
-	*OutHeaders = get_nt_header((QWORD)Base);
-	//
-	// file copied already
-	//
-	if (ntoskrnl_fsize != 0)
-	{
-		return 0;
-	}
-
-	//
-	// make sure RtlImageNtHeaderEx is not called for headers only
-	//
-	if (Size <= 0x1000)
-	{
-		return 0;
-	}
-
-	DWORD es = 0;
-	QWORD nt = *OutHeaders;
-	QWORD sh = get_section_headers(nt);
-	for (WORD i = 0; i < *(WORD*)(nt + 6); i++)
-	{
-		QWORD section = sh + ((QWORD)i * 40);
-		unsigned char name[8];
-		MemCopy(name, (void*)(section), 8);
-		if (!strcmp_imp((const char*)name, "MINIEX"))
-		{
-			es = *(DWORD*)(section + 0x0C);
-			break;
-		}
-	}
-
-	if (es < 0x100000)
-	{
-		return 0;
-	}
-
-	MemCopy((void*)ntoskrnl_fbase, (void *)Base, Size);
-	ntoskrnl_fsize = Size;
-
-	return 0;
-}
-
 extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMORY_TYPE MemoryType, UINTN Pages, EFI_PHYSICAL_ADDRESS *Memory)
 {
 	QWORD return_address = (QWORD)_ReturnAddress();
 
-	if (*(DWORD*)(return_address) != 0x48001F0F)
+	if (*(DWORD*)(return_address) != 0x48001F0F && *(DWORD*)(return_address) != 0x83F88B48)
 		return oAllocatePages(Type, MemoryType, Pages, Memory);
 	
 
@@ -385,9 +324,6 @@ extern "C" EFI_STATUS EFIAPI AllocatePagesHook(EFI_ALLOCATE_TYPE Type, EFI_MEMOR
 	{
 		routine = FindPattern(winload, (unsigned char *)"\x45\x33\xD2\x4D\x8B\xD8\x4D\x85\xC9", (unsigned char*)"xxxxxxxxx");
 	}
-
-	*(QWORD*)(routine + 0x00) = 0x25FF;
-	*(QWORD*)(routine + 0x06) = (QWORD)RtlImageNtHeaderExHook;
 
 
 	//
